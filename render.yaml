@@ -1,0 +1,55 @@
+# Render Blueprint — deploys the FastAPI backend + React static site.
+# In Render: New → Blueprint → select this repo. Only MONGO_URL must be
+# entered by hand (the Atlas connection string); everything else is defined here.
+services:
+  # ---------- Backend (FastAPI + uvicorn) ----------
+  - type: web
+    name: omnivest-backend
+    runtime: python
+    plan: starter
+    region: singapore
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/
+    disk:
+      name: uploads
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: MONGO_URL
+        sync: false # paste the Atlas connection string in the Render dashboard
+      - key: DB_NAME
+        value: omnivest
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://omnivest.in,https://www.omnivest.in,https://omnivest-frontend.onrender.com
+      - key: OTP_DEMO_MODE
+        value: "true"
+      - key: OTP_DEMO_CODE
+        value: "123456"
+      - key: UPLOADS_DIR
+        value: /var/data/uploads
+
+  # ---------- Frontend (React static site) ----------
+  - type: web
+    name: omnivest-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: yarn install && yarn build
+    staticPublishPath: build
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+    routes:
+      # Same-origin /api → backend (mirrors the ingress Emergent provided)
+      - type: rewrite
+        source: /api/*
+        destination: https://omnivest-backend.onrender.com/api/*
+      # SPA fallback: all other paths serve the React app
+      - type: rewrite
+        source: /*
+        destination: /index.html
