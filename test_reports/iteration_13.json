@@ -1,0 +1,30 @@
+{
+  "summary": "Targeted re-test of the India 10-digit hard cap via new onKeyDown preventDefault guard in PhoneField.jsx. All 4 sub-checks PASS: (1) partner-phone over-type '98765432109999' now results in DOM value '+91 98765 43210' (10 national digits); (2) valid 10-digit entry + full partner form submission reaches 'Application received' success state; (3) PhoneAuthModal over-type '98765432109999' now hard-caps at 10 national digits (DOM value '+91 98765 43210'); (4) valid 10-digit + OTP 123456 login lands on /dashboard with 'You are signed in' toast.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "acceptance_matrix": {
+    "partner-phone: type 14 digits, expect exactly 10 national digits in value": "PASS — DOM value '+91 98765 43210' (10 national digits, 12 total digits including 91)",
+    "REGRESSION: valid 10-digit + full form -> partner-success": "PASS — Number 9722319392, applicant_type Company, INH000012345, T&C consent ticked → 'Application received' state reached",
+    "PhoneAuthModal: type 14 digits, expect 10 hard cap": "PASS — DOM value '+91 98765 43210' (10 national digits)",
+    "PhoneAuthModal: valid 10-digit + OTP 123456 -> login": "PASS — Redirected to /dashboard, 'You are signed in' toast visible"
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Minor a11y: DialogContent (T&C modal) missing Description/aria-describedby prop — console warning shown twice on /partner. Not blocking.",
+    "PhoneField.jsx: capIndia guard operates only for India (+91). If future country ceilings are needed, consider generalising via libphonenumber getCountryCallingCode + maxNationalNumberLength lookup instead of the hardcoded 91 branch.",
+    "The partner-terms-consent testid is on the <label> element, which also contains a <a> link (Partner Terms & Conditions) that opens a modal. Automated tests must click the inner <input type='checkbox'> to avoid opening the T&C dialog. Consider moving data-testid to the <input> for cleaner test targeting."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100% (4/4 sub-checks pass)"},
+  "test_credentials": "Phone OTP DEMO = 123456; admin@omnivest.in / Admin@123 (unused)",
+  "seed_data_creation": "One new pending partner application submitted: name 'Retest Cap Iter13', IN mobile +91 97223 19392, SEBI INH000012345, applicant_type=Company.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "10-digit hard cap for Indian mobile numbers is fully working in both /partner (partner-phone) and PhoneAuthModal (phone-input) via PhoneField.jsx onKeyDown capIndia guard. Regression flows (partner submit, OTP demo login) still pass. Only known non-blocking issue: DialogContent missing aria-describedby warning.",
+  "rca of the issue": "PREVIOUS ROOT CAUSE (iter_12): react-phone-number-input's limitMaxLength suppressed onChange for over-length keystrokes, so the onChange sanitizer was unreachable while raw DOM input kept accepting keys. CURRENT FIX (iter_13): PhoneField wrapper <div> now has onKeyDown={capIndia} which fires BEFORE the input receives the key. When (a) selected country is India (value starts with +91), (b) the pressed key is a single digit, (c) no text is selected, and (d) national digit count is already >=10, the handler calls e.preventDefault() and the DOM input never receives the extra keystroke. Verified: overtype of 14 digits yields exactly 10 national digits in the DOM input value in both entry points."
+}

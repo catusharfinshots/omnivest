@@ -1,0 +1,151 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Mobile safety net (§1.2): a single stray element can never scroll the whole page.
+   Use overflow-x:clip (NOT hidden) — hidden forces the other axis to `auto`, which
+   creates a scroll container and breaks every position:sticky on the site. clip
+   prevents horizontal scroll while keeping sticky working. */
+html, body {
+    overflow-x: clip;
+    max-width: 100vw;
+}
+*, *::before, *::after {
+    min-width: 0; /* lets flex/grid children shrink instead of overflowing */
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #ffffff;
+    color: #1A1030;
+}
+
+code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+
+@layer base {
+  :root {
+        /* Omnivest — unified purple brand */
+        --brand: 268 70% 51%;              /* #6C2BD9 */
+        --brand-700: 268 68% 39%;          /* #5320A8 */
+        --brand-900: 268 66% 26%;          /* #3B1671 */
+        --brand-accent: 278 100% 68%;      /* #B15CFF */
+        --brand-pink: 322 78% 57%;         /* #E23FA0 */
+
+        --background: 0 0% 100%;
+        --foreground: 268 40% 12%;          /* #1A1030 */
+        --bg-subtle: 273 43% 97%;           /* #F7F4FB */
+        --card: 0 0% 100%;
+        --card-foreground: 268 40% 12%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 268 40% 12%;
+        --primary: 268 70% 51%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 273 43% 97%;
+        --secondary-foreground: 268 40% 12%;
+        --muted: 273 43% 97%;
+        --muted-foreground: 262 15% 46%;    /* #6B6480 */
+        --accent: 278 100% 68%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 4 87% 60%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 275 40% 91%;              /* #E8E1F0 */
+        --input: 275 40% 91%;
+        --ring: 268 70% 51%;
+        --radius: 0.9rem;
+        --success: 152 82% 39%;             /* #12B76A */
+        --danger: 4 87% 60%;                /* #F04438 */
+    }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'liga' 1, 'calt' 1;
+    font-optical-sizing: auto;
+    }
+  h1, h2, h3, h4 {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer components {
+  .container-x {
+    @apply max-w-7xl mx-auto px-5 sm:px-6 lg:px-8;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-[#6C2BD9] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#5320A8] transition-colors;
+  }
+  .btn-invest {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-[#12B76A] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#0E9F5E] transition-colors;
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-[#E8E1F0] bg-white px-5 py-2.5 text-sm font-semibold text-[#1A1030] hover:border-[#6C2BD9] hover:text-[#6C2BD9] transition-colors;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-[#1A1030] hover:bg-[#F7F4FB] hover:text-[#6C2BD9] transition-colors;
+  }
+  .surface {
+    @apply bg-white border border-[#E8E1F0] rounded-2xl;
+  }
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#6C2BD9];
+  }
+  .link-muted {
+    @apply text-sm text-[#6B6480] hover:text-[#1A1030] transition-colors;
+  }
+  .grad-hero {
+    background: radial-gradient(1000px 480px at 50% -160px, #EADCFB 0%, transparent 70%), linear-gradient(180deg, #FBF8FF, #FFFFFF);
+  }
+  .grad-band {
+    background: linear-gradient(120deg, #3B1671 0%, #6C2BD9 55%, #B15CFF 100%);
+  }
+  .grad-card {
+    background: linear-gradient(135deg, #6C2BD9 0%, #B15CFF 100%);
+  }
+  .grad-accent {
+    background: linear-gradient(135deg, #6C2BD9 0%, #B15CFF 100%);
+  }
+  .grad-soft {
+    background: linear-gradient(135deg, #F7F4FB 0%, #FFFFFF 100%);
+  }
+  .num {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+  .noise-overlay {
+    background-image: radial-gradient(rgba(60,20,100,0.06) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-[#E8E1F0] bg-white px-3 py-1 text-xs font-medium text-[#1A1030];
+  }
+  .chip-brand {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-[#F1E7FE] px-3 py-1 text-xs font-semibold text-[#5320A8];
+  }
+  .chip-accent {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-[#F1E7FE] px-3 py-1 text-xs font-semibold text-[#6C2BD9];
+  }
+}
+
+/* subtle scroll bar */
+::-webkit-scrollbar { height: 8px; width: 8px; }
+::-webkit-scrollbar-thumb { background: #D9CFE8; border-radius: 999px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}

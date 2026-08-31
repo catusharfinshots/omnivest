@@ -1,0 +1,29 @@
+{
+  "summary": "E2E tested change-brief (Tickets 1-6) on Basketly preview. Fixed one critical missing lucide-react import ('Pencil') in AdminPage.jsx that crashed the admin console before the FAQ tab could render. After the fix, all 10 review-request flows PASS: T2 header+footer logo → home with scroll to top (allow smooth-scroll to settle before asserting scrollY); T3 nav links positioned to the left of/near logo and hero h1 text-align=left; T1 bk_home_content_v1 cache present, headline stable across reloads; T4 home 6 home-faq-items expand/collapse + view-all-faqs → /faq; T4 /faq page shows 6 items, search 'lock' → 1, category 'Getting Started' → 2, expand + faq-contact present; T4 admin FAQ CRUD (list 6 seeded → create → 'FAQ saved' toast → list shows new → edit persists → delete removes row); T5 footer socials/contact/subscribe all data-testid present, subscribe-success shown; T5 admin Site settings publish updates public footer (contact email + facebook href) live; T6 no published portfolios in DB → home rail correctly shows 'No portfolios yet' (3 occurrences, one per bucket) — acceptable per brief; Regression phone OTP demo (+919000000010 / 123456) → /dashboard.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AdminPage.jsx", "issue": "ReferenceError: Pencil is not defined — Pencil icon used in FAQ admin row (line 801) was not imported from lucide-react. Crashed the entire admin console when FAQ tab tried to render. FIXED by adding Pencil to the lucide-react import list.", "selector": "[data-testid^=faq-edit-]", "priority": "CRITICAL"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Fix committed by testing agent: added 'Pencil' to lucide-react import in /app/frontend/src/pages/AdminPage.jsx. Please review and keep.",
+    "Optional: /api/portfolios currently returns 0 published portfolios so the 3 home-rail buckets all show 'No portfolios yet'. This satisfies the brief but consider seeding at least one Stock/ETF/Mutual Fund portfolio to demo the rail."
+  ],
+  "critical_code_review_comments": [
+    "AdminPage.jsx (>1200 lines suspected) should be split — a single missing icon import silently broke the entire admin console. Consider extracting FAQ, Settings, Listings tabs into separate files with their own imports.",
+    "FAQ admin delete uses window.confirm (native) — okay, but not testable without dialog handler. Consider a shadcn confirm dialog with data-testid for consistency with the rest of the app.",
+    "PortfolioRail empty-state is fine, but the buckets could optionally hide when all three are empty to avoid a large 'No portfolios yet' block on the home page for a fresh install."
+  ],
+  "updated_files": ["/app/frontend/src/pages/AdminPage.jsx"],
+  "success_rate": {"backend": "100%", "frontend": "100% (after 1 fix)"},
+  "test_credentials": "admin@basketly.in / Admin@123 (admin). Phone OTP: any +91 number, code 123456.",
+  "seed_data_creation": "Created and deleted one temporary FAQ (TEST_Q_<epoch>) during CRUD test. Site settings were mutated (contact email + facebook url) then restored to defaults (support@mutlixx.in, empty facebook). One subscribe lead created via the footer form (email: test+<epoch>@example.com) — not cleaned up.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All Ticket 1-6 flows verified on https://ui-redesign-130.preview.emergentagent.com. The AdminPage 'Pencil' import fix is required for admin FAQ tab; verify it is still present. If seeding portfolios, T6 should be re-verified that clicking a home-rail row lands on the same portfolio id at /model-portfolios/<id>.",
+  "rca of the issue": "AdminPage.jsx used <Pencil /> for the FAQ row edit icon but Pencil was omitted from the lucide-react import list. React threw ReferenceError during render of the FAQ tab, which broke the admin console (whole page white-screened with 'Uncaught runtime errors'). Reproduction: login /login as admin → land on /admin → click FAQ tab → error overlay. Fix: added Pencil to the existing named import in AdminPage.jsx line 6."
+}

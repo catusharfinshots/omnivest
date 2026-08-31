@@ -1,0 +1,42 @@
+{
+  "summary": "Frontend-only verification of Become-a-partner v2 form, PhoneAuthModal country selector, and Admin partner applicant-type badges + Site-settings T&C editor. All 8 acceptance items pass end-to-end EXCEPT one deviation on the strict India '10-digit cap' expectation (typing goes to ~13 national digits in the react-phone-number-input <input> because limitMaxLength doesn't hard-block extra keystrokes for IN; however submit stays disabled via isValidPhoneNumber gating, so functionally the flow is safe).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "PhoneField (partner-phone / phone-input)", "issue": "For India (+91), typing more than 10 digits is NOT hard-capped by react-phone-number-input's limitMaxLength — the raw input accepts up to ~13 national digits. Visual formatting stops updating past 10 digits but extra keystrokes still land in the value. isValidPhoneNumber correctly gates Submit, so no invalid submission occurs. Spec asked for a strict 10-digit cap.", "selector": "[data-testid=partner-phone] input.PhoneInputInput", "priority": "MINOR"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "acceptance_matrix": {
+    "partner-phone default country IN (+91)": "PASS",
+    "partner-phone India 10-digit hard cap": "PARTIAL — extra digits still typable, but isValidPhoneNumber blocks submit",
+    "applicant-type radios (Individual/LLP/Company, no default, click selects)": "PASS (all 3 aria-checked=false initially; click flips to true)",
+    "submit disabled until all valid; invalid SEBI 'ABC123' shows inline error 'Format: IN, a letter, then 9 digits' and keeps submit disabled": "PASS",
+    "open-partner-terms opens partner-terms-modal with T&C content": "PASS (modal shows admin-managed 'Omnivest Partner T&C' + body)",
+    "full valid submission -> partner-success": "PASS (unique IN mobile, email test@firm.com, SEBI INH000012345, applicant_type Company, note, consent → 'Application received' state)",
+    "PhoneAuthModal via Get started: phone-input defaults to IN, Send OTP → 123456 → login proceeds": "PASS ('You are signed in' toast, redirected to /dashboard)",
+    "Admin Partner applications: partner-app-row shows partner-applicant-type badge": "PASS for new applications (2/4 rows). Two legacy pending applications (Tushar Research, Rakesh Research) have no applicant_type badge — pre-existing rows without the field",
+    "Admin Approved Partners: Anita Rao shows LLP applicant-type badge": "PASS ('LLP' badge present on Anita's card)",
+    "Admin Site settings: Partner Terms & Conditions editor (settings-terms-title + settings-terms-body); edit + Publish changes persists after reload": "PASS (edited to 'T&C Title 18633' / 'T&C body 18633' → reload confirms same values)"
+  },
+  "test_report_links": [],
+  "action_items": [
+    "MINOR: Consider enforcing a hard 10-digit numeric cap on PhoneField for defaultCountry=IN — react-phone-number-input's limitMaxLength does not fully prevent additional keystrokes past 10 national digits in this build (13 digits observed in raw input value). One-liner options: (a) also set maxLength on the internal <input> when country==='IN' (11 or 12 chars incl. space), or (b) sanitize onChange to strip beyond 10 national digits. Not a submission risk (isValidPhoneNumber currently blocks), so priority is low/cosmetic.",
+    "OPTIONAL: In Admin > Partner applications, older pending rows created before applicant_type existed have no badge. Either backfill with a default ('—' or 'Unknown') or hide the badge slot cleanly. Currently the badge slot just isn't rendered for those rows, which is acceptable."
+  ],
+  "critical_code_review_comments": [
+    "BecomePartner.jsx submit path is clean and gating logic is correct; SEBI regex ^IN[A-Z][0-9]{9}$ matches the spec.",
+    "PhoneField wraps react-phone-number-input consistently for both public entry points (BecomePartner + PhoneAuthModal) — good DRY.",
+    "The partner-terms-modal content falls back to a placeholder when /api/content has no partnerTerms — handled gracefully.",
+    "AdminPage.jsx still very large; splitting Site-settings sub-blocks (footer, socials, partnerTerms) into components would help maintainability, but this iteration did not regress it."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "~95% (7.5/8 items fully pass; 10-digit hard cap partial)"},
+  "test_credentials": "admin@omnivest.in / Admin@123; Phone OTP DEMO=123456",
+  "seed_data_creation": "Submitted one new partner application via UI (name: 'Test User FE', applicant_type: Company, unique IN mobile ~+91 98495 66600, SEBI INH000012345). Now visible in Admin > Partner applications with applicant_type='Company'.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iteration 11 covered the full v2 Become-a-partner flow (phone selector, applicant-type radios, gating, T&C modal, submit success), PhoneAuthModal phone selector + OTP login (demo mode), and Admin applicant-type badges + Site-settings T&C editor persistence. Only outstanding gap is a soft (non-blocking) 10-digit cap on the phone input — main agent should decide whether to tighten it. All admin flows (Partner applications tab, Approved Partners tab with Anita Rao LLP badge, Site settings publish persists) verified working.",
+  "rca of the issue": "10-digit cap partial: react-phone-number-input's limitMaxLength depends on libphonenumber's parsing to stop accepting further digits; for India +91 it stops incrementing the FORMATTED national number past 10 digits, but the underlying controlled <input> still accepts additional keystrokes appended to the raw value string (observed input.value='+91 9876543210999' after typing 14 digits). Since form validity uses isValidPhoneNumber(E.164), the Submit button remains disabled — so user cannot submit an over-length number, but the UX allows the extra chars to remain visible. Fix suggestion: add an explicit onChange sanitizer or maxLength attribute to enforce the hard cap."
+}

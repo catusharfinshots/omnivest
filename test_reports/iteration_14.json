@@ -1,0 +1,31 @@
+{
+  "summary": "Frontend-only regression of role-aware navbar, /partner unification, /analyst redirect, and Admin sidebar groups+badges. All 8 acceptance items PASS.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "acceptance_matrix": {
+    "Navbar (admin)": "PASS — Admin dropdown shows nav-admin-console (href=/admin); nav-analyst-console absent.",
+    "Navbar (analyst +919812300011)": "PASS — Dropdown shows nav-analyst-console (href=/partner); nav-admin-console absent.",
+    "Navbar (fresh investor)": "PASS — Neither nav-admin-console nor nav-analyst-console present (only Dashboard/Log out).",
+    "/partner logged-out": "PASS — partner-form visible AND partner-login-cta visible containing partner-login-btn 'Already approved? Log in'; clicking it opens PhoneAuthModal with visible phone-input.",
+    "/analyst redirect": "PASS — Navigating to /analyst results in URL /partner.",
+    "/partner as analyst": "PASS — Full-page AnalystConsole rendered (own header 'Omnivest ANALYST CONSOLE' + 'Sign out'); partner-form and partner-login-cta absent; also reachable via nav-analyst-console link.",
+    "Admin sidebar groups": "PASS — Order exactly: Partners & Listings, Site content, Investment catalog, Operations, System. Memberships match spec (partners/managers/listings/dropdowns; home/about/testimonials/faqs; collections/mutual-funds/fds; leads/market; database/settings). System has 'mt-3 pt-3 border-t' visual separation.",
+    "Admin sidebar collapse + persist": "PASS — Collapsing 'Investment catalog' hides its items; localStorage 'omni-admin-nav-groups-v1' stores {\"Investment catalog\":false}; after reload the group remains collapsed. Active-item group forced-open verified by clicking Partner applications then toggling 'Partners & Listings' group — items stayed visible.",
+    "Admin pending badges": "PASS — admin-badge-partners visible with text '3' (matches pending partner applications). admin-badge-listings absent because pending listings count = 0 (existing DRAFT listing has status 'draft', not 'pending' — badge shows only when pendingListings>0, per spec).",
+    "REGRESSION active highlight + tab switching": "PASS — Active item receives purple (#F1E7FE) highlight. All 14 admin tabs load their respective headers (Home content, About Us, Approved Partners, Collections, Mutual funds, Fixed deposits, Testimonials, FAQ, Leads, Listings, Partner applications, Market data, Form dropdowns, Database, Site settings)."
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Minor: admin-badge-listings is driven strictly by status='pending' portfolios. A DRAFT listing currently visible on the 'Listings (approve)' screen with an Approve button won't increment the badge. If the intent is 'items needing admin action', consider including drafts too — otherwise the visible Approve button on drafts is misleading. Not a regression from this iteration.",
+    "Minor a11y: DialogContent (Partner T&C modal) still missing aria-describedby (carry-over warning from iter_13).",
+    "Nav popover: the account button in Navbar.jsx does not have a data-testid (only Link items inside do). Consider adding data-testid='nav-account-trigger' for test stability."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100% (8/8 acceptance items pass)"},
+  "test_credentials": "Admin: admin@omnivest.in / Admin@123. Analyst: +91 98123 00011 with OTP 123456 (demo). Fresh investor: any unused Indian mobile + OTP 123456.",
+  "seed_data_creation": "One fresh investor user auto-created during test (mobile 98165 91038) via OTP demo login.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All routing/UI changes for iter_14 verified end-to-end using preview URL. Analyst console at /partner replaces old /analyst; navbar role-aware links present in desktop popover (mobile variants have testids -mobile suffix but not exercised). Admin sidebar 5-group layout with localStorage persistence and forced-open-active-group logic all working. Only cosmetic/copy note is that admin-badge-listings won't reflect DRAFT listings — confirm with product if that's intended."
+}

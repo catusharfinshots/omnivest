@@ -1,0 +1,28 @@
+{
+  "summary": "Tested F5.1 (Editable Dropdowns), F6.1 (Kite instrument search), F6.4 (live prices / period returns with graceful 503), and Draft Reminders end-to-end. Backend pytest 13/13 pass in /app/backend/tests/test_market_and_dropdowns.py — GET /listing-options returns all 5 default groups; PUT /admin/listing-options requires admin, de-dupes case-insensitively (['thematic','Thematic','sectoral',' thematic '] → ['thematic','sectoral']), rejects empty list and non-list types with 422, persists across GETs, and defaults were restored at the end. GET /admin/kite/market/status → {connected:false, configured:true, instruments_count:0} (correct 'not connected' state). GET /admin/kite/market/login-url returns a kite.zerodha.com URL. POST /api/market/quote returns 503 when not connected. POST /api/market/period-return returns 404 (no cached instruments) — graceful. GET /api/market/instruments/search requires auth (401 without token) and returns {results:[]} for authed callers. Also re-ran the previous regression suite /app/backend/tests/test_analyst_submit_gate.py → 5/5 pass. Frontend (Playwright, admin@basketly.in / Admin@123): Market data tab (data-testid=market-admin) shows 'Not connected', kite-connect-btn enabled, refresh-instruments-btn DISABLED, instruments-count text 'No instruments cached yet' — all as spec. Dropdowns tab renders 5 option-group-* sections; deleting rows in strategy down to 1 correctly disables the last trash button (client-side prevents empty group); adding 'TEST_temp_strategy' and clicking save-dropdowns-btn persisted the new option (verified via /api/listing-options after reload); defaults were restored (via PUT). Analyst flows (provisioned via admin invite + phone-OTP demo): New portfolio form's Strategy select renders the 5 defaults from /api/listing-options; typing 'REL' in data-testid=constituent-symbol-input does NOT crash (0 results shown gracefully) and the manually typed value is preserved; clicking fetch-prices-btn shows market-note 'Kite market-data account is not connected. Ask an admin to connect Kite.'; clicking compute-returns-btn with return-period=1Y shows the same friendly note; Draft Reminder verified: a barely-populated draft renders data-testid=draft-checklist showing '7 items left before you can submit' with expandable list containing exactly the expected missing fields (Subtitle/Methodology/Factsheet objective/who/risk/PDF/Add at least one constituent).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_market_and_dropdowns.py",
+    "/app/backend/tests/test_analyst_submit_gate.py",
+    "/app/test_reports/pytest/market_and_dropdowns.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "listing_options.py PUT correctly does case-insensitive de-dupe while preserving order and rejects empty lists (422). The GET falls back to DEFAULTS per key when doc is missing/empty — nice UX.",
+    "market_data.py cleanly separates admin session mgmt from analyst read paths and translates kiteconnect TokenException → 503 + needs_reconnect flag (won't be reproducible without a real Kite session, but the not-connected 503 path is exercised).",
+    "market_data.period_return does the instrument lookup BEFORE requiring an active Kite session (raises 404 first); when no instruments are cached this shadows the 503 message. Minor UX nit — consider swapping order so unauthenticated admin sees the more actionable 'reconnect Kite' hint. Not a blocker.",
+    "AnalystConsole.jsx computes the missing checklist client-side by calling validateForSubmit — verified visually to match backend errors[] exactly. Good parity.",
+    "MarketDataAdmin.jsx: refresh-instruments-btn correctly stays disabled while status.connected is false — prevents an accidental 503."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_market_and_dropdowns.py (new)"
+  ],
+  "success_rate": {"backend": "100% (13/13 new + 5/5 regression pytest)", "frontend": "100% of visible flows verified"},
+  "test_credentials": "admin@basketly.in / Admin@123; analyst provisioned per-run via POST /api/admin/invites + phone-OTP demo (code 123456); token primed into localStorage keys basketly-token-v1 / basketly-user-v1.",
+  "seed_data_creation": "Per-run analyst user, throwaway TEST_ prefixed drafts (cleaned up via DELETE at end of each test). listing-options were mutated during tests and RESTORED to spec defaults at the end (verified via a final GET).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All three new features (F5.1 dropdowns, F6.1/F6.4 market data 503-path, Draft Reminders) are working end-to-end. Live Kite prices cannot be tested until an admin performs the real daily Zerodha login (per user note). Reusable pytest at /app/backend/tests/test_market_and_dropdowns.py auto-restores listing-options defaults in its final test. Provisioning pattern for analyst UI runs is identical to iteration_6 (invite → phone-OTP verify → prime localStorage → visit /analyst).",
+  "rca of the issue": "N/A — no bugs found."
+}

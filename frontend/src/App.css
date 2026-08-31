@@ -1,0 +1,18 @@
+/* Omnivest App-level styles (kept minimal, most is Tailwind + index.css tokens) */
+
+.App {
+  min-height: 100vh;
+  background: #ffffff;
+}
+
+/* fade in on route mount */
+.fade-in {
+  animation: fadeIn 0.35s ease both;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+/* sparkline hover glow */
+.spark-glow { filter: drop-shadow(0 4px 10px rgba(108,43,217,0.35)); }

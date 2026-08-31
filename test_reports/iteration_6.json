@@ -1,0 +1,23 @@
+{
+  "summary": "Tested the Analyst Console 'Save & submit for approval' validation gate (Phase 3 change brief F5.2, F6.2, F6.3) end-to-end on backend + frontend. Backend: 5/5 pytest cases pass in /app/backend/tests/test_analyst_submit_gate.py — empty portfolio → 422 with detail.errors containing every expected message (subtitle/methodology/factsheet fields/factsheet PDF/at-least-one-constituent); wrong total weight (70%) → 422 with 'Total allocation must equal exactly 100% (currently 70%)'; >30-word subtitle stored via draft update → 422 with 'Subtitle must be 30 words or fewer.'; draft create+update is permissive (200) even with blanks; a fully complete portfolio + factsheet PDF upload → 200 with status='pending'. Frontend: provisioned an analyst via admin invite + phone-OTP demo mode, primed token into localStorage, opened /analyst → New portfolio. F5.2 verified: pasting a 45-word string into portfolio-subtitle-input hard-capped to exactly 30 words and subtitle-word-count showed '30/30 words' in red. F6.3 verified: clicking save-submit-btn on empty form rendered data-testid=submit-errors with all 10 expected messages (name/subtitle/methodology/factsheet objective/who/risk/factsheet PDF/constituent symbol+name/constituent weight/total allocation). F6.2 verified: live weight-total shows 'Total: 40% (must be 100%)' when weight=40, and save-submit lists 'Total allocation must equal exactly 100% (currently 40%)'. Save-draft path verified permissive: save-draft-btn with only a name populated produced 'Saved as draft' toast (no strict validation). All the data-testids in the spec (portfolio-subtitle-input, subtitle-word-count, weight-total, submit-errors, save-submit-btn, save-draft-btn) are present and functioning.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_analyst_submit_gate.py",
+    "/app/test_reports/pytest/analyst_submit_gate.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Backend _validate_complete correctly mirrors the frontend validateForSubmit; weight uses round(sum(...)) so 33.3+33.3+33.4 would pass — acceptable given the exact-100 requirement uses rounded total, matching frontend Math.round(totalWeight).",
+    "capWords() in AnalystConsole.jsx correctly hard-caps at 30 words while preserving trailing whitespace tokens for natural typing.",
+    "submit_portfolio raises HTTPException(422, detail={message, errors}) which FastAPI wraps as {detail:{message,errors}} — frontend saveAndSubmit reads detail.errors correctly; verified live."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (5/5 pytest)", "frontend": "100% of validation flows verified"},
+  "test_credentials": "admin@basketly.in / Admin@123; analyst provisioned per-run via /api/admin/invites + phone-OTP demo (code 123456).",
+  "seed_data_creation": "Per-run analyst user (random +9198xxxxxxxx phone) + throwaway portfolios prefixed TEST_. All test portfolios cleaned up via DELETE after each test.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Analyst Console Phase-3 validations are fully working end-to-end. Reusable pytest at /app/backend/tests/test_analyst_submit_gate.py covers submit-gate 422/200 paths + draft permissiveness + subtitle-30w check. For UI runs, provision an analyst by POST /api/admin/invites (admin token) → POST /api/auth/phone/verify-otp with invite_code + demo OTP 123456, then prime localStorage keys basketly-token-v1 / basketly-user-v1 before visiting /analyst.",
+  "rca of the issue": "N/A — no bugs found."
+}

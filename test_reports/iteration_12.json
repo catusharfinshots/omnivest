@@ -1,0 +1,33 @@
+{
+  "summary": "Targeted re-test of the India 10-digit hard-cap on PhoneField (partner-phone and PhoneAuthModal phone-input) plus regression on full partner-form submission and OTP login. The 10-digit hard cap FIX DID NOT WORK — typing 14 digits still leaves the DOM input at '+91 9876543210999' (13 national digits) in BOTH entry points. However, the regression flows still pass: valid 10-digit entry submits partner-success, and phone-OTP demo login (123456) still lands on /dashboard.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "PhoneField (partner-phone AND phone-input)", "issue": "The onChange sanitizer added in PhoneField.jsx does NOT hard-cap India numbers at 10 digits. Typing '98765432109999' (14 digits) yields DOM input value '+91 9876543210999' (13 national digits) — identical to iteration_11 behavior. Root cause: react-phone-number-input's `limitMaxLength` stops emitting onChange once the formatted max is reached, so the sanitizer never receives an over-length value and its `national.length > 10` branch never fires. Additional keystrokes are accepted directly into the underlying <input> DOM node (which has no maxlength attribute — verified: maxlength=null). Submit is still gated by isValidPhoneNumber so no invalid data reaches backend, but the visible input is NOT hard-capped as required.", "selector": "[data-testid=\"partner-phone\"] input.PhoneInputInput, [data-testid=\"phone-input\"] input.PhoneInputInput", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "acceptance_matrix": {
+    "partner-phone: type 14 digits, expect exactly 10 national digits in value": "FAIL — value is '+91 9876543210999' (13 national digits, 15 total digits)",
+    "REGRESSION: valid 10-digit + full form -> partner-success": "PASS (unique num 9262456470, applicant_type Company, INH000012345, consent ticked → 'Application received' state)",
+    "PhoneAuthModal: type 14 digits, expect 10 hard cap": "FAIL — value is '+91 9876543210999' (13 national digits)",
+    "PhoneAuthModal: valid 10-digit + OTP 123456 -> login": "PASS (redirected to /dashboard, 'You are signed in' toast)"
+  },
+  "test_report_links": [],
+  "action_items": [
+    "HARD-CAP FIX NEEDS REVISION: onChange sanitizer alone is insufficient because react-phone-number-input's limitMaxLength suppresses onChange for over-length keystrokes. Recommended alternatives (any one): (a) set maxLength attribute directly on the internal input via ref+effect when country==='IN' (e.g., 16 for '+91 XXXXX XXXXX'), (b) add an onKeyDown handler that preventDefaults digit keys once national digit count === 10, (c) attach a raw input event listener that trims value.replace(/\\D/g,'').length beyond 12 (2 for +91 + 10 national). Options (a) and (b) are the simplest one-liners."
+  ],
+  "critical_code_review_comments": [
+    "PhoneField.jsx onChange sanitizer is dead code for the India over-length case — the condition `national.length > 10` is unreachable because react-phone-number-input already truncates the emitted E.164 value at 10 national digits via `limitMaxLength`. Extra keystrokes bypass onChange entirely and land in the raw DOM input.",
+    "Consider extracting the country-cap logic into a small ref-based effect that sets input.maxLength based on the currently selected country's max national length (India = 10 → maxLength 16 including '+91 ' and space)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "50% on the targeted item (2/4 sub-checks fail — both hard-cap sub-checks), 100% on regression (both regression sub-checks pass)"},
+  "test_credentials": "Phone OTP DEMO = 123456; admin@omnivest.in / Admin@123 (unused)",
+  "seed_data_creation": "One new pending partner application submitted (name 'Retest Cap3', IN mobile +91 92624 56470, SEBI INH000012345, applicant_type=Company).",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The 10-digit hard-cap is still not enforced despite the onChange sanitizer added in iteration_12. Root cause is react-phone-number-input's limitMaxLength suppressing onChange for over-length keystrokes. Next fix must operate at the DOM input level (maxLength attr via ref, or onKeyDown preventDefault). Regression flows (valid submit + OTP login) are stable and don't need re-testing unless the fix touches PhoneField structurally.",
+  "rca of the issue": "react-phone-number-input's PhoneInput internally uses libphonenumber to format the number. When `limitMaxLength` is true and the national significant number reaches the country's max length (10 for IN), further digit keystrokes are ignored by the FORMATTER — the emitted onChange value stays at '+919876543210'. But the underlying uncontrolled <input> DOM element still receives the raw keystrokes and appends them to its .value string. Because the PhoneField sanitizer only runs inside onChange, and onChange never fires with over-length values, the sanitizer's `if (national.length > 10)` branch never executes. Result: the DOM input visually holds up to 13 (or more) national digits while React state stays at 10. Since isValidPhoneNumber gates submit, no invalid data reaches the API — but the UX contract of a strict 10-digit hard cap is not met."
+}

@@ -1,0 +1,34 @@
+{
+  "summary": "Verified Omnivest rebrand end-to-end. Backend: all 11 existing About tests + 4 new rebrand tests pass (founder=Tushar Sukhija/Founder & CEO, all @omnivest.in contact emails, footer.contactEmail=support@omnivest.in, admin login works). Frontend: browser tab title correct ('Omnivest — All your investing, in one place'), OG/Twitter/favicon tags present in index.html, footer wordmark Omnivest with support@omnivest.in, About page: /founders/tushar-sukhija and /team/rohan-iyer both render dedicated person-detail (H1='Tushar Sukhija', role 'Founder & CEO', full bio, LinkedIn), 'Back to About' link returns to /about, bogus slug /founders/does-not-exist renders person-not-found, no inline expand toggles found. Admin regression: log in as admin@basketly.in / Admin@123 → /admin → About Us sidebar → hero headline edit + Save → 'About page saved' toast → change is live on /about (verified) → restored.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/login", "issues": ["Demo-account card still shows the raw email 'demo@basketly.in · Password123' which contains user-visible 'basketly'. Per user-choice login emails are intentionally kept as-is, so this is expected — but if the goal is zero user-visible Basketly text, consider aliasing the demo credential label (e.g. show 'demo@omnivest.in' as a display alias) or hide the credential card."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_rebrand.py",
+    "/app/backend/tests/test_about.py",
+    "/app/test_reports/pytest/rebrand.xml"
+  ],
+  "action_items": [
+    "OPTIONAL/COSMETIC: Decide whether the demo-account credential card on /login (which visibly displays 'demo@basketly.in') should be aliased/hidden. User's stated choice keeps login emails as-is, so leaving as-is is acceptable."
+  ],
+  "critical_code_review_comments": [
+    "PersonDetail.jsx correctly guards loading/not-found/success states and uses data-testids consistently.",
+    "Slugify is duplicated (defined in PersonDetail.jsx and used in AboutPage.jsx via /{kind}/<slug>) — ensure both use the same slug rule to avoid mismatch; verified live for Tushar and Rohan.",
+    "Backend DEFAULT_ABOUT now returns a single founder — the previous test_about.py hard-coded len(founders)>=2 has been relaxed to >=1 (updated by testing agent)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_rebrand.py (new)",
+    "/app/backend/tests/test_about.py (relaxed founders>=2 to >=1 to match new default)"
+  ],
+  "success_rate": {"backend": "100% (15/15)", "frontend": "100% of testable rebrand + regression flows"},
+  "test_credentials": "admin@basketly.in / Admin@123 (kept intentionally per user choice)",
+  "seed_data_creation": "None. Preview DB reseeded fresh Omnivest defaults on its own.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Rebrand is complete and green. Only cosmetic concern is demo credential text on /login. New regression file is /app/backend/tests/test_rebrand.py."
+}

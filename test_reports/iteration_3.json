@@ -1,0 +1,36 @@
+{
+  "summary": "E2E tested the new About Us feature (backend + frontend) on preview URL. Backend: 11/11 pytest tests pass (GET defaults, PUT admin persistence, whitelisted-keys enforcement, PUT 401 without token, PUT 403 with non-admin investor, upload 200 + media served with image content-type, non-image upload 422, upload 403 for non-admin, media 404 for missing file, media traversal blocked). Frontend: /about renders all 6 required sections (hero, story+stats, teamIntro, founders, team+teamStats, contacts). Investors section correctly hidden by default. 2 founders / 2 team / 3 contact cards render. 'Read Bio' toggle expands bio (text changes Read Bio → Show less). LinkedIn icon absent when linkedinUrl empty (0 icons with defaults). 4 /about links present across nav+footer. Admin end-to-end: login as admin → /admin → About Us tab → about-admin renders → hero headline updated to TEST marker + investors toggle enabled → about-save clicked → success toast 'About page saved. Changes are now live on /about.' → public /about reload shows the new headline AND investors block appears. Restored defaults after test.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/about/media/{filename}", "issue": "Path-traversal attempt using URL-encoded slash (..%2Fsecret) is rejected with 404 (Starlette route no-match after %2F decoding) instead of the explicit 400 the code intends. Access is still blocked so this is a low-severity discrepancy vs spec. The in-handler check for '/' in filename or '..' only fires for literal '..name' (no slash), which does return 400 as expected."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_about.py",
+    "/app/test_reports/pytest/about_results.xml"
+  ],
+  "action_items": [
+    "(Optional/minor) If explicit 400 for %2F traversal is required by spec, add a middleware or check the raw path; currently it returns 404 which still blocks access."
+  ],
+  "critical_code_review_comments": [
+    "backend/about.py: DEFAULT_ABOUT built at import-time with uuid.uuid4() means founder/team/contact IDs are stable within a process but change across restarts when no DB doc exists — fine because IDs are only used as React keys, but worth noting.",
+    "AboutAdmin.jsx is ~280 lines and mostly-clean; PhotoUpload/PersonEditor are correctly reusable. Consider extracting InvestorsCard block (currently inline in AboutAdmin) for readability.",
+    "PUT /api/about accepts an entire object without Pydantic validation of nested shapes; whitelist by top-level key is the only safeguard. Consider modelling with pydantic BaseModels for stricter shape validation, especially on `founders`/`team` items."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_about.py (new)"
+  ],
+  "success_rate": {"backend": "100% (11/11)", "frontend": "100% (all listed flows)"},
+  "test_credentials": "admin@basketly.in / Admin@123 (admin), demo@basketly.in / Password123 (investor).",
+  "seed_data_creation": "Temporarily set hero.headline to TEST_HEADLINE_<epoch> and flipped visibility.investors=true during admin E2E, then restored to defaults ('Changing how India invests' and investors=false).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run pytest /app/backend/tests/test_about.py for regression on About APIs. All About feature flows are green. Only known nit: path-traversal via %2F yields 404 not 400 (still blocks). If seed data is changed, remember /about is now a public route linked from nav (get_by_text 'About Us' inside admin) and footer.",
+  "rca of the issue": "N/A — no functional bugs discovered."
+}

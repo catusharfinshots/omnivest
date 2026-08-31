@@ -1,0 +1,26 @@
+{
+  "summary": "End-to-end UI+integration test of the two new Basketly features passed. Verified: (1) Admin creates analyst invite -> invite link shown & row OPEN. (2) Signup via invite creates analyst -> lands on /admin Analyst Console. (3) Signup WITHOUT invite creates investor -> lands on /dashboard, no analyst-invite-banner. (4) Reusing the same invite is blocked with red toast 'This analyst invite is invalid, used or expired.' and stays on /signup. (5) Analyst 'New portfolio' + factsheet PDF upload -> factsheet-pdf-row and factsheet-pdf-link (with ?auth= token) appear, Save & submit for approval -> PENDING. (6) Admin approves via EXACT-text 'Approve' button in 'Listings (approve)' tab -> status flips to APPROVED. (7) Public (logged-out) /model-portfolios/<id> shows Overview 'Factsheet' card with data-testid=factsheet-download linking to /api/portfolios/<id>/factsheet; fetch without auth returns 200 with Content-Type application/pdf (437 bytes).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Admin console", "issues": ["After clicking sidebar tabs (e.g., 'Analyst invites', 'Listings (approve)'), the page heading still reads 'Content manager' / 'Edit what investors see... Publish changes' with an active 'Publish changes' button that is unrelated to the current tab. Consider updating the header per active tab for clarity."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "AdminPage top header ('Content manager' + Publish changes) is rendered for all sidebar tabs (invites, listings, leads, etc.). It should be tab-specific to avoid misleading users into clicking 'Publish changes' when editing invites/listings.",
+    "factsheet-pdf-link in AnalystConsole includes the JWT in the URL query (?auth=<token>). This works but exposes the token in browser history/logs; consider a short-lived signed URL or Bearer-only download for owner/admin.",
+    "Admin login redirects to /dashboard by default; admins must manually navigate to /admin. Consider auto-routing role=admin to /admin post-login."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin@basketly.in / Admin@123. Created analyst analyst_1787387659@test.com / Password123 and investor investor_1787387659@test.com / Password123 during testing.",
+  "seed_data_creation": "Created 1 analyst invite (used), 1 analyst user, 1 investor user, and 1 approved analyst portfolio 'TEST Basket 1787387718' (id c9537169-d547-45d9-ae81-b96e7db06365) with factsheet.pdf uploaded.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 7 review-request flows verified against https://ui-redesign-130.preview.emergentagent.com. Approved portfolio id c9537169-d547-45d9-ae81-b96e7db06365 (analyst analyst_1787387659@test.com) can be reused. Multiple OPEN analyst invites remain in the admin table from earlier runs; revoke if cleanup desired.",
+  "rca of the issue": "No bugs found. Note: exact-text selector was used for the Approve button (get_by_role('button', name='Approve', exact=True)) to avoid the earlier false positive of matching the sidebar item 'Listings (approve)'."
+}
