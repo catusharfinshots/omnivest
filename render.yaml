@@ -6,16 +6,18 @@ services:
   - type: web
     name: omnivest-backend
     runtime: python
-    plan: starter
+    # Free tier: no card needed. Trade-offs: spins down after ~15 min idle
+    # (first request then takes ~30-60s) and no persistent disk (uploaded
+    # files are lost on restart; DB data in Atlas is unaffected).
+    # To go production-grade later: plan: starter, and re-add the disk:
+    #   disk: {name: uploads, mountPath: /var/data, sizeGB: 1}
+    # plus envVar UPLOADS_DIR=/var/data/uploads.
+    plan: free
     region: singapore
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/
-    disk:
-      name: uploads
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.10
@@ -31,8 +33,6 @@ services:
         value: "true"
       - key: OTP_DEMO_CODE
         value: "123456"
-      - key: UPLOADS_DIR
-        value: /var/data/uploads
 
   # ---------- Frontend (React static site) ----------
   - type: web
