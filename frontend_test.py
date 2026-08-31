@@ -6,7 +6,7 @@ Tests frontend pages and UI elements as specified in the review request.
 from playwright.sync_api import sync_playwright, expect
 import sys
 
-FRONTEND_URL = "https://ui-redesign-130.preview.emergentagent.com"
+FRONTEND_URL = "http://localhost:3000"
 
 def test_broker_connect_page(page):
     """Test 7: Broker connect page renders correctly"""

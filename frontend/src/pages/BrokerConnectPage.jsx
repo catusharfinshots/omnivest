@@ -163,7 +163,7 @@ export default function BrokerConnectPage() {
           </div>
           <div>
             <div className="font-semibold">Kite showed a raw JSON error page</div>
-            <div className="mt-1 text-[#7C5A00]">This happens when Kite refuses to redirect back — usually because the redirect URL on the app doesn&apos;t exactly match this callback: <code className="bg-white/60 rounded px-1">https://ui-redesign-130.preview.emergentagent.com/broker/kite/callback</code>. Update it in your app settings.</div>
+            <div className="mt-1 text-[#7C5A00]">This happens when Kite refuses to redirect back — usually because the redirect URL on the app doesn&apos;t exactly match this callback: <code className="bg-white/60 rounded px-1">{window.location.origin}/broker/kite/callback</code>. Update it in your app settings.</div>
           </div>
           <div>
             <div className="font-semibold">Popup was blocked</div>

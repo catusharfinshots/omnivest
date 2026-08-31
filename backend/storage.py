@@ -1,48 +1,48 @@
-"""Emergent Object Storage helpers (used for portfolio factsheet PDFs)."""
+"""Local-disk object storage (factsheet PDFs, About-page images).
+
+Replaces the former Emergent Object Storage integration with files stored
+under UPLOADS_DIR (default: ./uploads next to this file). Keeps the same
+interface used by analyst.py / about.py / server.py, so a future swap to
+S3/Cloudflare R2 only needs to touch this module.
+"""
 from __future__ import annotations
 
 import os
 import logging
-
-import requests
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
-STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
-EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
-APP_NAME = "basketly"
+APP_NAME = "basketly"  # kept: existing DB records reference paths under this prefix
 
-_storage_key = None
+UPLOADS_DIR = Path(os.environ.get("UPLOADS_DIR") or (Path(__file__).parent / "uploads")).resolve()
+
+
+def _resolve(path: str) -> Path:
+    full = (UPLOADS_DIR / path).resolve()
+    if not str(full).startswith(str(UPLOADS_DIR)):
+        raise ValueError("Invalid storage path")
+    return full
 
 
 def init_storage() -> str:
-    global _storage_key
-    if _storage_key:
-        return _storage_key
-    resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
-    resp.raise_for_status()
-    _storage_key = resp.json()["storage_key"]
-    logger.info("Object storage initialised")
-    return _storage_key
+    UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    logger.info("Local object storage at %s", UPLOADS_DIR)
+    return str(UPLOADS_DIR)
 
 
 def put_object(path: str, data: bytes, content_type: str) -> dict:
-    key = init_storage()
-    resp = requests.put(
-        f"{STORAGE_URL}/objects/{path}",
-        headers={"X-Storage-Key": key, "Content-Type": content_type},
-        data=data, timeout=120,
-    )
-    resp.raise_for_status()
-    return resp.json()
+    full = _resolve(path)
+    full.parent.mkdir(parents=True, exist_ok=True)
+    full.write_bytes(data)
+    return {"path": path, "size": len(data), "content_type": content_type}
 
 
 def get_object(path: str) -> tuple[bytes, str]:
-    key = init_storage()
-    resp = requests.get(
-        f"{STORAGE_URL}/objects/{path}",
-        headers={"X-Storage-Key": key}, timeout=60,
-    )
-    resp.raise_for_status()
-    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+    full = _resolve(path)
+    if not full.is_file():
+        raise FileNotFoundError(path)
+    import mimetypes
+
+    ct = mimetypes.guess_type(str(full))[0] or "application/octet-stream"
+    return full.read_bytes(), ct

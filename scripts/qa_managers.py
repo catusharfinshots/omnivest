@@ -1,6 +1,6 @@
 import asyncio
 from playwright.async_api import async_playwright
-BASE="https://ui-redesign-130.preview.emergentagent.com"
+BASE="http://localhost:8000"
 async def main():
     async with async_playwright() as p:
         b=await p.chromium.launch(); page=await b.new_page(viewport={"width":1280,"height":800})
