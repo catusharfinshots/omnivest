@@ -111,4 +111,10 @@ def build_router(db) -> APIRouter:
         title, desc = PAGE_META.get(clean, (None, DEFAULT_DESC))
         return _page(_title(title), desc, origin + clean, image)
 
+    # Path-style variant (/api/og/about) — hosting rewrites/CDNs can drop or
+    # cache-collapse query strings, so shared links use this form instead.
+    @router.get("/og/{rest:path}", response_class=HTMLResponse)
+    async def og_preview_path(request: Request, rest: str = ""):
+        return await og_preview(request, path="/" + rest)
+
     return router

@@ -49,6 +49,51 @@ services:
       - type: rewrite
         source: /api/*
         destination: https://omnivest-backend.onrender.com/api/*
+      # Prerendered share-preview pages (scripts/prerender-og.js): the bare
+      # /route URL must serve build/<route>/index.html with baked OG meta,
+      # or the SPA catch-all would hand crawlers the homepage meta instead.
+      - type: rewrite
+        source: /model-portfolios
+        destination: /model-portfolios/index.html
+      - type: rewrite
+        source: /about
+        destination: /about/index.html
+      - type: rewrite
+        source: /aif
+        destination: /aif/index.html
+      - type: rewrite
+        source: /advisory
+        destination: /advisory/index.html
+      - type: rewrite
+        source: /faq
+        destination: /faq/index.html
+      - type: rewrite
+        source: /learn
+        destination: /learn/index.html
+      - type: rewrite
+        source: /managers
+        destination: /managers/index.html
+      - type: rewrite
+        source: /mutual-funds
+        destination: /mutual-funds/index.html
+      - type: rewrite
+        source: /stocks
+        destination: /stocks/index.html
+      - type: rewrite
+        source: /fixed-deposits
+        destination: /fixed-deposits/index.html
+      - type: rewrite
+        source: /collections
+        destination: /collections/index.html
+      - type: rewrite
+        source: /explore
+        destination: /explore/index.html
+      - type: rewrite
+        source: /calculators
+        destination: /calculators/index.html
+      - type: rewrite
+        source: /partner
+        destination: /partner/index.html
       # SPA fallback: all other paths serve the React app
       - type: rewrite
         source: /*
