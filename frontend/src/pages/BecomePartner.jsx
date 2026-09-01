@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { isValidPhoneNumber } from 'react-phone-number-input';
@@ -173,6 +174,25 @@ export default function BecomePartner() {
     axios.get(`${API}/content`).then(({ data }) => setTerms(data?.partnerTerms || null)).catch(() => setTerms(null));
   }, []);
 
+  const resetFlow = () => {
+    setForm(EMPTY_FORM);
+    setFiles({ sebi_cert: null, nism_cert: null, pan_card: null });
+    setDone(false); setAppId(null); setRefNo(''); setUploadedKinds([]);
+    window.scrollTo({ top: 0 });
+  };
+
+  // Re-clicking any "Become a partner" link while already here pushes a new
+  // history entry (same path, new key) — treat that as "start a fresh form".
+  const location = useLocation();
+  const locKey = useRef(location.key);
+  useEffect(() => {
+    if (location.key !== locKey.current) {
+      locKey.current = location.key;
+      if (done) resetFlow();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
+
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setPhone = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -273,6 +293,10 @@ export default function BecomePartner() {
           </ol>
         </div>
         <p className="mt-5 text-xs text-[#94A3B8]">Questions? Write to <a className="font-semibold text-[#6C2BD9]" href={`mailto:support@omnivest.in?subject=Partner application ${refNo}`}>support@omnivest.in</a> with your reference number.</p>
+        <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
+          <Link to="/" className="btn-primary px-5 py-2.5 text-sm" data-testid="success-go-home">Back to homepage</Link>
+          <button type="button" data-testid="success-new-application" onClick={resetFlow} className="btn-outline px-5 py-2.5 text-sm">Submit another application</button>
+        </div>
       </div>
     </div>
   ) : (
