@@ -15,7 +15,10 @@ export default function MobileBottomNav() {
 
   const isHome = pathname === '/';
   const isPort = pathname.startsWith('/model-portfolios');
-  const isDash = pathname.startsWith('/dashboard');
+  // Partners' "home base" is the analyst console, not the investor dashboard.
+  const isAnalyst = user?.role === 'analyst';
+  const dashTarget = isAnalyst ? '/partner' : '/dashboard';
+  const isDash = pathname.startsWith(isAnalyst ? '/partner' : '/dashboard');
 
   const goDashboard = (e) => {
     if (!isAuthed) { e.preventDefault(); openAuth({ next: '/dashboard' }); }
@@ -36,8 +39,8 @@ export default function MobileBottomNav() {
           <LayoutGrid className="h-5 w-5" /> Portfolios
         </Link>
 
-        <Link to="/dashboard" onClick={goDashboard} data-testid="mobtab-dashboard" className={`${base} ${isDash ? active : idle}`}>
-          <LayoutDashboard className="h-5 w-5" /> Dashboard
+        <Link to={dashTarget} onClick={goDashboard} data-testid="mobtab-dashboard" className={`${base} ${isDash ? active : idle}`}>
+          <LayoutDashboard className="h-5 w-5" /> {isAnalyst ? 'Console' : 'Dashboard'}
         </Link>
 
         <Popover>

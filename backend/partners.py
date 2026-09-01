@@ -118,6 +118,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     router = APIRouter(tags=["partners"])
     col = db.partner_applications
     require_admin = build_current_user_dep(db, ["admin"])
+    require_user = build_current_user_dep(db)
 
     @router.post("/partners/apply")
     async def apply(payload: ApplyIn):
@@ -205,6 +206,25 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         await db.partner_documents.delete_many({"application_id": app_id, "kind": kind})
         await db.partner_documents.insert_one(dict(meta))
         return {"ok": True, "document": {k: meta[k] for k in ("id", "kind", "filename", "content_type", "size", "uploaded_at")}}
+
+    @router.get("/partners/my-application")
+    async def my_application(user: dict = Depends(require_user)):
+        """The logged-in user's latest partner application (matched by their
+        phone), so /partner can show their status instead of a blank form."""
+        phone = user.get("phone")
+        if not phone:
+            raise HTTPException(status_code=404, detail="No application")
+        doc = await col.find_one({"phone": phone}, sort=[("created_at", -1)])
+        if not doc:
+            raise HTTPException(status_code=404, detail="No application")
+        return {
+            "ref_no": doc.get("ref_no"),
+            "name": doc.get("name"),
+            "status": doc.get("status"),
+            "review_note": doc.get("review_note", ""),
+            "created_at": doc.get("created_at"),
+            "reviewed_at": doc.get("reviewed_at"),
+        }
 
     @router.post("/partners/status")
     async def application_status(payload: StatusIn):

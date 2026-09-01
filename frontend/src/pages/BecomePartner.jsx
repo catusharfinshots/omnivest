@@ -158,7 +158,16 @@ function OfficerFields({ prefix, label, form, set, setPhone }) {
 }
 
 export default function BecomePartner() {
-  const { user, isAuthed, loading: authLoading, openAuth } = useAuth();
+  const { user, isAuthed, loading: authLoading, openAuth, token } = useAuth();
+  // Logged-in non-analysts: show their own application's status instead of a blank form.
+  const [myApp, setMyApp] = useState(undefined); // undefined=checking, null=none
+  const [reapply, setReapply] = useState(false);
+  useEffect(() => {
+    if (!isAuthed || !token || user?.role === 'analyst') { setMyApp(null); return; }
+    axios.get(`${API}/partners/my-application`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => setMyApp(data))
+      .catch(() => setMyApp(null));
+  }, [isAuthed, token, user]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [files, setFiles] = useState({ sebi_cert: null, nism_cert: null, pan_card: null });
   const [busy, setBusy] = useState(false);
@@ -272,6 +281,40 @@ export default function BecomePartner() {
     return <AnalystConsole />;
   }
 
+  // Logged-in user with an application on this number: status view, not a blank form.
+  if (isAuthed && myApp && !done && (myApp.status === 'pending' || (myApp.status === 'rejected' && !reapply))) {
+    const rejected = myApp.status === 'rejected';
+    return (
+      <div className="min-h-screen flex flex-col pb-16 lg:pb-0">
+        <Seo title="Your Partner Application" description="Track your Omnivest partner application." />
+        <Navbar />
+        <main className="flex-1 fade-in grid place-items-center bg-[#F7F4FB] p-6">
+          <div className="surface p-8 sm:p-10 max-w-lg w-full" data-testid="my-application-status">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${rejected ? 'bg-[#FEE2E2] text-[#DC2626]' : 'bg-[#FEF3C7] text-[#B45309]'}`}>
+                {rejected ? <XCircle className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />} {rejected ? 'Not approved' : 'Under review'}
+              </span>
+              {myApp.ref_no && <span className="text-xs font-bold text-[#1A1030]">{myApp.ref_no}</span>}
+            </div>
+            <h1 className="mt-4 text-2xl font-bold">{rejected ? 'Your application was not approved' : 'Your partner application is under review'}</h1>
+            {!rejected && <p className="mt-2 text-sm text-[#64748B]">We're verifying your SEBI registration and documents — typically 2–3 working days. Once approved, this page becomes your analyst console the next time you log in.</p>}
+            {myApp.review_note && (
+              <div className="mt-4 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] px-3 py-2 text-sm text-[#475569]">
+                <b className="text-[#1A1030]">Message from our review team:</b> {myApp.review_note}
+              </div>
+            )}
+            {rejected && (
+              <button type="button" data-testid="reapply-btn" onClick={() => setReapply(true)} className="btn-primary mt-5 px-5 py-2.5 text-sm">Correct &amp; submit a fresh application</button>
+            )}
+            <p className="mt-5 text-xs text-[#94A3B8]">Questions? Write to <a className="font-semibold text-[#6C2BD9]" href={`mailto:support@omnivest.in?subject=Partner application ${myApp.ref_no || ''}`}>support@omnivest.in</a>{myApp.ref_no ? ' with your reference number.' : '.'}</p>
+          </div>
+        </main>
+        <Footer />
+        <MobileBottomNav />
+      </div>
+    );
+  }
+
   const inner = done ? (
     <div className="min-h-[70vh] grid place-items-center bg-[#F7F4FB] p-6">
       <div className="surface p-10 text-center max-w-lg" data-testid="partner-success">
@@ -335,6 +378,11 @@ export default function BecomePartner() {
             <h2 className="text-lg font-semibold">Apply as a research analyst</h2>
             <div className="mt-5 space-y-4">
               <SectionTitle>Contact</SectionTitle>
+              {isAuthed && (
+                <div className="rounded-lg bg-[#FFF7ED] border border-[#FED7AA] px-3 py-2 text-xs text-[#9A3412]" data-testid="account-conversion-note">
+                  You're logged in as an investor account{user?.phone ? ` (${user.phone})` : ''}. If you apply with this same number and are approved, it becomes a <b>partner account</b> — the investor dashboard is replaced by the analyst console.
+                </div>
+              )}
               <div>
                 <Label>Full name *</Label>
                 <Input data-testid="partner-name" required value={form.name} onChange={set('name')} className="h-11 mt-1.5" placeholder="Your name" />

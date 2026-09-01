@@ -27,6 +27,12 @@ export default function DashboardPage() {
   const [ticketSymbol, setTicketSymbol] = useState('');
   const [ticketTxn, setTicketTxn] = useState('BUY');
 
+  // One role per account: partners live in the analyst console, not the investor dashboard.
+  const isAnalyst = !authLoading && user?.role === 'analyst';
+  useEffect(() => {
+    if (isAnalyst) navigate('/partner', { replace: true });
+  }, [isAnalyst, navigate]);
+
   const openTicket = (symbol = '', txn = 'BUY') => {
     setTicketSymbol(symbol);
     setTicketTxn(txn);

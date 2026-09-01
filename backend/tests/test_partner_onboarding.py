@@ -157,6 +157,41 @@ def test_reject_requires_reason_and_status_tracking():
         _cleanup(app["id"], headers)
 
 
+def test_my_application_for_logged_in_applicant():
+    """The video scenario: someone applies, then logs in with the same number
+    via phone-OTP (demo mode) — /partners/my-application must surface their
+    application so the UI can show status instead of a blank form."""
+    headers = _admin_headers()
+    p = _payload()
+    r = requests.post(f"{API}/partners/apply", json=p, timeout=30)
+    assert r.status_code == 200, r.text
+    app = r.json()["application"]
+    user_token = None
+    try:
+        # phone-OTP login with the same number (demo mode code)
+        requests.post(f"{API}/auth/phone/request-otp", json={"phone": p["phone"]}, timeout=30)
+        v = requests.post(f"{API}/auth/phone/verify-otp", json={"phone": p["phone"], "code": "123456"}, timeout=30)
+        assert v.status_code == 200, v.text
+        user_token = v.json()["token"]
+        assert v.json()["user"]["role"] == "investor"  # new number => investor account
+
+        mine = requests.get(f"{API}/partners/my-application",
+                            headers={"Authorization": f"Bearer {user_token}"}, timeout=30)
+        assert mine.status_code == 200, mine.text
+        assert mine.json()["ref_no"] == app["ref_no"]
+        assert mine.json()["status"] == "pending"
+
+        # unauthenticated access is refused
+        assert requests.get(f"{API}/partners/my-application", timeout=30).status_code in (401, 403)
+    finally:
+        _cleanup(app["id"], headers)
+        # remove the OTP-created investor test user
+        if user_token:
+            me = requests.get(f"{API}/auth/me", headers={"Authorization": f"Bearer {user_token}"}, timeout=30)
+            if me.ok:
+                requests.delete(f"{API}/admin/db/users/{me.json()['user']['id']}", headers=headers, timeout=30)
+
+
 def test_llp_full_flow_with_officers():
     headers = _admin_headers()
     officer = {"name": "PO Person", "email": "po@test.com", "phone": "+919812345678"}
