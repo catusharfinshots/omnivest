@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import CountUpStat from '../components/CountUpStat';
 import './Home.css';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -124,9 +125,9 @@ export default function Home() {
             <Link to="/model-portfolios" className="btn btn-outline">▢ {c.hero.secondaryCta}</Link>
           </div>
           <div className="ratings">
-            <span>Rated <b>{c.stats.rating}</b></span>
-            <span><b>{c.stats.investors}</b> investors</span>
-            <span><b>{c.stats.managed}</b> managed</span>
+            <span>Rated <b><CountUpStat value={c.stats.rating} /></b></span>
+            <span><b><CountUpStat value={c.stats.investors} /></b> investors</span>
+            <span><b><CountUpStat value={c.stats.managed} /></b> managed</span>
           </div>
           <div className="stage">
             <div className="pedestal l"></div><div className="pedestal r"></div>
