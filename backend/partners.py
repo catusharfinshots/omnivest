@@ -133,6 +133,12 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if payload.disciplinary_history and not payload.disciplinary_details.strip():
             raise HTTPException(status_code=400, detail="Please describe the disciplinary action(s) you declared.")
         phone = to_e164(payload.phone)  # server-side E.164 validation; rejects invalid numbers
+        # hard wall: customer numbers and partner numbers never cross
+        owner = await db.users.find_one({"phone": phone}, {"_id": 0, "role": 1})
+        if owner and owner.get("role") == "analyst":
+            raise HTTPException(status_code=409, detail="This number already has a partner account. Use “Already approved? Log in” on this page.")
+        if owner:
+            raise HTTPException(status_code=409, detail="This number is already in use as a customer account on Omnivest. Please apply with a different (business) mobile number.")
         # avoid stacking duplicate pending applications for the same phone
         if await col.find_one({"phone": phone, "status": "pending"}):
             raise HTTPException(status_code=409, detail="You already have an application under review. We'll be in touch soon.")

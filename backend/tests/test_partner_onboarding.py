@@ -157,39 +157,54 @@ def test_reject_requires_reason_and_status_tracking():
         _cleanup(app["id"], headers)
 
 
-def test_my_application_for_logged_in_applicant():
-    """The video scenario: someone applies, then logs in with the same number
-    via phone-OTP (demo mode) — /partners/my-application must surface their
-    application so the UI can show status instead of a blank form."""
+def test_hard_wall_between_customer_and_partner_funnels():
+    """A number lives on exactly one side. Applicants/analysts are refused on
+    the customer login; customer numbers are refused on the partner login and
+    the application form; the partner login never creates accounts."""
     headers = _admin_headers()
-    p = _payload()
-    r = requests.post(f"{API}/partners/apply", json=p, timeout=30)
-    assert r.status_code == 200, r.text
-    app = r.json()["application"]
-    user_token = None
+    firm_marker = f"Wallfirm {uuid.uuid4().hex[:6]}"
+    p = _payload(firm=firm_marker)
+    app = requests.post(f"{API}/partners/apply", json=p, timeout=30).json()["application"]
+    analyst_user_id = investor_user_id = None
     try:
-        # phone-OTP login with the same number (demo mode code)
-        requests.post(f"{API}/auth/phone/request-otp", json={"phone": p["phone"]}, timeout=30)
-        v = requests.post(f"{API}/auth/phone/verify-otp", json={"phone": p["phone"], "code": "123456"}, timeout=30)
-        assert v.status_code == 200, v.text
-        user_token = v.json()["token"]
-        assert v.json()["user"]["role"] == "investor"  # new number => investor account
+        # pending applicant blocked on customer side (request AND verify)
+        r = requests.post(f"{API}/auth/phone/request-otp", json={"phone": p["phone"], "flow": "customer"}, timeout=30)
+        assert r.status_code == 409 and "under review" in r.json()["detail"]
+        r = requests.post(f"{API}/auth/phone/verify-otp", json={"phone": p["phone"], "code": "123456", "flow": "customer"}, timeout=30)
+        assert r.status_code == 409
+        # pending applicant can't log in on the partner side either (no silent account)
+        r = requests.post(f"{API}/auth/phone/request-otp", json={"phone": p["phone"], "flow": "partner"}, timeout=30)
+        assert r.status_code == 409 and "under review" in r.json()["detail"]
 
-        mine = requests.get(f"{API}/partners/my-application",
-                            headers={"Authorization": f"Bearer {user_token}"}, timeout=30)
-        assert mine.status_code == 200, mine.text
-        assert mine.json()["ref_no"] == app["ref_no"]
-        assert mine.json()["status"] == "pending"
+        # approve -> analyst account; partner login works, customer login refused
+        ok = requests.post(f"{API}/admin/partners/{app['id']}/review", json={"action": "approve", "note": ""}, headers=headers, timeout=30)
+        assert ok.status_code == 200
+        v = requests.post(f"{API}/auth/phone/verify-otp", json={"phone": p["phone"], "code": "123456", "flow": "partner"}, timeout=30)
+        assert v.status_code == 200 and v.json()["user"]["role"] == "analyst"
+        analyst_user_id = v.json()["user"]["id"]
+        r = requests.post(f"{API}/auth/phone/request-otp", json={"phone": p["phone"], "flow": "customer"}, timeout=30)
+        assert r.status_code == 409 and "partner account" in r.json()["detail"]
 
-        # unauthenticated access is refused
-        assert requests.get(f"{API}/partners/my-application", timeout=30).status_code in (401, 403)
+        # a customer number: created on customer side, refused on partner side + application form
+        cust_phone = f"+9197{uuid.uuid4().int % 10**8:08d}"
+        cv = requests.post(f"{API}/auth/phone/verify-otp", json={"phone": cust_phone, "code": "123456", "flow": "customer"}, timeout=30)
+        assert cv.status_code == 200 and cv.json()["user"]["role"] == "investor"
+        investor_user_id = cv.json()["user"]["id"]
+        r = requests.post(f"{API}/auth/phone/request-otp", json={"phone": cust_phone, "flow": "partner"}, timeout=30)
+        assert r.status_code == 409 and "customer account" in r.json()["detail"]
+        r = requests.post(f"{API}/partners/apply", json=_payload(phone=cust_phone), timeout=30)
+        assert r.status_code == 409 and "customer account" in r.json()["detail"]
+
+        # unknown number on the partner side: no account creation, clear guidance
+        r = requests.post(f"{API}/auth/phone/request-otp", json={"phone": "+919600000001", "flow": "partner"}, timeout=30)
+        assert r.status_code == 404 and "Apply below" in r.json()["detail"]
     finally:
         _cleanup(app["id"], headers)
-        # remove the OTP-created investor test user
-        if user_token:
-            me = requests.get(f"{API}/auth/me", headers={"Authorization": f"Bearer {user_token}"}, timeout=30)
-            if me.ok:
-                requests.delete(f"{API}/admin/db/users/{me.json()['user']['id']}", headers=headers, timeout=30)
+        for uid in (analyst_user_id, investor_user_id):
+            if uid:
+                requests.delete(f"{API}/admin/db/users/{uid}", headers=headers, timeout=30)
+        for m in requests.get(f"{API}/admin/db/managers", params={"q": firm_marker}, headers=headers, timeout=30).json().get("documents", []):
+            requests.delete(f"{API}/admin/db/managers/{m['id']}", headers=headers, timeout=30)
 
 
 def test_llp_full_flow_with_officers():

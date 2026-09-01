@@ -53,6 +53,7 @@ def to_e164(raw: str) -> str:
 
 class PhoneReq(BaseModel):
     phone: str = Field(..., min_length=3, max_length=40)
+    flow: str = Field(default="customer", pattern="^(customer|partner)$")
 
 
 class VerifyReq(BaseModel):
@@ -60,14 +61,43 @@ class VerifyReq(BaseModel):
     code: str = Field(..., pattern=r"^\d{4,10}$")
     name: Optional[str] = Field(default=None, max_length=80)
     invite_code: Optional[str] = Field(default=None, max_length=300)
+    flow: str = Field(default="customer", pattern="^(customer|partner)$")
 
 
 def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     router = APIRouter(prefix="/auth/phone", tags=["phone-auth"])
 
+    async def _enforce_wall(phone: str, flow: str) -> None:
+        """Hard wall between the customer and partner funnels: a number lives on
+        exactly one side. Customer login refuses partner numbers (and pending
+        applicants); partner login refuses customer numbers and unknown numbers,
+        so it can never silently create an investor account."""
+        user = await db.users.find_one({"phone": phone}, {"_id": 0, "role": 1})
+        app = await db.partner_applications.find_one(
+            {"phone": phone, "status": {"$in": ["pending", "approved"]}},
+            {"_id": 0, "status": 1}, sort=[("created_at", -1)],
+        )
+        role = (user or {}).get("role")
+        if flow == "customer":
+            if role == "analyst" or (app and app["status"] == "approved"):
+                raise HTTPException(status_code=409, detail="This number is registered as a partner account. Please log in from the Partner page (omnivest.in/partner).")
+            if app and app["status"] == "pending":
+                raise HTTPException(status_code=409, detail="This number has a partner application under review. You can track it on the Partner page (omnivest.in/partner).")
+        else:  # partner login
+            if role == "analyst":
+                return
+            if app and app["status"] == "pending":
+                raise HTTPException(status_code=409, detail="Your partner application is still under review — you'll be able to log in here once it's approved.")
+            if role == "investor":
+                raise HTTPException(status_code=409, detail="This number is a customer account. Use “Get started” to log in, or apply as a partner with a different number.")
+            if role == "admin":
+                raise HTTPException(status_code=409, detail="Please use the admin email login.")
+            raise HTTPException(status_code=404, detail="No partner account found for this number. Apply below to become a partner.")
+
     @router.post("/request-otp")
     async def request_otp(body: PhoneReq):
         phone = to_e164(body.phone)
+        await _enforce_wall(phone, body.flow)
         if DEMO_MODE:
             return {"ok": True, "demo": True, "status": "pending"}
         if not _client or not VERIFY_SID:
@@ -94,6 +124,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     @router.post("/verify-otp")
     async def verify_otp(body: VerifyReq):
         phone = to_e164(body.phone)
+        await _enforce_wall(phone, body.flow)  # re-checked here so verify can't bypass the wall
         if DEMO_MODE:
             if body.code != DEMO_CODE:
                 raise HTTPException(status_code=401, detail="Invalid code. In demo mode the code is 123456.")

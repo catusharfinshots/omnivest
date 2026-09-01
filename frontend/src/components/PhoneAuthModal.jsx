@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import PhoneField from './PhoneField';
 
 export default function PhoneAuthModal() {
-  const { authOpen, authInvite, authNext, closeAuth, requestOtp, verifyOtp } = useAuth();
+  const { authOpen, authInvite, authNext, authFlow, closeAuth, requestOtp, verifyOtp } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState('phone');
   const [phone, setPhone] = useState('');
@@ -36,7 +36,7 @@ export default function PhoneAuthModal() {
     e?.preventDefault();
     setError(''); setBusy(true);
     try {
-      const res = await requestOtp(phone);
+      const res = await requestOtp(phone, authFlow);
       setDemo(!!res?.demo);
       setStep('code');
       setCooldown(30);
@@ -50,7 +50,7 @@ export default function PhoneAuthModal() {
     e?.preventDefault();
     setError(''); setBusy(true);
     try {
-      const user = await verifyOtp({ phone, code, name: name || undefined, invite_code: authInvite || undefined });
+      const user = await verifyOtp({ phone, code, name: name || undefined, invite_code: authInvite || undefined, flow: authFlow });
       closeAuth();
       toast.success('You are signed in');
       const dest = authNext || (user.role === 'analyst' ? '/analyst' : '/dashboard');

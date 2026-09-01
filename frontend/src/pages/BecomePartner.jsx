@@ -351,7 +351,7 @@ export default function BecomePartner() {
               <div className="text-sm font-semibold text-[#1A1030]">Already an approved partner?</div>
               <div className="text-xs text-[#64748B]">Log in with your registered mobile number to open your analyst console.</div>
             </div>
-            <button data-testid="partner-login-btn" onClick={() => openAuth({ next: '/partner' })} className="btn-outline shrink-0"><LogIn className="h-4 w-4" /> Already approved? Log in</button>
+            <button data-testid="partner-login-btn" onClick={() => openAuth({ next: '/partner', flow: 'partner' })} className="btn-outline shrink-0"><LogIn className="h-4 w-4" /> Already approved? Log in</button>
           </div>
         )}
         <TrackApplication />
@@ -378,11 +378,9 @@ export default function BecomePartner() {
             <h2 className="text-lg font-semibold">Apply as a research analyst</h2>
             <div className="mt-5 space-y-4">
               <SectionTitle>Contact</SectionTitle>
-              {isAuthed && (
-                <div className="rounded-lg bg-[#FFF7ED] border border-[#FED7AA] px-3 py-2 text-xs text-[#9A3412]" data-testid="account-conversion-note">
-                  You're logged in as an investor account{user?.phone ? ` (${user.phone})` : ''}. If you apply with this same number and are approved, it becomes a <b>partner account</b> — the investor dashboard is replaced by the analyst console.
-                </div>
-              )}
+              <div className="rounded-lg bg-[#FFF7ED] border border-[#FED7AA] px-3 py-2 text-xs text-[#9A3412]" data-testid="separate-number-note">
+                Partner accounts use their own mobile number — a number already registered as a customer account on Omnivest can't be used here. Please use your business/professional number.
+              </div>
               <div>
                 <Label>Full name *</Label>
                 <Input data-testid="partner-name" required value={form.name} onChange={set('name')} className="h-11 mt-1.5" placeholder="Your name" />

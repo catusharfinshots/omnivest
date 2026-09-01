@@ -59,13 +59,15 @@ export function AuthProvider({ children }) {
   }, [persist]);
 
   // ----- Phone + OTP (Twilio Verify) -----
-  const requestOtp = useCallback(async (phone) => {
-    const { data } = await axios.post(`${API}/auth/phone/request-otp`, { phone });
+  // flow: 'customer' (Get started) or 'partner' (Already approved? Log in) —
+  // the backend enforces a hard wall so a number lives on exactly one side.
+  const requestOtp = useCallback(async (phone, flow = 'customer') => {
+    const { data } = await axios.post(`${API}/auth/phone/request-otp`, { phone, flow });
     return data;
   }, []);
 
-  const verifyOtp = useCallback(async ({ phone, code, name, invite_code }) => {
-    const { data } = await axios.post(`${API}/auth/phone/verify-otp`, { phone, code, name, invite_code });
+  const verifyOtp = useCallback(async ({ phone, code, name, invite_code, flow = 'customer' }) => {
+    const { data } = await axios.post(`${API}/auth/phone/verify-otp`, { phone, code, name, invite_code, flow });
     persist(data.token, data.user);
     return data.user;
   }, [persist]);
@@ -74,9 +76,11 @@ export function AuthProvider({ children }) {
   const [authOpen, setAuthOpen] = useState(false);
   const [authInvite, setAuthInvite] = useState(null);
   const [authNext, setAuthNext] = useState(null);
+  const [authFlow, setAuthFlow] = useState('customer');
   const openAuth = useCallback((opts = {}) => {
     setAuthInvite(opts.invite || null);
     setAuthNext(opts.next || null);
+    setAuthFlow(opts.flow || 'customer');
     setAuthOpen(true);
   }, []);
   const closeAuth = useCallback(() => setAuthOpen(false), []);
@@ -94,6 +98,7 @@ export function AuthProvider({ children }) {
     authOpen,
     authInvite,
     authNext,
+    authFlow,
     openAuth,
     closeAuth,
   };
