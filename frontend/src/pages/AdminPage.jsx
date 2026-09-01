@@ -12,6 +12,7 @@ import AboutAdmin from '../components/admin/AboutAdmin';
 import MarketDataAdmin from '../components/admin/MarketDataAdmin';
 import DropdownsAdmin from '../components/admin/DropdownsAdmin';
 import ApprovedPartnersAdmin from '../components/admin/ApprovedPartnersAdmin';
+import PartnerAppCard from '../components/admin/PartnerAppCard';
 import omniMark from '../assets/omnivest-mark-white.svg';
 import { toast } from 'sonner';
 
@@ -636,26 +637,7 @@ export default function AdminPage() {
                   ) : (
                     <div className="mt-4 space-y-3">
                       {partnerApps.map((a) => (
-                        <div key={a.id} data-testid="partner-app-row" className="rounded-xl border border-[#E8E1F0] bg-white p-4">
-                          <div className="flex items-start justify-between gap-3 flex-wrap">
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-semibold text-[#1A1030]">{a.name}</span>
-                                {a.applicant_type && <span data-testid="partner-applicant-type" className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#5320A8]">{a.applicant_type}</span>}
-                                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${a.status === 'pending' ? 'bg-[#FEF3C7] text-[#B45309]' : a.status === 'approved' ? 'bg-[#DCFCE7] text-[#0E9F5E]' : 'bg-[#FEE2E2] text-[#DC2626]'}`}>{a.status}</span>
-                              </div>
-                              <div className="mt-1 text-xs text-[#64748B]">{a.phone}{a.email ? ` · ${a.email}` : ''}{a.firm ? ` · ${a.firm}` : ''}{a.sebi_reg ? ` · SEBI ${a.sebi_reg}` : ''}</div>
-                              {a.note && <div className="mt-1.5 text-xs text-[#475569] max-w-2xl">{a.note}</div>}
-                              <div className="mt-1 text-[11px] text-[#94A3B8]">Applied {new Date(a.created_at).toLocaleDateString('en-IN')}</div>
-                            </div>
-                            {a.status === 'pending' && (
-                              <div className="flex items-center gap-2 shrink-0">
-                                <button type="button" data-testid={`approve-partner-${a.id}`} onClick={() => reviewPartner(a.id, 'approve')} className="rounded-lg bg-[#12B76A] text-white text-xs font-semibold px-3 py-2 hover:bg-[#0E9F5E]">Approve</button>
-                                <button type="button" data-testid={`reject-partner-${a.id}`} onClick={() => reviewPartner(a.id, 'reject')} className="rounded-lg border border-[#FECACA] text-[#DC2626] text-xs font-semibold px-3 py-2 hover:bg-[#FEF2F2]">Reject</button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                        <PartnerAppCard key={a.id} app={a} token={token} onReview={reviewPartner} />
                       ))}
                     </div>
                   )}

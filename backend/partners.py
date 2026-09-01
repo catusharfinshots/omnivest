@@ -11,7 +11,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import Response
 from pydantic import BaseModel, Field, EmailStr
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -24,13 +25,50 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+# Compliance documents live in MongoDB (partner_documents) rather than local
+# disk so they survive host restarts; each is capped at 5 MB.
+DOC_KINDS = ("sebi_cert", "nism_cert", "pan_card")
+DOC_MAX_BYTES = 5 * 1024 * 1024
+DOC_TYPES = {"application/pdf", "image/jpeg", "image/png"}
+
+
+class OfficerIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    email: EmailStr
+    phone: str = Field(..., min_length=3, max_length=40)
+
+
 class ApplyIn(BaseModel):
+    # contact
     name: str = Field(..., min_length=1, max_length=100)
     phone: str = Field(..., min_length=3, max_length=40)
     email: EmailStr
+    # registration (SEBI RA Regulations, incl. Dec 2024 amendment)
+    registered_name: str = Field(..., min_length=1, max_length=160)
     firm: str = Field(..., min_length=1, max_length=160)
     sebi_reg: str = Field(..., pattern=r"^IN[A-Z][0-9]{9}$")
+    sebi_reg_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    raasb_no: str = Field(..., min_length=1, max_length=60)
+    nism_cert_no: str = Field(..., min_length=1, max_length=60)
+    nism_valid_till: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    pan: str = Field(..., pattern=r"^[A-Z]{5}[0-9]{4}[A-Z]$")
+    registered_address: str = Field(..., min_length=10, max_length=400)
     applicant_type: str = Field(..., pattern="^(Individual|LLP|Company)$")
+    # officers (required for LLP/Company)
+    principal_officer: Optional[OfficerIn] = None
+    compliance_officer: Optional[OfficerIn] = None
+    # declarations
+    disciplinary_history: bool = Field(...)
+    disciplinary_details: str = Field(default="", max_length=600)
+    raasb_deposit_confirmed: bool = Field(...)
+    other_registrations: str = Field(default="", max_length=300)
+    model_portfolio_compliance: bool = Field(...)
+    # profile (optional)
+    website: str = Field(default="", max_length=200)
+    linkedin: str = Field(default="", max_length=200)
+    experience_years: str = Field(default="", max_length=20)
+    specializations: str = Field(default="", max_length=200)
+    # strategy + consent
     note: str = Field(..., min_length=1, max_length=600)
     accepted_terms: bool = Field(...)
 
@@ -40,23 +78,23 @@ class ReviewIn(BaseModel):
     note: str = Field(default="", max_length=400)
 
 
+_PUBLIC_FIELDS = (
+    "name", "phone", "email", "registered_name", "firm", "sebi_reg", "sebi_reg_date",
+    "raasb_no", "nism_cert_no", "nism_valid_till", "pan", "registered_address",
+    "applicant_type", "principal_officer", "compliance_officer",
+    "disciplinary_history", "disciplinary_details", "raasb_deposit_confirmed",
+    "other_registrations", "model_portfolio_compliance",
+    "website", "linkedin", "experience_years", "specializations",
+    "note", "status", "review_note", "accepted_terms", "accepted_terms_at",
+    "created_at", "reviewed_at",
+)
+
+
 def _public(doc: dict) -> dict:
-    return {
-        "id": doc["id"],
-        "name": doc.get("name"),
-        "phone": doc.get("phone"),
-        "email": doc.get("email"),
-        "firm": doc.get("firm", ""),
-        "sebi_reg": doc.get("sebi_reg", ""),
-        "applicant_type": doc.get("applicant_type", ""),
-        "note": doc.get("note", ""),
-        "status": doc.get("status"),
-        "review_note": doc.get("review_note", ""),
-        "accepted_terms": doc.get("accepted_terms", False),
-        "accepted_terms_at": doc.get("accepted_terms_at"),
-        "created_at": doc.get("created_at"),
-        "reviewed_at": doc.get("reviewed_at"),
-    }
+    out = {"id": doc["id"]}
+    for k in _PUBLIC_FIELDS:
+        out[k] = doc.get(k, "" if k not in ("principal_officer", "compliance_officer") else None)
+    return out
 
 
 def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
@@ -68,6 +106,14 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     async def apply(payload: ApplyIn):
         if not payload.accepted_terms:
             raise HTTPException(status_code=400, detail="Please accept the Partner Terms & Conditions to apply.")
+        if not payload.raasb_deposit_confirmed:
+            raise HTTPException(status_code=400, detail="Please confirm you maintain the RAASB deposit required by SEBI.")
+        if not payload.model_portfolio_compliance:
+            raise HTTPException(status_code=400, detail="Please confirm your model portfolios will comply with SEBI's RA guidelines.")
+        if payload.applicant_type in ("LLP", "Company") and (not payload.principal_officer or not payload.compliance_officer):
+            raise HTTPException(status_code=400, detail="Principal Officer and Compliance Officer details are required for LLP/Company applicants.")
+        if payload.disciplinary_history and not payload.disciplinary_details.strip():
+            raise HTTPException(status_code=400, detail="Please describe the disciplinary action(s) you declared.")
         phone = to_e164(payload.phone)  # server-side E.164 validation; rejects invalid numbers
         # avoid stacking duplicate pending applications for the same phone
         if await col.find_one({"phone": phone, "status": "pending"}):
@@ -77,9 +123,27 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             "name": payload.name.strip(),
             "phone": phone,
             "email": str(payload.email),
+            "registered_name": payload.registered_name.strip(),
             "firm": payload.firm.strip(),
             "sebi_reg": payload.sebi_reg.strip(),
+            "sebi_reg_date": payload.sebi_reg_date,
+            "raasb_no": payload.raasb_no.strip(),
+            "nism_cert_no": payload.nism_cert_no.strip(),
+            "nism_valid_till": payload.nism_valid_till,
+            "pan": payload.pan.strip(),
+            "registered_address": payload.registered_address.strip(),
             "applicant_type": payload.applicant_type,
+            "principal_officer": payload.principal_officer.model_dump() if payload.principal_officer else None,
+            "compliance_officer": payload.compliance_officer.model_dump() if payload.compliance_officer else None,
+            "disciplinary_history": payload.disciplinary_history,
+            "disciplinary_details": payload.disciplinary_details.strip(),
+            "raasb_deposit_confirmed": True,
+            "other_registrations": payload.other_registrations.strip(),
+            "model_portfolio_compliance": True,
+            "website": payload.website.strip(),
+            "linkedin": payload.linkedin.strip(),
+            "experience_years": payload.experience_years.strip(),
+            "specializations": payload.specializations.strip(),
             "note": payload.note.strip(),
             "accepted_terms": True,
             "accepted_terms_at": _now(),
@@ -91,6 +155,55 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         }
         await col.insert_one(dict(doc))
         return {"ok": True, "application": _public(doc)}
+
+    @router.post("/partners/apply/{app_id}/document")
+    async def upload_document(app_id: str, kind: str = Query(...), file: UploadFile = File(...)):
+        """Attach a compliance document (SEBI cert / NISM cert / PAN) to a pending
+        application. Unauthenticated by design (applicants have no account yet);
+        the application id is an unguessable UUID and uploads are only accepted
+        while the application is pending."""
+        if kind not in DOC_KINDS:
+            raise HTTPException(status_code=422, detail=f"kind must be one of {list(DOC_KINDS)}")
+        app_doc = await col.find_one({"id": app_id})
+        if not app_doc or app_doc.get("status") != "pending":
+            raise HTTPException(status_code=404, detail="Application not found or no longer editable")
+        ct = (file.content_type or "").lower()
+        if ct not in DOC_TYPES:
+            raise HTTPException(status_code=422, detail="Please upload a PDF, JPG or PNG.")
+        data = await file.read()
+        if len(data) > DOC_MAX_BYTES:
+            raise HTTPException(status_code=413, detail="File must be 5 MB or smaller.")
+        meta = {
+            "id": str(uuid.uuid4()),
+            "application_id": app_id,
+            "kind": kind,
+            "filename": file.filename or f"{kind}.pdf",
+            "content_type": ct,
+            "size": len(data),
+            "data": data,
+            "uploaded_at": _now(),
+        }
+        # one document per kind — re-upload replaces
+        await db.partner_documents.delete_many({"application_id": app_id, "kind": kind})
+        await db.partner_documents.insert_one(dict(meta))
+        return {"ok": True, "document": {k: meta[k] for k in ("id", "kind", "filename", "content_type", "size", "uploaded_at")}}
+
+    @router.get("/admin/partners/{app_id}/documents")
+    async def list_documents(app_id: str, admin: dict = Depends(require_admin)):
+        docs = await db.partner_documents.find(
+            {"application_id": app_id}, {"_id": 0, "data": 0}
+        ).sort("uploaded_at", 1).to_list(20)
+        return {"documents": docs}
+
+    @router.get("/admin/partners/{app_id}/documents/{doc_id}")
+    async def download_document(app_id: str, doc_id: str, admin: dict = Depends(require_admin)):
+        doc = await db.partner_documents.find_one({"id": doc_id, "application_id": app_id})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+        return Response(
+            content=bytes(doc["data"]), media_type=doc.get("content_type", "application/octet-stream"),
+            headers={"Content-Disposition": f'inline; filename="{doc.get("filename", "document")}"'},
+        )
 
     @router.get("/admin/partners")
     async def list_applications(status: Optional[str] = Query(None), admin: dict = Depends(require_admin)):
