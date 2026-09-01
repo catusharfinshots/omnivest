@@ -58,7 +58,7 @@ export default function Footer() {
               <span className="font-[Inter] text-lg font-bold">Omnivest</span>
             </Link>
             <p className="mt-4 text-sm text-[#64748B] max-w-xs">
-              Money at work — expert-managed model portfolios, AIFs and advisory, invested from your own broker account. Demo build — simulated data, not financial advice.
+              Money at work — expert-managed model portfolios, AIFs and advisory, invested from your own broker account.
             </p>
 
             <div className="mt-5">
@@ -114,7 +114,7 @@ export default function Footer() {
 
         <div className="mt-8 pt-8 border-t border-[#E6E8F0] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <p className="text-xs text-[#64748B] max-w-3xl">
-            Investments in securities are subject to market risks. Read all scheme related documents carefully before investing. Past performance is not indicative of future returns. Omnivest is a demo build — no real trades are placed.
+            Investments in securities are subject to market risks. Read all scheme related documents carefully before investing. Past performance is not indicative of future returns.
           </p>
           <Link to="/partner" onClick={scrollTop} data-testid="become-partner-link" className="text-xs font-semibold text-[#6C2BD9] hover:text-[#5320A8] shrink-0">Become a partner →</Link>
         </div>
