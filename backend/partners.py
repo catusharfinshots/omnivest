@@ -90,6 +90,11 @@ class ReviewIn(BaseModel):
     note: str = Field(default="", max_length=400)
 
 
+class StatusIn(BaseModel):
+    ref_no: str = Field(..., min_length=6, max_length=30)
+    phone: str = Field(..., min_length=3, max_length=40)
+
+
 _PUBLIC_FIELDS = (
     "ref_no", "name", "phone", "email", "registered_name", "firm", "sebi_reg", "sebi_reg_date",
     "raasb_no", "nism_cert_no", "nism_valid_till", "pan", "registered_address",
@@ -201,6 +206,28 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         await db.partner_documents.insert_one(dict(meta))
         return {"ok": True, "document": {k: meta[k] for k in ("id", "kind", "filename", "content_type", "size", "uploaded_at")}}
 
+    @router.post("/partners/status")
+    async def application_status(payload: StatusIn):
+        """Public tracking: the applicant supplies their reference number AND the
+        mobile they applied with (both must match, so reference numbers alone
+        leak nothing). The review note is included — it's how admins communicate
+        rejection reasons / correction requests back to applicants."""
+        try:
+            phone = to_e164(payload.phone)
+        except HTTPException:
+            raise HTTPException(status_code=404, detail="No application found for this reference number and mobile.")
+        doc = await col.find_one({"ref_no": payload.ref_no.strip().upper(), "phone": phone})
+        if not doc:
+            raise HTTPException(status_code=404, detail="No application found for this reference number and mobile.")
+        return {
+            "ref_no": doc.get("ref_no"),
+            "name": doc.get("name"),
+            "status": doc.get("status"),
+            "review_note": doc.get("review_note", ""),
+            "created_at": doc.get("created_at"),
+            "reviewed_at": doc.get("reviewed_at"),
+        }
+
     @router.get("/admin/partners/{app_id}/documents")
     async def list_documents(app_id: str, admin: dict = Depends(require_admin)):
         docs = await db.partner_documents.find(
@@ -229,6 +256,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         app_doc = await col.find_one({"id": app_id})
         if not app_doc:
             raise HTTPException(status_code=404, detail="Application not found")
+        if payload.action == "reject" and not payload.note.strip():
+            raise HTTPException(status_code=400, detail="Please provide a rejection reason — the applicant sees it when tracking their application.")
         if payload.action == "reject":
             await col.update_one({"id": app_id}, {"$set": {"status": "rejected", "review_note": payload.note, "reviewed_at": _now()}})
             await deactivate_manager(db, app_id)

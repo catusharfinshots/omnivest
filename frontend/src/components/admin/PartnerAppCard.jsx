@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronUp, Download, ExternalLink, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { ChevronDown, ChevronUp, Download, ExternalLink, MessageSquareText, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Textarea } from '../ui/textarea';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 // SEBI's public register of research analysts (intermediary type 14)
@@ -22,6 +24,18 @@ function Field({ label, value }) {
 export default function PartnerAppCard({ app: a, token, onReview }) {
   const [open, setOpen] = useState(false);
   const [docs, setDocs] = useState(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectNote, setRejectNote] = useState('');
+  const [rejecting, setRejecting] = useState(false);
+
+  const confirmReject = async () => {
+    if (!rejectNote.trim()) return;
+    setRejecting(true);
+    try {
+      await onReview(a.id, 'reject', rejectNote.trim());
+      setRejectOpen(false);
+    } finally { setRejecting(false); }
+  };
 
   const toggle = async () => {
     const next = !open;
@@ -64,13 +78,19 @@ export default function PartnerAppCard({ app: a, token, onReview }) {
           </div>
           <div className="mt-1 text-xs text-[#64748B]">{a.phone}{a.email ? ` · ${a.email}` : ''}{a.firm ? ` · ${a.firm}` : ''}{a.sebi_reg ? ` · SEBI ${a.sebi_reg}` : ''}</div>
           {a.note && <div className="mt-1.5 text-xs text-[#475569] max-w-2xl">{a.note}</div>}
+          {a.status !== 'pending' && a.review_note && (
+            <div data-testid="partner-review-note" className="mt-2 flex items-start gap-1.5 text-xs max-w-2xl rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] px-2.5 py-1.5">
+              <MessageSquareText className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[#94A3B8]" />
+              <span className="text-[#475569]"><b className="text-[#1A1030]">Review note</b> (visible to the applicant): {a.review_note}</span>
+            </div>
+          )}
           <div className="mt-1 text-[11px] text-[#94A3B8]">Applied {new Date(a.created_at).toLocaleDateString('en-IN')}</div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {a.status === 'pending' && (
             <>
-              <button type="button" data-testid={`approve-partner-${a.id}`} onClick={() => onReview(a.id, 'approve')} className="rounded-lg bg-[#12B76A] text-white text-xs font-semibold px-3 py-2 hover:bg-[#0E9F5E]">Approve</button>
-              <button type="button" data-testid={`reject-partner-${a.id}`} onClick={() => onReview(a.id, 'reject')} className="rounded-lg border border-[#FECACA] text-[#DC2626] text-xs font-semibold px-3 py-2 hover:bg-[#FEF2F2]">Reject</button>
+              <button type="button" data-testid={`approve-partner-${a.id}`} onClick={() => onReview(a.id, 'approve', '')} className="rounded-lg bg-[#12B76A] text-white text-xs font-semibold px-3 py-2 hover:bg-[#0E9F5E]">Approve</button>
+              <button type="button" data-testid={`reject-partner-${a.id}`} onClick={() => setRejectOpen(true)} className="rounded-lg border border-[#FECACA] text-[#DC2626] text-xs font-semibold px-3 py-2 hover:bg-[#FEF2F2]">Reject</button>
             </>
           )}
           <button type="button" data-testid={`expand-partner-${a.id}`} onClick={toggle} className="rounded-lg border border-[#E2E8F0] text-[#475569] text-xs font-semibold px-3 py-2 hover:bg-[#F8FAFC] inline-flex items-center gap-1">
@@ -78,6 +98,24 @@ export default function PartnerAppCard({ app: a, token, onReview }) {
           </button>
         </div>
       </div>
+
+      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+        <DialogContent className="sm:max-w-[480px]" data-testid={`reject-dialog-${a.id}`}>
+          <DialogHeader>
+            <DialogTitle>Reject application {a.ref_no || ''}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-[#64748B]">Explain why — <b>the applicant will see this</b> when they track their application, so include what they should correct if you'd like them to re-apply.</p>
+          <Textarea data-testid="reject-note-input" autoFocus rows={4} value={rejectNote} onChange={(e) => setRejectNote(e.target.value)}
+            placeholder="e.g. Your NISM certificate has expired — please renew it and re-apply with the updated certificate." />
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setRejectOpen(false)} className="rounded-lg border border-[#E2E8F0] text-[#475569] text-sm font-semibold px-4 py-2 hover:bg-[#F8FAFC]">Cancel</button>
+            <button type="button" data-testid="confirm-reject" disabled={rejecting || !rejectNote.trim()} onClick={confirmReject}
+              className="rounded-lg bg-[#DC2626] text-white text-sm font-semibold px-4 py-2 hover:bg-[#B91C1C] disabled:opacity-50 disabled:cursor-not-allowed">
+              {rejecting ? 'Rejecting…' : 'Reject with reason'}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {open && (
         <div className="mt-4 border-t border-[#F1EBF9] pt-4" data-testid={`partner-details-${a.id}`}>

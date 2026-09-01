@@ -246,13 +246,13 @@ export default function AdminPage() {
   useEffect(() => {
     if (tab === 'partners') fetchPartners();
   }, [tab]);
-  const reviewPartner = async (id, action) => {
+  const reviewPartner = async (id, action, note = '') => {
     try {
-      await axios.post(`${LEADS_API}/admin/partners/${id}/review`, { action, note: '' }, { headers: { Authorization: `Bearer ${token}` } });
-      toast.success(action === 'approve' ? 'Approved — analyst can now log in via their mobile' : 'Rejected');
+      await axios.post(`${LEADS_API}/admin/partners/${id}/review`, { action, note }, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success(action === 'approve' ? 'Approved — analyst can now log in via their mobile' : 'Rejected — the applicant sees your reason when tracking their application');
       fetchPartners();
       refreshCounts();
-    } catch (e) { toast.error(e?.response?.data?.detail || 'Could not update'); }
+    } catch (e) { toast.error(e?.response?.data?.detail || 'Could not update'); throw e; }
   };
 
   const DB_LIMIT = 25;

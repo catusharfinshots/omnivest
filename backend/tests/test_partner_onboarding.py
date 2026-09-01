@@ -128,6 +128,35 @@ def test_full_flow_individual_with_documents():
         _cleanup(app_id, headers)
 
 
+def test_reject_requires_reason_and_status_tracking():
+    headers = _admin_headers()
+    p = _payload()
+    r = requests.post(f"{API}/partners/apply", json=p, timeout=30)
+    assert r.status_code == 200, r.text
+    app = r.json()["application"]
+    try:
+        # tracking while pending (both keys must match)
+        st = requests.post(f"{API}/partners/status", json={"ref_no": app["ref_no"], "phone": p["phone"]}, timeout=30)
+        assert st.status_code == 200 and st.json()["status"] == "pending"
+        wrong = requests.post(f"{API}/partners/status", json={"ref_no": app["ref_no"], "phone": "+919800000000"}, timeout=30)
+        assert wrong.status_code == 404
+
+        # reject without a note is refused
+        bad = requests.post(f"{API}/admin/partners/{app['id']}/review", json={"action": "reject", "note": ""}, headers=headers, timeout=30)
+        assert bad.status_code == 400
+
+        # reject with a note; applicant sees it via tracking
+        ok = requests.post(f"{API}/admin/partners/{app['id']}/review",
+                           json={"action": "reject", "note": "NISM certificate expired — please renew and re-apply."},
+                           headers=headers, timeout=30)
+        assert ok.status_code == 200
+        st2 = requests.post(f"{API}/partners/status", json={"ref_no": app["ref_no"], "phone": p["phone"]}, timeout=30).json()
+        assert st2["status"] == "rejected"
+        assert "NISM" in st2["review_note"]
+    finally:
+        _cleanup(app["id"], headers)
+
+
 def test_llp_full_flow_with_officers():
     headers = _admin_headers()
     officer = {"name": "PO Person", "email": "po@test.com", "phone": "+919812345678"}

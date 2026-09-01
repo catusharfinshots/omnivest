@@ -13,7 +13,7 @@ import MobileBottomNav from '../components/MobileBottomNav';
 import Seo from '../components/Seo';
 import AnalystConsole from '../components/AnalystConsole';
 import { useAuth } from '../context/AuthContext';
-import { Loader2, LineChart, CheckCircle2, ShieldCheck, Users, TrendingUp, LogIn, Upload, FileCheck2 } from 'lucide-react';
+import { Loader2, LineChart, CheckCircle2, ShieldCheck, Users, TrendingUp, LogIn, Upload, FileCheck2, SearchCheck, Clock3, XCircle } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const SEBI_RE = /^IN[A-Z][0-9]{9}$/;
@@ -41,6 +41,75 @@ const EMPTY_FORM = {
 
 function SectionTitle({ children }) {
   return <div className="pt-2 text-[11px] font-bold uppercase tracking-wider text-[#6C2BD9]">{children}</div>;
+}
+
+function TrackApplication() {
+  const [open, setOpen] = useState(false);
+  const [ref, setRef] = useState('');
+  const [phone, setPhone] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+
+  const check = async (e) => {
+    e.preventDefault();
+    setBusy(true); setError(''); setResult(null);
+    try {
+      const { data } = await axios.post(`${API}/partners/status`, { ref_no: ref.trim().toUpperCase(), phone });
+      setResult(data);
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'Could not check the status right now.');
+    } finally { setBusy(false); }
+  };
+
+  const STATUS_UI = {
+    pending: { icon: Clock3, cls: 'bg-[#FEF3C7] text-[#B45309]', label: 'Under review', copy: 'We are verifying your details and documents — typically 2–3 working days.' },
+    approved: { icon: CheckCircle2, cls: 'bg-[#DCFCE7] text-[#0E9F5E]', label: 'Approved 🎉', copy: 'Use “Already approved? Log in” above with your registered mobile to open your analyst console.' },
+    rejected: { icon: XCircle, cls: 'bg-[#FEE2E2] text-[#DC2626]', label: 'Not approved', copy: 'You can correct the issue below and submit a fresh application any time.' },
+  };
+  const ui = result ? STATUS_UI[result.status] : null;
+
+  return (
+    <div className="mb-8 surface p-4 sm:p-5" data-testid="track-application">
+      <button type="button" data-testid="track-toggle" onClick={() => setOpen(!open)} className="w-full flex items-center justify-between gap-3 text-left">
+        <div>
+          <div className="text-sm font-semibold text-[#1A1030] flex items-center gap-2"><SearchCheck className="h-4 w-4 text-[#6C2BD9]" /> Track an existing application</div>
+          <div className="text-xs text-[#64748B]">Check your status with your reference number (OMN-RA-…) and registered mobile.</div>
+        </div>
+        <span className="text-xs font-semibold text-[#6C2BD9]">{open ? 'Hide' : 'Check status'}</span>
+      </button>
+      {open && (
+        <form onSubmit={check} className="mt-4 grid sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
+          <div>
+            <Label>Reference number</Label>
+            <Input data-testid="track-ref" value={ref} onChange={(e) => setRef(e.target.value.toUpperCase())} className="h-11 mt-1.5" placeholder="OMN-RA-2026-0001" />
+          </div>
+          <div>
+            <Label>Registered mobile</Label>
+            <PhoneField testid="track-phone" value={phone} onChange={setPhone} />
+          </div>
+          <button data-testid="track-submit" disabled={busy || !ref.trim() || !phone} className="btn-primary h-11 px-5 disabled:opacity-60 disabled:cursor-not-allowed">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Check'}
+          </button>
+        </form>
+      )}
+      {open && error && <p data-testid="track-error" className="mt-3 text-sm text-[#DC2626]">{error}</p>}
+      {open && result && ui && (
+        <div data-testid="track-result" className="mt-4 rounded-xl border border-[#E8E1F0] bg-white p-4">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${ui.cls}`}><ui.icon className="h-3.5 w-3.5" /> {ui.label}</span>
+            <span className="text-xs text-[#94A3B8]">{result.ref_no} · applied {new Date(result.created_at).toLocaleDateString('en-IN')}</span>
+          </div>
+          {result.review_note && (
+            <div data-testid="track-review-note" className="mt-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] px-3 py-2 text-sm text-[#475569]">
+              <b className="text-[#1A1030]">Message from our review team:</b> {result.review_note}
+            </div>
+          )}
+          <p className="mt-2 text-xs text-[#64748B]">{ui.copy}</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function DocPicker({ kind, file, onPick }) {
@@ -218,6 +287,7 @@ export default function BecomePartner() {
             <button data-testid="partner-login-btn" onClick={() => openAuth({ next: '/partner' })} className="btn-outline shrink-0"><LogIn className="h-4 w-4" /> Already approved? Log in</button>
           </div>
         )}
+        <TrackApplication />
         <div className="grid lg:grid-cols-2 gap-10 items-start">
           <div className="lg:sticky lg:top-24">
             <span className="inline-flex items-center gap-2 rounded-full bg-[#EDE9FE] text-[#5320A8] text-xs font-semibold px-3 py-1.5"><LineChart className="h-3.5 w-3.5" /> For research analysts</span>
