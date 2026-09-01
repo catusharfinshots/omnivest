@@ -47,6 +47,8 @@ def _redact(value):
         return {k: ("••• redacted •••" if any(s in k.lower() for s in SENSITIVE) else _redact(v)) for k, v in value.items()}
     if isinstance(value, list):
         return [_redact(v) for v in value]
+    if isinstance(value, (bytes, bytearray)):  # binary blobs (e.g. uploaded files) aren't JSON-serializable
+        return f"<binary · {len(value) / 1024:.0f} KB>"
     return value
 
 

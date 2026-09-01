@@ -54,6 +54,8 @@ def _admin_headers():
 
 
 def _cleanup(app_id, headers):
+    for d in requests.get(f"{API}/admin/partners/{app_id}/documents", headers=headers, timeout=30).json().get("documents", []):
+        requests.delete(f"{API}/admin/db/partner_documents/{d['id']}", headers=headers, timeout=30)
     requests.delete(f"{API}/admin/db/partner_applications/{app_id}", headers=headers, timeout=30)
 
 
@@ -86,6 +88,8 @@ def test_full_flow_individual_with_documents():
     app = r.json()["application"]
     app_id = app["id"]
     try:
+        import re as _re
+        assert _re.match(r"^OMN-RA-\d{4}-\d{4}$", app["ref_no"]), app["ref_no"]
         assert app["raasb_no"] == "RAASB-12345"
         assert app["nism_valid_till"] == "2030-01-01"
         assert app["pan"] == "ABCDE1234F"

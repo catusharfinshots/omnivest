@@ -233,6 +233,8 @@ export default function AdminPage() {
 
   const [partnerApps, setPartnerApps] = useState([]);
   const [partnersLoading, setPartnersLoading] = useState(false);
+  const [partnerQ, setPartnerQ] = useState('');
+  const [partnerStatus, setPartnerStatus] = useState('pending');
   const fetchPartners = async () => {
     setPartnersLoading(true);
     try {
@@ -630,17 +632,40 @@ export default function AdminPage() {
                     <button onClick={fetchPartners} className="btn-outline text-xs">Refresh</button>
                   </div>
 
+                  <div className="mt-4 flex items-center gap-2 flex-wrap" data-testid="partner-filters">
+                    <Input data-testid="partner-search" value={partnerQ} onChange={(e) => setPartnerQ(e.target.value)}
+                      placeholder="Search name, email, phone, SEBI no. or reference…" className="h-9 max-w-sm" />
+                    {['pending', 'approved', 'rejected', 'all'].map((s) => {
+                      const count = s === 'all' ? partnerApps.length : partnerApps.filter((a) => a.status === s).length;
+                      return (
+                        <button key={s} type="button" data-testid={`partner-filter-${s}`} onClick={() => setPartnerStatus(s)}
+                          className={`h-9 rounded-lg px-3 text-xs font-semibold capitalize transition-colors ${partnerStatus === s ? 'bg-[#1A1030] text-white' : 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]'}`}>
+                          {s} <span className="opacity-60">({count})</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
                   {partnersLoading ? (
                     <div className="mt-6 text-sm text-[#6B6480]">Loading…</div>
                   ) : partnerApps.length === 0 ? (
                     <div className="mt-6 text-sm text-[#6B6480]">No applications yet. They'll appear here when someone applies via “Become a partner”.</div>
-                  ) : (
-                    <div className="mt-4 space-y-3">
-                      {partnerApps.map((a) => (
-                        <PartnerAppCard key={a.id} app={a} token={token} onReview={reviewPartner} />
-                      ))}
-                    </div>
-                  )}
+                  ) : (() => {
+                    const q = partnerQ.trim().toLowerCase();
+                    const shown = partnerApps
+                      .filter((a) => partnerStatus === 'all' || a.status === partnerStatus)
+                      .filter((a) => !q || [a.name, a.email, a.phone, a.sebi_reg, a.ref_no, a.registered_name, a.firm]
+                        .some((v) => (v || '').toLowerCase().includes(q)));
+                    return shown.length === 0 ? (
+                      <div className="mt-6 text-sm text-[#6B6480]">No {partnerStatus === 'all' ? '' : partnerStatus + ' '}applications{q ? ` matching “${partnerQ}”` : ''}.</div>
+                    ) : (
+                      <div className="mt-4 space-y-3">
+                        {shown.map((a) => (
+                          <PartnerAppCard key={a.id} app={a} token={token} onReview={reviewPartner} />
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </section>
               )}
 

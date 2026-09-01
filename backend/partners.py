@@ -16,6 +16,8 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field, EmailStr
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from pymongo import ReturnDocument
+
 from auth import build_current_user_dep
 from phone_auth import to_e164
 from managers import upsert_manager_from_partner, deactivate_manager
@@ -23,6 +25,16 @@ from managers import upsert_manager_from_partner, deactivate_manager
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+async def _next_ref_no(db: AsyncIOMotorDatabase) -> str:
+    """Human-friendly sequential reference, e.g. OMN-RA-2026-0001 (per-year counter)."""
+    year = datetime.now(timezone.utc).year
+    counter = await db.counters.find_one_and_update(
+        {"_id": f"partner_ref_{year}"}, {"$inc": {"seq": 1}},
+        upsert=True, return_document=ReturnDocument.AFTER,
+    )
+    return f"OMN-RA-{year}-{counter['seq']:04d}"
 
 
 # Compliance documents live in MongoDB (partner_documents) rather than local
@@ -79,7 +91,7 @@ class ReviewIn(BaseModel):
 
 
 _PUBLIC_FIELDS = (
-    "name", "phone", "email", "registered_name", "firm", "sebi_reg", "sebi_reg_date",
+    "ref_no", "name", "phone", "email", "registered_name", "firm", "sebi_reg", "sebi_reg_date",
     "raasb_no", "nism_cert_no", "nism_valid_till", "pan", "registered_address",
     "applicant_type", "principal_officer", "compliance_officer",
     "disciplinary_history", "disciplinary_details", "raasb_deposit_confirmed",
@@ -120,6 +132,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             raise HTTPException(status_code=409, detail="You already have an application under review. We'll be in touch soon.")
         doc = {
             "id": str(uuid.uuid4()),
+            "ref_no": await _next_ref_no(db),
             "name": payload.name.strip(),
             "phone": phone,
             "email": str(payload.email),

@@ -53,6 +53,7 @@ export default function PartnerAppCard({ app: a, token, onReview }) {
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-[#1A1030]">{a.name}</span>
+            {a.ref_no && <span data-testid="partner-ref" className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1A1030] text-white tracking-wide">{a.ref_no}</span>}
             {a.applicant_type && <span data-testid="partner-applicant-type" className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#5320A8]">{a.applicant_type}</span>}
             <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${a.status === 'pending' ? 'bg-[#FEF3C7] text-[#B45309]' : a.status === 'approved' ? 'bg-[#DCFCE7] text-[#0E9F5E]' : 'bg-[#FEE2E2] text-[#DC2626]'}`}>{a.status}</span>
             {a.disciplinary_history === true

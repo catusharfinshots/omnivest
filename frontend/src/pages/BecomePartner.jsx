@@ -97,6 +97,7 @@ export default function BecomePartner() {
   const [terms, setTerms] = useState(null);
   // survives a partially-failed submit so document uploads can be retried
   const [appId, setAppId] = useState(null);
+  const [refNo, setRefNo] = useState('');
   const [uploadedKinds, setUploadedKinds] = useState([]);
 
   useEffect(() => {
@@ -165,6 +166,7 @@ export default function BecomePartner() {
         });
         id = data.application.id;
         setAppId(id);
+        setRefNo(data.application.ref_no || '');
       }
       await uploadDocs(id, uploadedKinds);
       setDone(true);
@@ -183,10 +185,25 @@ export default function BecomePartner() {
 
   const inner = done ? (
     <div className="min-h-[70vh] grid place-items-center bg-[#F7F4FB] p-6">
-      <div className="surface p-10 text-center max-w-md" data-testid="partner-success">
+      <div className="surface p-10 text-center max-w-lg" data-testid="partner-success">
         <span className="h-14 w-14 mx-auto rounded-2xl bg-[#DCFCE7] text-[#0E9F5E] grid place-items-center"><CheckCircle2 className="h-7 w-7" /></span>
         <h1 className="mt-5 text-2xl font-bold">Application received</h1>
-        <p className="mt-2 text-sm text-[#64748B]">Thanks for applying to become a research analyst on Omnivest. Our team will verify your SEBI registration and documents, and get back to you. Once you're approved, come back to <b>omnivest.in/partner</b> and choose <b>“Already approved? Log in”</b> to open your analyst console.</p>
+        {refNo && (
+          <div className="mt-4 inline-block rounded-xl bg-[#F1E7FE] px-5 py-3" data-testid="partner-ref-no">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[#7C5CAE]">Your reference number</div>
+            <div className="text-xl font-bold text-[#5320A8] tracking-wide">{refNo}</div>
+          </div>
+        )}
+        <p className="mt-4 text-sm text-[#64748B]">Please save this number — quote it in any correspondence about your application.</p>
+        <div className="mt-6 text-left rounded-xl border border-[#E8E1F0] bg-white p-5">
+          <div className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">What happens next</div>
+          <ol className="mt-2 space-y-1.5 text-sm text-[#475569] list-decimal list-inside">
+            <li>We verify your SEBI registration, RAASB enlistment and documents.</li>
+            <li>You'll hear from us — typically within <b>2–3 working days</b>.</li>
+            <li>Once approved, return to <b>omnivest.in/partner</b> and choose <b>“Already approved? Log in”</b> (with this mobile number) to open your analyst console.</li>
+          </ol>
+        </div>
+        <p className="mt-5 text-xs text-[#94A3B8]">Questions? Write to <a className="font-semibold text-[#6C2BD9]" href={`mailto:support@omnivest.in?subject=Partner application ${refNo}`}>support@omnivest.in</a> with your reference number.</p>
       </div>
     </div>
   ) : (
