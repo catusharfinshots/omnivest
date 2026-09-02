@@ -29,6 +29,7 @@ export default function ModelPortfolioDetail() {
   const { toggleWatch, isWatched } = usePortfolio();
   const [tab, setTab] = useState('Overview');
   const [investOpen, setInvestOpen] = useState(false);
+  const [perf, setPerf] = useState(null); // computed performance (engine)
   const [methodOpen, setMethodOpen] = useState(false);
   const [basket, setBasket] = useState(mockBasket || null);
   const [notFound, setNotFound] = useState(false);
@@ -46,6 +47,7 @@ export default function ModelPortfolioDetail() {
         managerName: p.owner_name,
       });
       track('portfolio_view', { portfolio_id: p.id });
+      axios.get(`${API}/portfolios/${p.id}/performance`).then((r) => { if (active) setPerf(r.data); }).catch(() => {});
     }).catch(() => { if (active) setNotFound(true); });
     return () => { active = false; };
   }, [id, mockBasket]);
@@ -113,14 +115,30 @@ export default function ModelPortfolioDetail() {
                 <button onClick={() => navigate(`/manager/${basket.managerId}`)} className="mt-1 text-sm text-[#64748B] hover:text-[#6C2BD9]">by {manager?.name}</button>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <span className="chip"><Layers className="h-3.5 w-3.5" /> {basket.strategy.replace('-', ' ')}</span>
-                  <span className="chip"><ShieldCheck className="h-3.5 w-3.5" /> {basket.risk} volatility</span>
+                  <span className="chip"><ShieldCheck className="h-3.5 w-3.5" /> {(() => { const ok = perf && perf.status === 'ok'; const m = ok ? (perf.metrics.live?.days >= 30 ? perf.metrics.live : perf.metrics.all) : null; return (m && m.volatility_label) || basket.risk; })()} volatility</span>
                   <span className={basket.subscription === 'Free' ? 'chip-brand' : 'chip-accent'}>{basket.subscription === 'Free' ? 'Free access' : `₹${basket.fee.amount}/${basket.fee.cycle === 'monthly' ? 'mo' : basket.fee.cycle}`}</span>
                 </div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-xs text-[#64748B]">CAGR</div>
-              <div className="num text-3xl font-bold text-[#0E9F5E] flex items-center gap-1 justify-end"><TrendingUp className="h-6 w-6" /> {basket.returns.cagr.toFixed(1)}%</div>
+            <div className="text-right" data-testid="header-cagr">
+              {(() => {
+                const ok = perf && perf.status === 'ok';
+                const live = ok ? perf.metrics.live : null;
+                const m = ok ? (live && live.days >= 30 ? live : perf.metrics.all) : null;
+                const isLive = ok && live && live.days >= 30;
+                const val = m ? (m.cagr_pct !== null ? m.cagr_pct : m.return_pct) : null;
+                return (
+                  <>
+                    <div className="text-xs text-[#64748B]">{ok ? (m.cagr_pct !== null ? 'CAGR' : 'Return') : 'CAGR'}{ok && !isLive ? <span className="ml-1 rounded-full bg-[#FEF3C7] text-[#B45309] px-1.5 py-0.5 text-[10px] font-bold">backtest</span> : null}</div>
+                    <div className={`num text-3xl font-bold flex items-center gap-1 justify-end ${val !== null && val < 0 ? 'text-[#DC2626]' : 'text-[#0E9F5E]'}`}>
+                      <TrendingUp className="h-6 w-6" /> {val !== null ? `${val.toFixed(1)}%` : (basket.returns?.cagr ? `${Number(basket.returns.cagr).toFixed(1)}%` : '—')}
+                    </div>
+                    {ok && m.volatility_label && (
+                      <div className="mt-1 text-[11px] text-[#64748B]">{m.volatility_label} volatility · computed from exchange data</div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>

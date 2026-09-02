@@ -8,6 +8,7 @@ import { Textarea } from './ui/textarea';
 import { Plus, Trash2, Save, Send, ArrowLeft, Pencil, LogOut, Upload, FileText, Search, Loader2, TrendingUp, LayoutDashboard, ListChecks } from 'lucide-react';
 import omniMark from '../assets/omnivest-mark-white.svg';
 import PartnerOverview from './partner/PartnerOverview';
+import ComputedPerformance from './partner/ComputedPerformance';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -513,6 +514,8 @@ export default function AnalystConsole() {
               </div>
               <button onClick={() => setForm({ ...form, constituents: [...form.constituents, { symbol: '', name: '', exchange: 'NSE', type: 'Stock', weight: 0 }] })} className="btn-outline text-xs mt-3"><Plus className="h-3.5 w-3.5" /> Add constituent</button>
             </section>
+
+            {editingId && <div className="mt-4"><ComputedPerformance pid={editingId} token={token} /></div>}
 
             <section className="surface p-6 mt-4">
               <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
