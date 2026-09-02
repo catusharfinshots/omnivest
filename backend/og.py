@@ -33,6 +33,7 @@ PAGE_META = {
     "/explore": ("Explore", "Explore model portfolios and investing ideas on Omnivest."),
     "/calculators": ("Calculators", "SIP and returns calculators to plan your investments."),
     "/partner": ("Become a Partner", "Partner with Omnivest as a SEBI-registered research analyst."),
+    "/partner/apply": ("Partner Application", "Apply as a SEBI-registered research analyst partner on Omnivest."),
 }
 
 

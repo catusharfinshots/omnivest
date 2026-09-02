@@ -13,6 +13,7 @@ import MarketDataAdmin from '../components/admin/MarketDataAdmin';
 import DropdownsAdmin from '../components/admin/DropdownsAdmin';
 import ApprovedPartnersAdmin from '../components/admin/ApprovedPartnersAdmin';
 import PartnerAppCard from '../components/admin/PartnerAppCard';
+import PartnerPageAdmin from '../components/admin/PartnerPageAdmin';
 import omniMark from '../assets/omnivest-mark-white.svg';
 import { toast } from 'sonner';
 
@@ -28,6 +29,7 @@ const NAV = [
   { key: 'leads', label: 'Leads', icon: Inbox },
   { key: 'listings', label: 'Listings (approve)', icon: ClipboardCheck },
   { key: 'partners', label: 'Partner applications', icon: UserPlus },
+  { key: 'partnerpage', label: 'Partner page', icon: LayoutGrid },
   { key: 'market', label: 'Market data (Kite)', icon: TrendingUp },
   { key: 'dropdowns', label: 'Form dropdowns', icon: SlidersHorizontal },
   { key: 'database', label: 'Database', icon: Database },
@@ -38,7 +40,7 @@ const NAV_BY_KEY = NAV.reduce((m, n) => { m[n.key] = n; return m; }, {});
 
 // Sidebar groups (exact order + membership per spec).
 const NAV_GROUPS = [
-  { label: 'Partners & Listings', keys: ['partners', 'managers', 'listings', 'dropdowns'] },
+  { label: 'Partners & Listings', keys: ['partners', 'managers', 'partnerpage', 'listings', 'dropdowns'] },
   { label: 'Site content', keys: ['home', 'about', 'testimonials', 'faqs'] },
   { label: 'Investment catalog', keys: ['collections', 'mutual-funds', 'fds'] },
   { label: 'Operations', keys: ['leads', 'market'] },
@@ -48,7 +50,7 @@ const NAV_STATE_KEY = 'omni-admin-nav-groups-v1';
 
 const LEADS_API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-const CONTENT_TABS = ['home', 'baskets', 'collections', 'mutual-funds', 'fds', 'testimonials', 'faqs', 'settings'];
+const CONTENT_TABS = ['home', 'baskets', 'collections', 'mutual-funds', 'fds', 'testimonials', 'faqs', 'settings', 'partnerpage'];
 const HEADER = {
   home: { title: 'Content manager', desc: 'Edit what investors see on the homepage, then hit Publish changes to push it live.' },
   about: { title: 'About Us page', desc: 'Manage every section of the public /about page. Changes go live when you click Save About page.' },
@@ -63,6 +65,7 @@ const HEADER = {
   listings: { title: 'Research-analyst listings', desc: 'Approve or reject analyst submissions to publish them live.' },
   invites: { title: 'Analyst invites', desc: 'Invite research analysts to onboard themselves.' },
   partners: { title: 'Partner applications', desc: 'Review research-analyst applications submitted from the website and approve them.' },
+  partnerpage: { title: 'Partner page', desc: 'Everything shown on the public partner landing page (/partner) — hero, benefits, steps, requirements and FAQ. Publish to go live.' },
   market: { title: 'Market data (Kite)', desc: 'Connect Zerodha Kite once each trading day to power analyst instrument search, live prices and returns.' },
   dropdowns: { title: 'Form dropdowns', desc: 'Edit the options analysts pick from when creating a portfolio (strategy, risk, rebalance and more).' },
   database: { title: 'Database', desc: 'Read-only view of your live data. Sensitive fields (passwords, tokens) are redacted.' },
@@ -106,6 +109,7 @@ const CONTENT_DEFAULTS = {
     title: 'Partner Terms & Conditions',
     body: '',
   },
+  partnerPage: { hero: {}, benefits: [], how: [], requirements: [], requirementsTip: '', faqs: [] },
 };
 
 function Row({ children }) {
@@ -363,7 +367,7 @@ export default function AdminPage() {
 
   const publish = async () => {
     try {
-      const payload = { hero: content.hero, stats: content.stats, trust: content.trust, testimonials: content.testimonials, footer: content.footer, partnerTerms: content.partnerTerms };
+      const payload = { hero: content.hero, stats: content.stats, trust: content.trust, testimonials: content.testimonials, footer: content.footer, partnerTerms: content.partnerTerms, partnerPage: content.partnerPage };
       await axios.put(`${LEADS_API}/content`, payload, { headers: { Authorization: `Bearer ${token}` } });
       try { localStorage.setItem('bk_home_content_v1', JSON.stringify(payload)); } catch (e) {}
       toast.success('Published', { description: 'Home page content is now live on the site.' });
@@ -786,6 +790,10 @@ export default function AdminPage() {
               )}
 
               {tab === 'managers' && <ApprovedPartnersAdmin token={token} />}
+
+              {tab === 'partnerpage' && (
+                <PartnerPageAdmin pp={content.partnerPage} onChange={(next) => patchContent('partnerPage', next)} />
+              )}
 
               {tab === 'collections' && (
                 <section className="surface p-6">

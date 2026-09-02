@@ -56,9 +56,45 @@ DEFAULT_CONTENT = {
             "(This is placeholder content — edit it from the admin console.)"
         ),
     },
+    "partnerPage": {
+        "hero": {
+            "badge": "For SEBI-registered research analysts",
+            "headline": "Grow your research practice with Omnivest",
+            "sub": "List your model portfolios, reach investors across India, and run your practice from one console — with zero platform fees for founding partners.",
+            "primaryCta": "Apply as a partner",
+            "secondaryCta": "See requirements",
+        },
+        "benefits": [
+            {"title": "Publish model portfolios", "text": "Design baskets with stocks, weights, methodology, rebalancing and a factsheet."},
+            {"title": "Reach real investors", "text": "Approved baskets appear live on the Model Portfolios page for every Omnivest investor."},
+            {"title": "Keep 100% of your revenue", "text": "Founding partners pay zero platform fees — set your subscription price and keep all of it."},
+        ],
+        "how": [
+            {"title": "Apply", "text": "A 10-minute application with your SEBI, RAASB and NISM details plus three documents."},
+            {"title": "Get verified", "text": "We verify your registration and documents — typically within 2–3 working days."},
+            {"title": "Publish", "text": "Build portfolios in your analyst console and submit them for review."},
+            {"title": "Grow", "text": "Approved portfolios go live to investors; track your applications and listings any time."},
+        ],
+        "requirements": [
+            {"title": "SEBI RA registration", "text": "A valid Research Analyst registration (INH…) in the name you'll publish under."},
+            {"title": "RAASB / BSE enlistment", "text": "Your enlistment number with the Research Analyst Administration & Supervisory Body."},
+            {"title": "Valid NISM Series-XV", "text": "An unexpired NISM Research Analyst certification (Principal Officer's, for firms)."},
+            {"title": "PAN & registered address", "text": "PAN and your registered office address exactly as per SEBI records."},
+            {"title": "Three documents", "text": "SEBI certificate, NISM certificate and PAN card — PDF/JPG/PNG, up to 5 MB each."},
+            {"title": "For LLPs & companies", "text": "Principal Officer and Compliance Officer names with contact details."},
+        ],
+        "requirementsTip": "Tip: use your business mobile number — a number already registered as an Omnivest customer account can't hold a partner account.",
+        "faqs": [
+            {"q": "What does it cost to list on Omnivest?", "a": "Founding partners pay zero platform fees — you keep 100% of your subscription revenue while we build this together. A transparent platform fee will apply to later cohorts, and founding partners will always get preferential terms."},
+            {"q": "How do I earn?", "a": "You set your own subscription price for each model portfolio (monthly, quarterly or yearly). Investors subscribe to access your portfolios, and your earnings settle to you — the same model used by leading research platforms in India."},
+            {"q": "How long does approval take?", "a": "Typically 2–3 working days. We verify your SEBI registration, RAASB enlistment, NISM certification and documents, and you can track your application status any time with your reference number."},
+            {"q": "What happens after I'm approved?", "a": "Log in on the partner page with your registered mobile number to open your analyst console — create portfolios with constituents, weights, methodology and factsheets, submit them for review, and they go live once approved."},
+            {"q": "Can I invest on Omnivest with the same number?", "a": "No — partner accounts and customer accounts are kept fully separate. Use a different mobile number if you'd also like to invest as a customer."},
+        ],
+    },
 }
 
-ALLOWED_KEYS = ("hero", "stats", "trust", "testimonials", "footer", "partnerTerms")
+ALLOWED_KEYS = ("hero", "stats", "trust", "testimonials", "footer", "partnerTerms", "partnerPage")
 
 
 def build_router(db: AsyncIOMotorDatabase) -> APIRouter:

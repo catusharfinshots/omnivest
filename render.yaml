@@ -94,6 +94,9 @@ services:
       - type: rewrite
         source: /partner
         destination: /partner/index.html
+      - type: rewrite
+        source: /partner/apply
+        destination: /partner/apply/index.html
       # SPA fallback: all other paths serve the React app
       - type: rewrite
         source: /*

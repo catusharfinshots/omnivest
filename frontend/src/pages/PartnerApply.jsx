@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { isValidPhoneNumber } from 'react-phone-number-input';
@@ -11,9 +11,8 @@ import PhoneField from '../components/PhoneField';
 import PartnerHeader from '../components/PartnerHeader';
 import PartnerFooter from '../components/PartnerFooter';
 import Seo from '../components/Seo';
-import AnalystConsole from '../components/AnalystConsole';
 import { useAuth } from '../context/AuthContext';
-import { Loader2, LineChart, CheckCircle2, ShieldCheck, Users, TrendingUp, Upload, FileCheck2, SearchCheck, Clock3, XCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, CheckCircle2, Upload, FileCheck2 } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const SEBI_RE = /^IN[A-Z][0-9]{9}$/;
@@ -41,81 +40,6 @@ const EMPTY_FORM = {
 
 function SectionTitle({ children }) {
   return <div className="pt-2 text-[11px] font-bold uppercase tracking-wider text-[#6C2BD9]">{children}</div>;
-}
-
-function TrackApplication({ openSignal = 0 }) {
-  const [open, setOpen] = useState(false);
-  useEffect(() => {
-    if (openSignal > 0) {
-      setOpen(true);
-      document.querySelector('[data-testid="track-application"]')?.scrollIntoView({ block: 'start' });
-    }
-  }, [openSignal]);
-  const [ref, setRef] = useState('');
-  const [phone, setPhone] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState('');
-
-  const check = async (e) => {
-    e.preventDefault();
-    setBusy(true); setError(''); setResult(null);
-    try {
-      const { data } = await axios.post(`${API}/partners/status`, { ref_no: ref.trim().toUpperCase(), phone });
-      setResult(data);
-    } catch (err) {
-      setError(err?.response?.data?.detail || 'Could not check the status right now.');
-    } finally { setBusy(false); }
-  };
-
-  const STATUS_UI = {
-    pending: { icon: Clock3, cls: 'bg-[#FEF3C7] text-[#B45309]', label: 'Under review', copy: 'We are verifying your details and documents — typically 2–3 working days.' },
-    approved: { icon: CheckCircle2, cls: 'bg-[#DCFCE7] text-[#0E9F5E]', label: 'Approved 🎉', copy: 'Use “Already approved? Log in” above with your registered mobile to open your analyst console.' },
-    rejected: { icon: XCircle, cls: 'bg-[#FEE2E2] text-[#DC2626]', label: 'Not approved', copy: 'You can correct the issue below and submit a fresh application any time.' },
-  };
-  const ui = result ? STATUS_UI[result.status] : null;
-
-  return (
-    <div className="mb-8 surface p-4 sm:p-5" data-testid="track-application">
-      <button type="button" data-testid="track-toggle" onClick={() => setOpen(!open)} className="w-full flex items-center justify-between gap-3 text-left">
-        <div>
-          <div className="text-sm font-semibold text-[#1A1030] flex items-center gap-2"><SearchCheck className="h-4 w-4 text-[#6C2BD9]" /> Track an existing application</div>
-          <div className="text-xs text-[#64748B]">Check your status with your reference number (OMN-RA-…) and registered mobile.</div>
-        </div>
-        <span className="text-xs font-semibold text-[#6C2BD9]">{open ? 'Hide' : 'Check status'}</span>
-      </button>
-      {open && (
-        <form onSubmit={check} className="mt-4 grid sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
-          <div>
-            <Label>Reference number</Label>
-            <Input data-testid="track-ref" value={ref} onChange={(e) => setRef(e.target.value.toUpperCase())} className="h-11 mt-1.5" placeholder="OMN-RA-2026-0001" />
-          </div>
-          <div>
-            <Label>Registered mobile</Label>
-            <PhoneField testid="track-phone" value={phone} onChange={setPhone} />
-          </div>
-          <button data-testid="track-submit" disabled={busy || !ref.trim() || !phone} className="btn-primary h-11 px-5 disabled:opacity-60 disabled:cursor-not-allowed">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Check'}
-          </button>
-        </form>
-      )}
-      {open && error && <p data-testid="track-error" className="mt-3 text-sm text-[#DC2626]">{error}</p>}
-      {open && result && ui && (
-        <div data-testid="track-result" className="mt-4 rounded-xl border border-[#E8E1F0] bg-white p-4">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${ui.cls}`}><ui.icon className="h-3.5 w-3.5" /> {ui.label}</span>
-            <span className="text-xs text-[#94A3B8]">{result.ref_no} · applied {new Date(result.created_at).toLocaleDateString('en-IN')}</span>
-          </div>
-          {result.review_note && (
-            <div data-testid="track-review-note" className="mt-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] px-3 py-2 text-sm text-[#475569]">
-              <b className="text-[#1A1030]">Message from our review team:</b> {result.review_note}
-            </div>
-          )}
-          <p className="mt-2 text-xs text-[#64748B]">{ui.copy}</p>
-        </div>
-      )}
-    </div>
-  );
 }
 
 function DocPicker({ kind, file, onPick }) {
@@ -162,11 +86,10 @@ function OfficerFields({ prefix, label, form, set, setPhone }) {
   );
 }
 
-export default function BecomePartner() {
+export default function PartnerApply() {
   const { user, isAuthed, loading: authLoading, token } = useAuth();
-  // Logged-in non-analysts: show their own application's status instead of a blank form.
+  // Pending applicants get redirected to their status view on /partner.
   const [myApp, setMyApp] = useState(undefined); // undefined=checking, null=none
-  const [reapply, setReapply] = useState(false);
   useEffect(() => {
     if (!isAuthed || !token || user?.role === 'analyst') { setMyApp(null); return; }
     axios.get(`${API}/partners/my-application`, { headers: { Authorization: `Bearer ${token}` } })
@@ -183,7 +106,6 @@ export default function BecomePartner() {
   const [appId, setAppId] = useState(null);
   const [refNo, setRefNo] = useState('');
   const [uploadedKinds, setUploadedKinds] = useState([]);
-  const [trackSignal, setTrackSignal] = useState(0);
 
   useEffect(() => {
     axios.get(`${API}/content`).then(({ data }) => setTerms(data?.partnerTerms || null)).catch(() => setTerms(null));
@@ -308,40 +230,12 @@ export default function BecomePartner() {
     return <div className="min-h-screen grid place-items-center text-[#6B6480]">Loading…</div>;
   }
   if (isAuthed && user?.role === 'analyst') {
-    return <AnalystConsole />;
+    return <Navigate to="/partner" replace />;
   }
 
-  // Logged-in user with an application on this number: status view, not a blank form.
-  if (isAuthed && myApp && !done && (myApp.status === 'pending' || (myApp.status === 'rejected' && !reapply))) {
-    const rejected = myApp.status === 'rejected';
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Seo title="Your Partner Application" description="Track your Omnivest partner application." />
-        <PartnerHeader minimal />
-        <main className="flex-1 fade-in grid place-items-center bg-[#F7F4FB] p-6">
-          <div className="surface p-8 sm:p-10 max-w-lg w-full" data-testid="my-application-status">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${rejected ? 'bg-[#FEE2E2] text-[#DC2626]' : 'bg-[#FEF3C7] text-[#B45309]'}`}>
-                {rejected ? <XCircle className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />} {rejected ? 'Not approved' : 'Under review'}
-              </span>
-              {myApp.ref_no && <span className="text-xs font-bold text-[#1A1030]">{myApp.ref_no}</span>}
-            </div>
-            <h1 className="mt-4 text-2xl font-bold">{rejected ? 'Your application was not approved' : 'Your partner application is under review'}</h1>
-            {!rejected && <p className="mt-2 text-sm text-[#64748B]">We're verifying your SEBI registration and documents — typically 2–3 working days. Once approved, this page becomes your analyst console the next time you log in.</p>}
-            {myApp.review_note && (
-              <div className="mt-4 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] px-3 py-2 text-sm text-[#475569]">
-                <b className="text-[#1A1030]">Message from our review team:</b> {myApp.review_note}
-              </div>
-            )}
-            {rejected && (
-              <button type="button" data-testid="reapply-btn" onClick={() => setReapply(true)} className="btn-primary mt-5 px-5 py-2.5 text-sm">Correct &amp; submit a fresh application</button>
-            )}
-            <p className="mt-5 text-xs text-[#94A3B8]">Questions? Write to <a className="font-semibold text-[#6C2BD9]" href={`mailto:support@omnivest.in?subject=Partner application ${myApp.ref_no || ''}`}>support@omnivest.in</a>{myApp.ref_no ? ' with your reference number.' : '.'}</p>
-          </div>
-        </main>
-        <PartnerFooter />
-      </div>
-    );
+  // Pending applicants belong on /partner (their status view lives there).
+  if (isAuthed && myApp && myApp.status === 'pending' && !done) {
+    return <Navigate to="/partner" replace />;
   }
 
   const inner = done ? (
@@ -361,7 +255,7 @@ export default function BecomePartner() {
           <ol className="mt-2 space-y-1.5 text-sm text-[#475569] list-decimal list-inside">
             <li>We verify your SEBI registration, RAASB enlistment and documents.</li>
             <li>You'll hear from us — typically within <b>2–3 working days</b>.</li>
-            <li>Once approved, return to <b>omnivest.in/partner</b> and choose <b>“Already approved? Log in”</b> (with this mobile number) to open your analyst console.</li>
+            <li>Once approved, return to <b>omnivest.in/partner</b> and choose <b>“Partner login”</b> (with this mobile number) to open your analyst console.</li>
           </ol>
         </div>
         <p className="mt-5 text-xs text-[#94A3B8]">Questions? Write to <a className="font-semibold text-[#6C2BD9]" href={`mailto:support@omnivest.in?subject=Partner application ${refNo}`}>support@omnivest.in</a> with your reference number.</p>
@@ -373,30 +267,13 @@ export default function BecomePartner() {
     </div>
   ) : (
     <div className="bg-[#F7F4FB]">
-      <div className="container-x py-14">
-        <TrackApplication openSignal={trackSignal} />
-        <div className="grid lg:grid-cols-2 gap-10 items-start">
-          <div id="why-partner" className="lg:sticky lg:top-24 scroll-mt-24">
-            <span className="inline-flex items-center gap-2 rounded-full bg-[#EDE9FE] text-[#5320A8] text-xs font-semibold px-3 py-1.5"><LineChart className="h-3.5 w-3.5" /> For research analysts</span>
-            <h1 className="mt-4 text-4xl sm:text-5xl font-bold leading-tight">Become a partner</h1>
-            <p className="mt-4 text-base text-[#475569] max-w-lg">List your model portfolios on Omnivest and reach investors across India. Apply below — once our team verifies your SEBI registration and approves you, you'll get your own analyst console to build and publish baskets.</p>
-            <div className="mt-8 space-y-4 max-w-md">
-              {[
-                { icon: TrendingUp, t: 'Publish model portfolios', d: 'Design baskets with stocks, weights, methodology, rebalancing and a factsheet.' },
-                { icon: Users, t: 'Reach real investors', d: 'Approved baskets appear live on the Model Portfolios page.' },
-                { icon: ShieldCheck, t: 'SEBI-first onboarding', d: 'We verify registration, RAASB enlistment and NISM certification before listing.' },
-              ].map((b, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <span className="h-9 w-9 shrink-0 rounded-xl bg-white text-[#6C2BD9] grid place-items-center border border-[#E8E1F0]"><b.icon className="h-4 w-4" /></span>
-                  <div><div className="text-sm font-semibold text-[#1A1030]">{b.t}</div><div className="text-xs text-[#64748B]">{b.d}</div></div>
-                </div>
-              ))}
-            </div>
-          </div>
-
+      <div className="container-x py-10 max-w-3xl">
+        <Link to="/partner" data-testid="apply-back-link" className="inline-flex items-center gap-1.5 text-sm font-medium text-[#6C2BD9] hover:underline"><ArrowLeft className="h-4 w-4" /> Back to partner page</Link>
+        <h1 className="mt-4 text-3xl sm:text-4xl font-bold leading-tight">Apply as a research analyst</h1>
+        <p className="mt-2 text-sm text-[#64748B] max-w-xl">Takes about ten minutes. Keep your SEBI, RAASB and NISM details plus three documents handy — <Link to="/partner#requirements" className="text-[#6C2BD9] font-medium">see the full checklist</Link>.</p>
+        <div className="mt-8">
           <form onSubmit={submit} className="surface p-6 sm:p-8" data-testid="partner-form">
-            <h2 className="text-lg font-semibold">Apply as a research analyst</h2>
-            <div className="mt-5 space-y-4">
+            <div className="space-y-4">
               <SectionTitle>Contact</SectionTitle>
               <div className="rounded-lg bg-[#FFF7ED] border border-[#FED7AA] px-3 py-2 text-xs text-[#9A3412]" data-testid="separate-number-note">
                 Partner accounts use their own mobile number — a number already registered as a customer account on Omnivest can't be used here. Please use your business/professional number.
@@ -574,52 +451,6 @@ export default function BecomePartner() {
           </form>
         </div>
 
-        <section id="requirements" className="mt-16 scroll-mt-24" data-testid="partner-requirements">
-          <h2 className="text-2xl font-bold">What you need to apply</h2>
-          <p className="mt-1 text-sm text-[#64748B]">We verify every partner before listing — have these ready and the application takes about ten minutes.</p>
-          <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { t: 'SEBI RA registration', d: 'A valid Research Analyst registration (INH…) in the name you’ll publish under.' },
-              { t: 'RAASB / BSE enlistment', d: 'Your enlistment number with the Research Analyst Administration & Supervisory Body.' },
-              { t: 'Valid NISM Series-XV', d: 'An unexpired NISM Research Analyst certification (Principal Officer’s, for firms).' },
-              { t: 'PAN & registered address', d: 'PAN and your registered office address exactly as per SEBI records.' },
-              { t: 'Three documents', d: 'SEBI certificate, NISM certificate and PAN card — PDF/JPG/PNG, up to 5 MB each.' },
-              { t: 'For LLPs & companies', d: 'Principal Officer and Compliance Officer names with contact details.' },
-            ].map((r) => (
-              <div key={r.t} className="surface p-5">
-                <div className="flex items-start gap-3">
-                  <span className="h-8 w-8 shrink-0 rounded-lg bg-[#EDE9FE] text-[#5320A8] grid place-items-center"><CheckCircle2 className="h-4 w-4" /></span>
-                  <div>
-                    <div className="text-sm font-semibold text-[#1A1030]">{r.t}</div>
-                    <div className="mt-1 text-xs text-[#64748B] leading-relaxed">{r.d}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="mt-4 text-xs text-[#94A3B8]">Tip: use your business mobile number — a number already registered as an Omnivest customer account can't hold a partner account.</p>
-        </section>
-
-        <section id="partner-faq" className="mt-16 scroll-mt-24" data-testid="partner-faq-section">
-          <h2 className="text-2xl font-bold">Partner FAQ</h2>
-          <div className="mt-6 space-y-3 max-w-3xl">
-            {[
-              { q: 'What does it cost to list on Omnivest?', a: 'Founding partners pay zero platform fees — you keep 100% of your subscription revenue while we build this together. A transparent platform fee will apply to later cohorts, and founding partners will always get preferential terms.' },
-              { q: 'How do I earn?', a: 'You set your own subscription price for each model portfolio (monthly, quarterly or yearly). Investors subscribe to access your portfolios, and your earnings settle to you — the same model used by leading research platforms in India.' },
-              { q: 'How long does approval take?', a: 'Typically 2–3 working days. We verify your SEBI registration, RAASB enlistment, NISM certification and documents, and you can track your application status on this page any time with your reference number.' },
-              { q: 'What happens after I’m approved?', a: 'Log in on this page with your registered mobile number to open your analyst console — create portfolios with constituents, weights, methodology and factsheets, submit them for review, and they go live on the Model Portfolios page once approved.' },
-              { q: 'Can I invest on Omnivest with the same number?', a: 'No — partner accounts and customer accounts are kept fully separate. Use a different mobile number if you’d also like to invest as a customer.' },
-            ].map((f) => (
-              <details key={f.q} className="surface px-5 py-4 group">
-                <summary className="text-sm font-semibold text-[#1A1030] cursor-pointer list-none flex items-center justify-between gap-3">
-                  {f.q}
-                  <span className="text-[#6C2BD9] transition-transform group-open:rotate-45 text-lg leading-none shrink-0">+</span>
-                </summary>
-                <p className="mt-2 text-sm text-[#475569] leading-relaxed">{f.a}</p>
-              </details>
-            ))}
-          </div>
-        </section>
       </div>
 
       <Dialog open={termsOpen} onOpenChange={setTermsOpen}>
@@ -637,8 +468,8 @@ export default function BecomePartner() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Seo title="Become a Partner" description="Partner with Omnivest as a SEBI-registered research analyst." />
-      <PartnerHeader minimal={done} onTrack={() => setTrackSignal((s) => s + 1)} />
+      <Seo title="Partner Application" description="Apply as a SEBI-registered research analyst partner on Omnivest." />
+      <PartnerHeader minimal />
       <main className="flex-1 fade-in">{inner}</main>
       <PartnerFooter />
     </div>

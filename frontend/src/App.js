@@ -22,7 +22,8 @@ import LearnPost from './pages/LearnPost';
 import DashboardPage from './pages/DashboardPage';
 import BusinessPage from './pages/BusinessPage';
 import AdminPage from './pages/AdminPage';
-import BecomePartner from './pages/BecomePartner';
+import PartnerLanding from './pages/PartnerLanding';
+import PartnerApply from './pages/PartnerApply';
 import FAQPage from './pages/FAQPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
@@ -105,7 +106,8 @@ function App() {
             </Route>
             <Route path="/broker/kite/callback" element={<KiteCallback />} />
             <Route path="/admin" element={<AdminPage />} />
-            <Route path="/partner" element={<BecomePartner />} />
+            <Route path="/partner" element={<PartnerLanding />} />
+            <Route path="/partner/apply" element={<PartnerApply />} />
             <Route path="/analyst" element={<Navigate to="/partner" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
