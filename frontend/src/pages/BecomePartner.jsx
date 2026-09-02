@@ -215,16 +215,40 @@ export default function BecomePartner() {
     form.po_name.trim() && EMAIL_RE.test(form.po_email) && form.po_phone && isValidPhoneNumber(form.po_phone) &&
     form.co_name.trim() && EMAIL_RE.test(form.co_email) && form.co_phone && isValidPhoneNumber(form.co_phone)
   );
-  const disciplinaryOk = form.disciplinary_history === false || (form.disciplinary_history === true && form.disciplinary_details.trim());
-  const filesOk = files.sebi_cert && files.nism_cert && files.pan_card;
 
-  const valid = form.name.trim() && phoneOk && emailOk
-    && form.registered_name.trim() && form.firm.trim() && sebiOk && form.sebi_reg_date
-    && form.raasb_no.trim() && form.nism_cert_no.trim() && form.nism_valid_till && !nismExpired
-    && panOk && form.registered_address.trim().length >= 10
-    && APPLICANT_TYPES.includes(form.applicant_type) && officersOk
-    && disciplinaryOk && form.raasb_deposit_confirmed && form.model_portfolio_compliance
-    && filesOk && form.note.trim() && form.accepted_terms;
+  const addressOk = form.registered_address.trim().length >= 10;
+
+  // Single source of truth: every unmet requirement in plain words. The submit
+  // button is enabled exactly when this list is empty, and the list itself is
+  // shown to the applicant so a disabled button is never a mystery.
+  const missing = [
+    !form.name.trim() && 'Enter your full name',
+    !phoneOk && 'Enter a valid mobile number',
+    !emailOk && 'Enter a valid email address',
+    !form.registered_name.trim() && 'Enter your registered name (as on the SEBI certificate)',
+    !sebiOk && 'Enter your SEBI reg. no. (format INH000012345)',
+    !form.sebi_reg_date && 'Pick your SEBI registration date',
+    !form.raasb_no.trim() && 'Enter your RAASB/BSE enlistment number',
+    !form.nism_cert_no.trim() && 'Enter your NISM Series-XV certificate number',
+    !form.nism_valid_till && 'Pick your NISM validity date',
+    nismExpired && 'Your NISM certificate date is in the past — a valid certificate is required',
+    !panOk && 'Enter a valid PAN (format ABCDE1234F)',
+    !addressOk && 'Enter your complete registered office address (street, city, PIN)',
+    !form.firm.trim() && 'Enter your firm / experience',
+    !APPLICANT_TYPES.includes(form.applicant_type) && 'Choose what you are applying as (Individual / LLP / Company)',
+    isFirmType && !officersOk && 'Complete the Principal & Compliance Officer details (name, valid email and mobile for each)',
+    !files.sebi_cert && 'Upload your SEBI registration certificate',
+    !files.nism_cert && 'Upload your NISM Series-XV certificate',
+    !files.pan_card && 'Upload your PAN card',
+    form.disciplinary_history === null && 'Answer the disciplinary-action question (Yes/No)',
+    form.disciplinary_history === true && !form.disciplinary_details.trim() && 'Describe the disciplinary action you declared',
+    !form.raasb_deposit_confirmed && 'Confirm the RAASB deposit declaration',
+    !form.model_portfolio_compliance && 'Confirm the model-portfolio compliance declaration',
+    !form.note.trim() && 'Tell us about your strategy',
+    !form.accepted_terms && 'Accept the Partner Terms & Conditions',
+  ].filter(Boolean);
+
+  const valid = missing.length === 0;
 
   const uploadDocs = async (id, already = []) => {
     for (const kind of Object.keys(files)) {
@@ -437,7 +461,10 @@ export default function BecomePartner() {
               </div>
               <div>
                 <Label>Registered office address (as per SEBI records) *</Label>
-                <Textarea data-testid="partner-address" required value={form.registered_address} onChange={set('registered_address')} rows={2} className="mt-1.5" placeholder="Full registered address" />
+                <Textarea data-testid="partner-address" required value={form.registered_address} onChange={set('registered_address')} rows={2} className="mt-1.5" placeholder="Street, area, city, state, PIN" />
+                {form.registered_address.trim() && !addressOk && (
+                  <p className="mt-1 text-xs text-[#DC2626]">Please enter your complete registered address — street, city and PIN (as per SEBI records).</p>
+                )}
               </div>
               <div>
                 <Label>Firm / experience *</Label>
@@ -535,6 +562,14 @@ export default function BecomePartner() {
                   <button type="button" data-testid="open-partner-terms" onClick={() => setTermsOpen(true)} className="font-semibold text-[#6C2BD9] underline">Partner Terms &amp; Conditions</button>
                 </span>
               </label>
+              {!valid && (
+                <div data-testid="missing-checklist" className="rounded-xl border border-[#FDE68A] bg-[#FFFBEB] px-4 py-3">
+                  <div className="text-xs font-bold text-[#92400E]">Almost there — {missing.length} item{missing.length > 1 ? 's' : ''} left before you can submit:</div>
+                  <ul className="mt-1.5 space-y-1 text-xs text-[#92400E] list-disc list-inside">
+                    {missing.map((m) => <li key={m}>{m}</li>)}
+                  </ul>
+                </div>
+              )}
               <button data-testid="partner-submit" disabled={busy || !valid} className="btn-primary w-full py-3 disabled:opacity-60 disabled:cursor-not-allowed">
                 {busy && <Loader2 className="h-4 w-4 animate-spin" />} {busy ? 'Submitting…' : 'Submit application'}
               </button>
