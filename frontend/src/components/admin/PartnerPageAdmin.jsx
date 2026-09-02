@@ -81,9 +81,35 @@ export default function PartnerPageAdmin({ pp, onChange }) {
         </div>
       </Card>
 
-      <Card title="Benefits" desc="The cards beside the hero (first three get icons).">
-        <ListEditor testid="pp-benefits" items={p.benefits || []} onChange={(v) => set({ benefits: v })} addLabel="Add benefit"
-          fields={[{ key: 'title', label: 'Title' }, { key: 'text', label: 'Text', multiline: true }]} />
+      <Card title="Feature sections" desc="The alternating Create / Manage / Grow blocks with product visuals. Bullets: one per line.">
+        <div className="space-y-3" data-testid="pp-features">
+          {(p.features || []).map((f, i) => (
+            <div key={i} className="rounded-xl border border-[#EDE9FE] bg-[#FBFAFE] p-4 space-y-2">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 space-y-2">
+                  <div className="grid sm:grid-cols-[140px_1fr] gap-2">
+                    <div>
+                      <Label className="text-xs">Eyebrow</Label>
+                      <Input value={f.eyebrow || ''} onChange={(e) => set({ features: p.features.map((x, j) => (j === i ? { ...x, eyebrow: e.target.value } : x)) })} className="h-9 mt-1 bg-white" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Title</Label>
+                      <Input value={f.title || ''} onChange={(e) => set({ features: p.features.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)) })} className="h-9 mt-1 bg-white" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Bullets (one per line)</Label>
+                    <Textarea rows={3} value={(f.bullets || []).join('\n')} onChange={(e) => set({ features: p.features.map((x, j) => (j === i ? { ...x, bullets: e.target.value.split('\n') } : x)) })} className="mt-1 bg-white" />
+                  </div>
+                </div>
+                <button type="button" onClick={() => set({ features: p.features.filter((_, j) => j !== i) })} className="shrink-0 h-8 w-8 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2]" aria-label="Remove">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={() => set({ features: [...(p.features || []), { eyebrow: '', title: '', bullets: [] }] })} className="btn-outline text-xs"><Plus className="h-3.5 w-3.5" /> Add feature section</button>
+        </div>
       </Card>
 
       <Card title="How it works" desc="The numbered steps strip.">

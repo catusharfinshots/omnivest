@@ -69,6 +69,35 @@ DEFAULT_CONTENT = {
             {"title": "Reach real investors", "text": "Approved baskets appear live on the Model Portfolios page for every Omnivest investor."},
             {"title": "Keep 100% of your revenue", "text": "Founding partners pay zero platform fees — set your subscription price and keep all of it."},
         ],
+        "features": [
+            {
+                "eyebrow": "Create",
+                "title": "Build portfolios investors can trust",
+                "bullets": [
+                    "Compose baskets of stocks & ETFs with weights, methodology and rebalance schedule",
+                    "Live prices and returns from the exchange auto-fill your factsheet",
+                    "A guided checklist makes every listing complete before it reaches review",
+                ],
+            },
+            {
+                "eyebrow": "Manage",
+                "title": "Invest time in research, not operations",
+                "bullets": [
+                    "One console for your profile, listings, submissions and reviews",
+                    "Admin-verified listings go live on the Model Portfolios page automatically",
+                    "Track every application and rebalance from a single place",
+                ],
+            },
+            {
+                "eyebrow": "Grow",
+                "title": "Reach investors across India",
+                "bullets": [
+                    "Your portfolios appear alongside your name, firm and SEBI registration",
+                    "Investors connect their own broker — you never handle their money",
+                    "Set your subscription price and keep 100% of it as a founding partner",
+                ],
+            },
+        ],
         "how": [
             {"title": "Apply", "text": "A 10-minute application with your SEBI, RAASB and NISM details plus three documents."},
             {"title": "Get verified", "text": "We verify your registration and documents — typically within 2–3 working days."},

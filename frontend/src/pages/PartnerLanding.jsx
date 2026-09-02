@@ -9,10 +9,9 @@ import PartnerFooter from '../components/PartnerFooter';
 import Seo from '../components/Seo';
 import AnalystConsole from '../components/AnalystConsole';
 import { useAuth } from '../context/AuthContext';
-import { Loader2, LineChart, CheckCircle2, ShieldCheck, Users, TrendingUp, SearchCheck, Clock3, XCircle, ArrowRight } from 'lucide-react';
+import { Loader2, LineChart, CheckCircle2, TrendingUp, SearchCheck, Clock3, XCircle, ArrowRight } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const BENEFIT_ICONS = [TrendingUp, Users, ShieldCheck];
 
 function TrackApplication({ openSignal = 0 }) {
   const [open, setOpen] = useState(false);
@@ -89,6 +88,82 @@ function TrackApplication({ openSignal = 0 }) {
   );
 }
 
+// ---- Decorative product mockups (pure CSS, illustrate the console) ----
+function MockCreate() {
+  const rows = [
+    { s: 'RELIANCE', w: 24 }, { s: 'HDFCBANK', w: 22 }, { s: 'TCS', w: 18 }, { s: 'INFY', w: 16 }, { s: 'LT', w: 20 },
+  ];
+  return (
+    <div className="relative rounded-2xl bg-white shadow-xl border border-[#EDE9FE] p-5 text-left">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Create model portfolio</div>
+          <div className="text-sm font-bold text-[#1A1030]">Momentum Picks</div>
+        </div>
+        <span className="h-8 w-8 rounded-lg grad-card grid place-items-center text-white"><TrendingUp className="h-4 w-4" /></span>
+      </div>
+      <div className="mt-4 space-y-2.5">
+        {rows.map((r) => (
+          <div key={r.s} className="flex items-center gap-3">
+            <span className="w-20 text-[11px] font-semibold text-[#475569]">{r.s}</span>
+            <div className="flex-1 h-2 rounded-full bg-[#F1F5F9] overflow-hidden"><div className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${r.w * 3}%` }} /></div>
+            <span className="w-8 text-right text-[11px] font-bold text-[#1A1030]">{r.w}%</span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 flex items-center justify-between border-t border-[#F1EBF9] pt-3">
+        <span className="text-[11px] font-semibold text-[#0E9F5E]">✓ Total weight 100%</span>
+        <span className="rounded-full bg-[#6C2BD9] text-white text-[11px] font-semibold px-3 py-1.5">Submit for review</span>
+      </div>
+    </div>
+  );
+}
+
+function MockManage() {
+  const rows = [
+    { n: 'Momentum Picks', st: 'Approved', cls: 'bg-[#DCFCE7] text-[#0E9F5E]' },
+    { n: 'Quality Compounders', st: 'In review', cls: 'bg-[#FEF3C7] text-[#B45309]' },
+    { n: 'Dividend Shield', st: 'Draft', cls: 'bg-[#F1F5F9] text-[#64748B]' },
+  ];
+  return (
+    <div className="rounded-2xl bg-white shadow-xl border border-[#EDE9FE] p-5">
+      <div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Analyst console · My listings</div>
+      <div className="mt-3 space-y-2">
+        {rows.map((r) => (
+          <div key={r.n} className="flex items-center justify-between rounded-xl border border-[#F1EBF9] px-3.5 py-3">
+            <div className="text-sm font-semibold text-[#1A1030]">{r.n}</div>
+            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${r.cls}`}>{r.st}</span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 text-[11px] text-[#94A3B8]">Factsheets, rebalances and reviews — all in one place.</div>
+    </div>
+  );
+}
+
+function MockGrow() {
+  return (
+    <div className="grid sm:grid-cols-2 gap-4">
+      {[
+        { n: 'Momentum Picks', r: '+18.4%', by: 'Tushar Research' },
+        { n: 'Dividend Shield', r: '+12.9%', by: 'Tushar Research' },
+      ].map((c) => (
+        <div key={c.n} className="rounded-2xl bg-white shadow-xl border border-[#EDE9FE] p-5">
+          <div className="h-9 w-9 rounded-xl grad-card grid place-items-center text-white text-xs font-bold">{c.n[0]}</div>
+          <div className="mt-3 text-sm font-bold text-[#1A1030]">{c.n}</div>
+          <div className="text-[11px] text-[#94A3B8]">by {c.by} · SEBI-registered</div>
+          <div className="mt-3 flex items-center justify-between">
+            <div><div className="text-[10px] text-[#94A3B8]">3Y CAGR</div><div className="text-sm font-bold text-[#0E9F5E]">{c.r}</div></div>
+            <span className="rounded-full bg-[#F1E7FE] text-[#5320A8] text-[11px] font-semibold px-3 py-1.5">Subscribe</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const FEATURE_MOCKS = [MockCreate, MockManage, MockGrow];
+
 export default function PartnerLanding() {
   const { user, isAuthed, loading: authLoading, token } = useAuth();
   const [pp, setPp] = useState(null); // partnerPage content (admin-editable)
@@ -155,31 +230,53 @@ export default function PartnerLanding() {
           <div className="container-x py-24 text-center text-sm text-[#6B6480]">Loading…</div>
         ) : (
           <div className="container-x py-14">
-            <section id="why-partner" className="scroll-mt-24 grid lg:grid-cols-[1.2fr_1fr] gap-10 items-center">
-              <div>
-                <span className="inline-flex items-center gap-2 rounded-full bg-[#EDE9FE] text-[#5320A8] text-xs font-semibold px-3 py-1.5"><LineChart className="h-3.5 w-3.5" /> {pp.hero?.badge}</span>
-                <h1 className="mt-4 text-4xl sm:text-5xl font-bold leading-tight" data-testid="partner-hero-headline">{pp.hero?.headline}</h1>
-                <p className="mt-4 text-base text-[#475569] max-w-xl">{pp.hero?.sub}</p>
-                <div className="mt-7 flex items-center gap-3 flex-wrap">
-                  <Link to="/partner/apply" data-testid="landing-apply-cta" className="btn-primary px-6 py-3">{pp.hero?.primaryCta || 'Apply as a partner'} <ArrowRight className="h-4 w-4" /></Link>
-                  <a href="#requirements" onClick={(e) => { e.preventDefault(); document.getElementById('requirements')?.scrollIntoView({ block: 'start' }); }} className="btn-outline px-6 py-3">{pp.hero?.secondaryCta || 'See requirements'}</a>
+            <section id="why-partner" className="scroll-mt-24 grad-card rounded-3xl p-8 sm:p-12 text-white overflow-hidden">
+              <div className="grid lg:grid-cols-[1.15fr_1fr] gap-10 items-center">
+                <div>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-white/15 text-white text-xs font-semibold px-3 py-1.5"><LineChart className="h-3.5 w-3.5" /> {pp.hero?.badge}</span>
+                  <h1 className="mt-5 text-4xl sm:text-5xl font-bold leading-tight" data-testid="partner-hero-headline">{pp.hero?.headline}</h1>
+                  <p className="mt-4 text-base text-white/85 max-w-xl">{pp.hero?.sub}</p>
+                  <div className="mt-8 flex items-center gap-3 flex-wrap">
+                    <Link to="/partner/apply" data-testid="landing-apply-cta" className="inline-flex items-center gap-2 rounded-full bg-white text-[#5320A8] font-semibold px-6 py-3 hover:bg-[#F1E7FE] transition-colors">{pp.hero?.primaryCta || 'Apply as a partner'} <ArrowRight className="h-4 w-4" /></Link>
+                    <a href="#requirements" onClick={(e) => { e.preventDefault(); document.getElementById('requirements')?.scrollIntoView({ block: 'start' }); }} className="inline-flex items-center rounded-full border border-white/40 text-white font-semibold px-6 py-3 hover:bg-white/10 transition-colors">{pp.hero?.secondaryCta || 'See requirements'}</a>
+                  </div>
+                  <div className="mt-8 flex items-center gap-2 flex-wrap text-xs font-semibold">
+                    {['Zero platform fees for founding partners', '2–3 day verification', 'SEBI-first onboarding'].map((c) => (
+                      <span key={c} className="rounded-full bg-white/10 border border-white/20 px-3 py-1.5">{c}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="relative hidden sm:block" data-testid="hero-mockup">
+                  <div className="absolute inset-0 translate-x-3 translate-y-3 rounded-2xl bg-white/10" />
+                  <MockCreate />
                 </div>
               </div>
-              <div className="space-y-4">
-                {(pp.benefits || []).map((b, i) => {
-                  const Icon = BENEFIT_ICONS[i % BENEFIT_ICONS.length];
+            </section>
+
+            {(pp.features || []).length > 0 && (
+              <div className="mt-4" data-testid="partner-features">
+                {(pp.features || []).map((f, i) => {
+                  const Mock = FEATURE_MOCKS[i % FEATURE_MOCKS.length];
+                  const flip = i % 2 === 1;
                   return (
-                    <div key={i} className="surface p-5 flex items-start gap-3">
-                      <span className="h-9 w-9 shrink-0 rounded-xl bg-[#EDE9FE] text-[#5320A8] grid place-items-center"><Icon className="h-4 w-4" /></span>
-                      <div>
-                        <div className="text-sm font-semibold text-[#1A1030]">{b.title}</div>
-                        <div className="mt-1 text-xs text-[#64748B] leading-relaxed">{b.text}</div>
+                    <section key={i} className="mt-12 grid lg:grid-cols-2 gap-10 items-center">
+                      <div className={flip ? 'lg:order-2' : ''}>
+                        <div className="text-[11px] font-bold uppercase tracking-widest text-[#6C2BD9]">{f.eyebrow}</div>
+                        <h2 className="mt-2 text-2xl sm:text-3xl font-bold leading-snug">{f.title}</h2>
+                        <ul className="mt-5 space-y-3">
+                          {(f.bullets || []).filter((b) => b.trim()).map((b, j) => (
+                            <li key={j} className="flex items-start gap-2.5 text-sm text-[#475569]">
+                              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-[#12B76A]" /> {b}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    </div>
+                      <div className={flip ? 'lg:order-1' : ''}><Mock /></div>
+                    </section>
                   );
                 })}
               </div>
-            </section>
+            )}
 
             <section className="mt-16" data-testid="partner-how">
               <h2 className="text-2xl font-bold">How it works</h2>

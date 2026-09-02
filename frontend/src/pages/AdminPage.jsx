@@ -109,7 +109,7 @@ const CONTENT_DEFAULTS = {
     title: 'Partner Terms & Conditions',
     body: '',
   },
-  partnerPage: { hero: {}, benefits: [], how: [], requirements: [], requirementsTip: '', faqs: [] },
+  partnerPage: { hero: {}, benefits: [], features: [], how: [], requirements: [], requirementsTip: '', faqs: [] },
 };
 
 function Row({ children }) {
