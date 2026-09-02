@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Link2, CheckCircle2, LineChart, LayoutDashboard, LogOut, User, ShieldCheck } from 'lucide-react';
 import omniMark from '../assets/omnivest-mark-white.svg';
 import { useBroker } from '../context/BrokerContext';
@@ -34,8 +34,14 @@ export default function Navbar() {
   const { connections } = useBroker();
   const { isAuthed, user, logout, openAuth } = useAuth();
   const kiteConnected = !!connections.kite;
+  // One page, one audience: the partner page's header offers the partner
+  // door, not the customer one.
+  const onPartnerPage = useLocation().pathname.startsWith('/partner');
 
   const doLogout = () => { logout(); navigate('/'); };
+  const primaryCta = onPartnerPage
+    ? { label: 'Partner login', action: () => openAuth({ next: '/partner', flow: 'partner' }), testid: 'nav-partner-login' }
+    : { label: 'Get started', action: () => openAuth({ next: '/dashboard' }), testid: 'nav-get-started' };
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#E6E8F0] bg-white/85 backdrop-blur-md">
@@ -89,7 +95,7 @@ export default function Navbar() {
               </PopoverContent>
             </Popover>
           ) : (
-            <button data-testid="nav-get-started" onClick={() => openAuth({ next: '/dashboard' })} className="btn-primary">Get started</button>
+            <button data-testid={primaryCta.testid} onClick={primaryCta.action} className="btn-primary">{primaryCta.label}</button>
           )}
         </div>
 
@@ -121,7 +127,7 @@ export default function Navbar() {
               </div>
             ) : (
               <div className="pt-3">
-                <button onClick={() => { setOpen(false); openAuth({ next: '/dashboard' }); }} className="btn-primary w-full">Get started</button>
+                <button onClick={() => { setOpen(false); primaryCta.action(); }} className="btn-primary w-full">{primaryCta.label}</button>
               </div>
             )}
           </div>

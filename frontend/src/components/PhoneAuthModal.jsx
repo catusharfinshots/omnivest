@@ -68,10 +68,12 @@ export default function PhoneAuthModal() {
         <div className="grad-card px-6 py-5 text-white">
           <div className="flex items-center gap-2 text-sm font-semibold">
             {step === 'phone' ? <Phone className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
-            {step === 'phone' ? 'Get started' : 'Verify your number'}
+            {step === 'phone' ? (authFlow === 'partner' ? 'Partner login' : 'Get started') : 'Verify your number'}
           </div>
           <p className="mt-1 text-xs text-white/80">
-            {step === 'phone' ? 'Log in or create your account with your mobile number.' : `We sent a 6-digit code to ${phone}`}
+            {step === 'phone'
+              ? (authFlow === 'partner' ? 'Log in with the mobile number registered on your partner account.' : 'Log in or create your account with your mobile number.')
+              : `We sent a 6-digit code to ${phone}`}
           </p>
         </div>
 

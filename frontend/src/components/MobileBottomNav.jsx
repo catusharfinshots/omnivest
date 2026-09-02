@@ -69,8 +69,14 @@ export default function MobileBottomNav() {
               </>
             ) : (
               <div className="flex flex-col gap-2 p-1">
-                <button onClick={() => openAuth({ next: '/dashboard' })} data-testid="mobnav-signin" className="btn-outline w-full justify-center"><LogIn className="h-4 w-4" /> Sign in</button>
-                <button onClick={() => openAuth({ next: '/dashboard' })} className="btn-primary w-full justify-center">Get started</button>
+                {pathname.startsWith('/partner') ? (
+                  <button onClick={() => openAuth({ next: '/partner', flow: 'partner' })} data-testid="mobnav-partner-login" className="btn-primary w-full justify-center"><LogIn className="h-4 w-4" /> Partner login</button>
+                ) : (
+                  <>
+                    <button onClick={() => openAuth({ next: '/dashboard' })} data-testid="mobnav-signin" className="btn-outline w-full justify-center"><LogIn className="h-4 w-4" /> Sign in</button>
+                    <button onClick={() => openAuth({ next: '/dashboard' })} className="btn-primary w-full justify-center">Get started</button>
+                  </>
+                )}
               </div>
             )}
           </PopoverContent>
