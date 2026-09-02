@@ -5,8 +5,9 @@ import { toast } from 'sonner';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
-import { Plus, Trash2, Save, Send, ArrowLeft, Pencil, LogOut, Upload, FileText, Search, Loader2, TrendingUp } from 'lucide-react';
+import { Plus, Trash2, Save, Send, ArrowLeft, Pencil, LogOut, Upload, FileText, Search, Loader2, TrendingUp, LayoutDashboard, ListChecks } from 'lucide-react';
 import omniMark from '../assets/omnivest-mark-white.svg';
+import PartnerOverview from './partner/PartnerOverview';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -88,7 +89,8 @@ export default function AnalystConsole() {
   const { user, token, logout } = useAuth();
   const auth = { headers: { Authorization: `Bearer ${token}` } };
 
-  const [view, setView] = useState('list'); // list | form | profile
+  const [view, setView] = useState('overview'); // overview | list | form | profile
+  const [dashboardOn, setDashboardOn] = useState(true);
   const [portfolios, setPortfolios] = useState([]);
   const [profile, setProfile] = useState({ displayName: user?.name || '', sebiReg: '', philosophy: '', description: '', logo: '' });
   const [form, setForm] = useState(BLANK);
@@ -156,6 +158,14 @@ export default function AnalystConsole() {
   }, [token]);
 
   useEffect(() => { load(); }, [load]);
+  // Admin can switch the partner dashboard off; then the console opens on listings.
+  useEffect(() => {
+    axios.get(`${API}/partner-dashboard/settings`).then(({ data }) => {
+      const on = data?.settings?.enabled !== false;
+      setDashboardOn(on);
+      if (!on) setView((v) => (v === 'overview' ? 'list' : v));
+    }).catch(() => {});
+  }, []);
   useEffect(() => {
     axios.get(`${API}/listing-options`).then(({ data }) => {
       if (data?.options) setOptions({ ...OPTION_DEFAULTS, ...data.options });
@@ -328,15 +338,29 @@ export default function AnalystConsole() {
             <span className="h-8 w-8 rounded-lg grad-card text-white grid place-items-center"><img src={omniMark} alt="" className="h-5 w-5" /></span>
             <div><div className="font-[Inter] font-bold leading-none">Omnivest</div><div className="text-[10px] uppercase tracking-widest text-[#6B6480]">Analyst console</div></div>
           </div>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-[#6B6480] hidden sm:inline">{user?.name}</span>
-            <button onClick={() => setView('profile')} className="btn-ghost text-xs">My profile</button>
+          <div className="flex items-center gap-1 sm:gap-2 text-sm">
+            <span className="text-[#6B6480] hidden md:inline mr-2">{user?.name}</span>
+            {dashboardOn && (
+              <button onClick={() => setView('overview')} data-testid="console-nav-overview" className={`btn-ghost text-xs ${view === 'overview' ? 'bg-[#F1E7FE] text-[#5320A8]' : ''}`}><LayoutDashboard className="h-3.5 w-3.5" /> Overview</button>
+            )}
+            <button onClick={() => setView('list')} data-testid="console-nav-listings" className={`btn-ghost text-xs ${view === 'list' || view === 'form' ? 'bg-[#F1E7FE] text-[#5320A8]' : ''}`}><ListChecks className="h-3.5 w-3.5" /> My listings</button>
+            <button onClick={() => setView('profile')} className={`btn-ghost text-xs ${view === 'profile' ? 'bg-[#F1E7FE] text-[#5320A8]' : ''}`}>My profile</button>
             <button onClick={logout} className="btn-ghost text-xs"><LogOut className="h-3.5 w-3.5" /> Sign out</button>
           </div>
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8">
+        {/* OVERVIEW (partner dashboard) */}
+        {view === 'overview' && dashboardOn && (
+          <PartnerOverview
+            token={token}
+            onNew={startNew}
+            onEdit={(id) => { const p = portfolios.find((x) => x.id === id); if (p) startEdit(p); else setView('list'); }}
+            onProfile={() => setView('profile')}
+          />
+        )}
+
         {/* PROFILE */}
         {view === 'profile' && (
           <div className="surface p-6 max-w-2xl">

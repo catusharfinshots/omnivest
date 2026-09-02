@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
+import { track } from '../lib/track';
 import { getManager } from '../mock';
 import { TrendingUp, Users, Search } from 'lucide-react';
 
@@ -64,7 +65,12 @@ export default function ModelPortfolios() {
 
   useEffect(() => {
     axios.get(`${API}/portfolios`)
-      .then(({ data }) => setDbPortfolios(data.portfolios || []))
+      .then(({ data }) => {
+        const list = data.portfolios || [];
+        setDbPortfolios(list);
+        // partner analytics: one impression per listed portfolio per page view
+        list.forEach((p) => track('portfolio_impression', { portfolio_id: p.id }));
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

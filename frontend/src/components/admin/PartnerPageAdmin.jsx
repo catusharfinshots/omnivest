@@ -112,6 +112,11 @@ export default function PartnerPageAdmin({ pp, onChange }) {
         </div>
       </Card>
 
+      <Card title="Stats band" desc="The animated numbers under the hero (e.g. 0%, 100%, 10 min).">
+        <ListEditor testid="pp-stats" items={p.stats || []} onChange={(v) => set({ stats: v })} addLabel="Add stat"
+          fields={[{ key: 'value', label: 'Value (number + unit)' }, { key: 'label', label: 'Label' }]} />
+      </Card>
+
       <Card title="Old way vs Omnivest way" desc="The illustrated comparison diagram. Old-way steps: one per line (max 6 shown).">
         <div className="grid sm:grid-cols-2 gap-4">
           <div>

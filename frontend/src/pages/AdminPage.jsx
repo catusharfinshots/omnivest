@@ -14,6 +14,7 @@ import DropdownsAdmin from '../components/admin/DropdownsAdmin';
 import ApprovedPartnersAdmin from '../components/admin/ApprovedPartnersAdmin';
 import PartnerAppCard from '../components/admin/PartnerAppCard';
 import PartnerPageAdmin from '../components/admin/PartnerPageAdmin';
+import PartnerDashboardAdmin from '../components/admin/PartnerDashboardAdmin';
 import omniMark from '../assets/omnivest-mark-white.svg';
 import { toast } from 'sonner';
 
@@ -792,7 +793,10 @@ export default function AdminPage() {
               {tab === 'managers' && <ApprovedPartnersAdmin token={token} />}
 
               {tab === 'partnerpage' && (
-                <PartnerPageAdmin pp={content.partnerPage} onChange={(next) => patchContent('partnerPage', next)} />
+                <div className="space-y-6">
+                  <PartnerPageAdmin pp={content.partnerPage} onChange={(next) => patchContent('partnerPage', next)} />
+                  <PartnerDashboardAdmin token={token} />
+                </div>
               )}
 
               {tab === 'collections' && (

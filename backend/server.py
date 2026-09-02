@@ -126,6 +126,10 @@ api_router.include_router(build_listing_options_router(db))
 from og import build_router as build_og_router  # noqa: E402
 api_router.include_router(build_og_router(db))
 
+# Partner analytics: event ingest, analyst stats, admin dashboard settings
+from events import build_router as build_events_router  # noqa: E402
+api_router.include_router(build_events_router(db))
+
 # Include the router in the main app
 app.include_router(api_router)
 

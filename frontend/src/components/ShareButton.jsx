@@ -5,11 +5,12 @@ import { toast } from 'sonner';
 // Shares a link that routes through the backend /api/og endpoint so social
 // crawlers get the correct per-page preview (Feature 1). Humans are redirected
 // to the real page automatically.
-export default function ShareButton({ path, title, text, label = 'Share', className }) {
+export default function ShareButton({ path, title, text, label = 'Share', className, onShare: onShareHook }) {
   // Path-style (/api/og/<route>) rather than ?path= — rewrites/CDNs can drop query strings.
   const shareUrl = `${process.env.REACT_APP_BACKEND_URL}/api/og${path.startsWith('/') ? path : `/${path}`}`;
 
   const onShare = async () => {
+    try { onShareHook && onShareHook(); } catch { /* analytics must never break sharing */ }
     if (navigator.share) {
       try {
         await navigator.share({ title: title || 'Omnivest', text: text || '', url: shareUrl });

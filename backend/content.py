@@ -98,6 +98,12 @@ DEFAULT_CONTENT = {
                 ],
             },
         ],
+        "stats": [
+            {"value": "0%", "label": "Platform fee for founding partners"},
+            {"value": "100%", "label": "Of subscription revenue stays yours"},
+            {"value": "10 min", "label": "To complete the application"},
+            {"value": "3 days", "label": "Typical verification time"},
+        ],
         "oldNew": {
             "heading": "Running a research practice the old way is hard work",
             "sub": "Manual lists, calls, spreadsheets and follow-ups — or one platform that does the operations for you.",

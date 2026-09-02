@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { track } from '../lib/track';
 import { getBasket, getManager } from '../mock';
 import { getPrice } from '../lib/prices';
 import PerformanceChart from '../components/PerformanceChart';
@@ -44,6 +45,7 @@ export default function ModelPortfolioDetail() {
         lastRebalancedAt: p.updated_at || new Date().toISOString(),
         managerName: p.owner_name,
       });
+      track('portfolio_view', { portfolio_id: p.id });
     }).catch(() => { if (active) setNotFound(true); });
     return () => { active = false; };
   }, [id, mockBasket]);
@@ -73,6 +75,7 @@ export default function ModelPortfolioDetail() {
   const watched = isWatched(basket.id);
 
   const onInvest = () => {
+    if (basket?._db !== false) track('invest_click', { portfolio_id: basket.id });
     if (!isAuthed) {
       openAuth({ next: `/model-portfolios/${basket.id}` });
       return;
@@ -97,7 +100,7 @@ export default function ModelPortfolioDetail() {
             <button onClick={() => navigate('/model-portfolios')} className="inline-flex items-center gap-1.5 text-sm text-[#64748B] hover:text-[#6C2BD9]">
               <ArrowLeft className="h-4 w-4" /> All model portfolios
             </button>
-            <ShareButton path={`/model-portfolios/${basket.id}`} title={`${basket.name} | Omnivest`} text={basket.subtitle || ''} />
+            <ShareButton path={`/model-portfolios/${basket.id}`} title={`${basket.name} | Omnivest`} text={basket.subtitle || ''} onShare={() => track('share_click', { portfolio_id: basket.id })} />
           </div>
 
           <div className="mt-5 flex items-start justify-between gap-6 flex-wrap">
@@ -166,7 +169,7 @@ export default function ModelPortfolioDetail() {
                     <div className="text-xs text-[#64748B]">How this portfolio was created</div>
                   </button>
                   {basket.factsheet_pdf ? (
-                    <a data-testid="factsheet-download" href={`${API}/portfolios/${basket.id}/factsheet`} target="_blank" rel="noreferrer" className="surface p-4 hover:border-[#D8C7F1] transition-all group block">
+                    <a data-testid="factsheet-download" href={`${API}/portfolios/${basket.id}/factsheet`} target="_blank" rel="noreferrer" onClick={() => track('factsheet_download', { portfolio_id: basket.id })} className="surface p-4 hover:border-[#D8C7F1] transition-all group block">
                       <FileText className="h-5 w-5 text-[#6C2BD9]" />
                       <div className="mt-3 text-sm font-semibold group-hover:text-[#6C2BD9]">Factsheet</div>
                       <div className="text-xs text-[#64748B]">Download the PDF factsheet</div>

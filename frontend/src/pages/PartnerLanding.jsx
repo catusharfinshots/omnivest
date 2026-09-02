@@ -10,6 +10,8 @@ import PartnerFooter from '../components/PartnerFooter';
 import Seo from '../components/Seo';
 import AnalystConsole from '../components/AnalystConsole';
 import { useAuth } from '../context/AuthContext';
+import { smoothScrollTo } from '../lib/smoothScroll';
+import CountUpStat from '../components/CountUpStat';
 import { Loader2, LineChart, CheckCircle2, TrendingUp, SearchCheck, Clock3, XCircle, ArrowRight, MessageCircle, FileText, PhoneCall, ShoppingCart, FileSpreadsheet, IndianRupee, RefreshCw, BarChart3, ShieldCheck } from 'lucide-react';
 import omniMark from '../assets/omnivest-mark-white.svg';
 
@@ -20,7 +22,7 @@ function TrackApplication({ openSignal = 0 }) {
   useEffect(() => {
     if (openSignal > 0) {
       setOpen(true);
-      document.querySelector('[data-testid="track-application"]')?.scrollIntoView({ block: 'start' });
+      smoothScrollTo(document.querySelector('[data-testid="track-application"]'));
     }
   }, [openSignal]);
   const [ref, setRef] = useState('');
@@ -113,6 +115,23 @@ function Floating({ children, className = '' }) {
   return (
     <motion.div className={className} animate={{ y: [0, -9, 0] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}>
       {children}
+    </motion.div>
+  );
+}
+
+function FloatChip({ children, className = '', delay = 0 }) {
+  const reduce = useReducedMotion();
+  const inner = (
+    <div className="flex items-center gap-2 rounded-full bg-white shadow-lg border border-[#EDE9FE] pl-1.5 pr-3.5 py-1.5">
+      {children}
+    </div>
+  );
+  if (reduce) return <div className={className}>{inner}</div>;
+  return (
+    <motion.div className={className}
+      initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1, y: [0, -7, 0] }}
+      transition={{ opacity: { duration: 0.4, delay }, scale: { duration: 0.4, delay, type: 'spring', bounce: 0.4 }, y: { duration: 4, repeat: Infinity, ease: 'easeInOut', delay: delay + 0.4 } }}>
+      {inner}
     </motion.div>
   );
 }
@@ -241,9 +260,10 @@ function OldNewWay({ data }) {
         <h2 className="text-2xl sm:text-3xl font-bold text-center">{data.heading}</h2>
         <p className="mt-2 text-sm text-[#64748B] text-center max-w-2xl mx-auto">{data.sub}</p>
       </Reveal>
-      <div className="mt-10 grid lg:grid-cols-2 gap-8 items-stretch">
+      <div className="relative mt-10 grid lg:grid-cols-2 gap-8 items-stretch">
+        <div className="hidden lg:grid absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 h-12 w-12 place-items-center rounded-full bg-[#1A1030] text-white text-xs font-bold shadow-xl" aria-hidden="true">VS</div>
         <Reveal className="h-full">
-          <div className="relative h-[430px] rounded-2xl border border-[#E8E1F0] bg-white p-5 overflow-hidden">
+          <div className="relative h-[430px] rounded-2xl border border-[#F3E2DD] bg-[#FFFBFA] p-5 overflow-hidden">
             <div className="text-[11px] font-bold uppercase tracking-widest text-[#DC2626]">{data.oldTitle}</div>
             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
               <path d="M18 14 Q 45 2 62 10 Q 78 20 38 36 Q 20 44 70 50 Q 88 56 24 62 Q 8 70 56 80"
@@ -258,7 +278,7 @@ function OldNewWay({ data }) {
           </div>
         </Reveal>
         <Reveal delay={0.15} className="h-full">
-          <div className="relative h-[430px] rounded-2xl border border-[#E8E1F0] bg-white p-5 overflow-hidden">
+          <div className="relative h-[430px] rounded-2xl border border-[#E4DAF6] bg-[#FCFBFE] p-5 overflow-hidden">
             <div className="text-[11px] font-bold uppercase tracking-widest text-[#6C2BD9]">{data.newTitle}</div>
             <div className="absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2 w-[86%] max-w-[360px] aspect-square">
               <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" aria-hidden="true">
@@ -349,15 +369,17 @@ export default function PartnerLanding() {
           <div className="container-x py-24 text-center text-sm text-[#6B6480]">Loading…</div>
         ) : (
           <div className="container-x py-14">
-            <section id="why-partner" className="scroll-mt-24 grad-card rounded-3xl p-8 sm:p-12 text-white overflow-hidden">
-              <div className="grid lg:grid-cols-[1.15fr_1fr] gap-10 items-center">
+            <section id="why-partner" className="relative scroll-mt-24 grad-card rounded-3xl p-8 sm:p-12 text-white overflow-hidden">
+              <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" aria-hidden="true" />
+              <div className="pointer-events-none absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-[#F26AA5]/20 blur-3xl" aria-hidden="true" />
+              <div className="relative grid lg:grid-cols-[1.15fr_1fr] gap-10 items-center">
                 <div>
                   <span className="inline-flex items-center gap-2 rounded-full bg-white/15 text-white text-xs font-semibold px-3 py-1.5"><LineChart className="h-3.5 w-3.5" /> {pp.hero?.badge}</span>
                   <h1 className="mt-5 text-4xl sm:text-5xl font-bold leading-tight" data-testid="partner-hero-headline">{pp.hero?.headline}</h1>
                   <p className="mt-4 text-base text-white/85 max-w-xl">{pp.hero?.sub}</p>
                   <div className="mt-8 flex items-center gap-3 flex-wrap">
                     <Link to="/partner/apply" data-testid="landing-apply-cta" className="inline-flex items-center gap-2 rounded-full bg-white text-[#5320A8] font-semibold px-6 py-3 hover:bg-[#F1E7FE] transition-colors">{pp.hero?.primaryCta || 'Apply as a partner'} <ArrowRight className="h-4 w-4" /></Link>
-                    <a href="#requirements" onClick={(e) => { e.preventDefault(); document.getElementById('requirements')?.scrollIntoView({ block: 'start' }); }} className="inline-flex items-center rounded-full border border-white/40 text-white font-semibold px-6 py-3 hover:bg-white/10 transition-colors">{pp.hero?.secondaryCta || 'See requirements'}</a>
+                    <a href="#requirements" onClick={(e) => { e.preventDefault(); smoothScrollTo('requirements'); }} className="inline-flex items-center rounded-full border border-white/40 text-white font-semibold px-6 py-3 hover:bg-white/10 transition-colors">{pp.hero?.secondaryCta || 'See requirements'}</a>
                   </div>
                   <div className="mt-8 flex items-center gap-2 flex-wrap text-xs font-semibold">
                     {['Zero platform fees for founding partners', '2–3 day verification', 'SEBI-first onboarding'].map((c) => (
@@ -368,9 +390,45 @@ export default function PartnerLanding() {
                 <div className="relative hidden sm:block" data-testid="hero-mockup">
                   <div className="absolute inset-0 translate-x-3 translate-y-3 rounded-2xl bg-white/10" />
                   <Floating><MockCreate /></Floating>
+                  <FloatChip className="absolute -left-8 top-6" delay={0.8}>
+                    <span className="h-6 w-6 rounded-full bg-[#DCFCE7] text-[#0E9F5E] grid place-items-center text-[10px] font-bold">+1</span>
+                    <span className="text-[11px] font-semibold text-[#1A1030]">New subscriber · Momentum Picks</span>
+                  </FloatChip>
+                  <FloatChip className="absolute -right-4 bottom-10" delay={1.4}>
+                    <span className="h-6 w-6 rounded-full bg-[#EDE9FE] text-[#5320A8] grid place-items-center"><IndianRupee className="h-3 w-3" /></span>
+                    <span className="text-[11px] font-semibold text-[#1A1030]">₹4,999 subscription received</span>
+                  </FloatChip>
                 </div>
               </div>
             </section>
+
+            <Reveal>
+              <div className="mt-8 flex items-center justify-center gap-3 sm:gap-6 flex-wrap" data-testid="trust-strip">
+                {[
+                  { icon: ShieldCheck, t: 'SEBI-registered analysts only' },
+                  { icon: CheckCircle2, t: 'RAASB & NISM verified' },
+                  { icon: LineChart, t: 'Live market data from the exchange' },
+                  { icon: TrendingUp, t: 'Investors trade via their own broker' },
+                ].map((b) => (
+                  <span key={b.t} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#64748B]">
+                    <b.icon className="h-3.5 w-3.5 text-[#6C2BD9]" /> {b.t}
+                  </span>
+                ))}
+              </div>
+            </Reveal>
+
+            {(pp.stats || []).length > 0 && (
+              <Reveal>
+                <div className="mt-14 grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="partner-stats">
+                  {(pp.stats || []).map((s, i) => (
+                    <div key={i} className="surface p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                      <div className="text-3xl font-bold text-[#5320A8] tracking-tight"><CountUpStat value={s.value} /></div>
+                      <div className="mt-1.5 text-xs text-[#64748B] leading-snug">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </Reveal>
+            )}
 
             {(pp.features || []).length > 0 && (
               <div className="mt-4" data-testid="partner-features">
@@ -404,7 +462,7 @@ export default function PartnerLanding() {
               <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {(pp.how || []).map((s, i) => (
                   <Reveal key={i} delay={i * 0.1}>
-                    <div className="surface p-5 h-full">
+                    <div className="surface p-5 h-full transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                       <div className="h-8 w-8 rounded-full grad-card text-white grid place-items-center text-sm font-bold">{i + 1}</div>
                       <div className="mt-3 text-sm font-semibold text-[#1A1030]">{s.title}</div>
                       <div className="mt-1 text-xs text-[#64748B] leading-relaxed">{s.text}</div>
@@ -424,7 +482,7 @@ export default function PartnerLanding() {
               <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(pp.requirements || []).map((r, i) => (
                   <Reveal key={i} delay={(i % 3) * 0.1}>
-                    <div className="surface p-5 h-full">
+                    <div className="surface p-5 h-full transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                       <div className="flex items-start gap-3">
                         <span className="h-8 w-8 shrink-0 rounded-lg bg-[#EDE9FE] text-[#5320A8] grid place-items-center"><CheckCircle2 className="h-4 w-4" /></span>
                         <div>
@@ -443,7 +501,7 @@ export default function PartnerLanding() {
               <h2 className="text-2xl font-bold">Partner FAQ</h2>
               <div className="mt-6 space-y-3 max-w-3xl">
                 {(pp.faqs || []).map((f, i) => (
-                  <details key={i} className="surface px-5 py-4 group">
+                  <details key={i} className="surface px-5 py-4 group transition-colors hover:border-[#D8C7F1]">
                     <summary className="text-sm font-semibold text-[#1A1030] cursor-pointer list-none flex items-center justify-between gap-3">
                       {f.q}
                       <span className="text-[#6C2BD9] transition-transform group-open:rotate-45 text-lg leading-none shrink-0">+</span>
@@ -454,13 +512,17 @@ export default function PartnerLanding() {
               </div>
             </section>
 
-            <section className="mt-16 grad-card rounded-2xl p-8 sm:p-10 text-white flex flex-col sm:flex-row items-center justify-between gap-5" data-testid="partner-bottom-cta">
-              <div>
-                <div className="text-xl font-bold">Ready to list your research on Omnivest?</div>
-                <div className="mt-1 text-sm text-white/80">Founding partners keep 100% of their subscription revenue.</div>
-              </div>
-              <Link to="/partner/apply" className="shrink-0 rounded-full bg-white text-[#5320A8] font-semibold px-6 py-3 hover:bg-[#F1E7FE] transition-colors">Apply as a partner →</Link>
-            </section>
+            <Reveal>
+              <section className="relative overflow-hidden mt-20 grad-card rounded-2xl p-8 sm:p-12 text-white flex flex-col sm:flex-row items-center justify-between gap-5" data-testid="partner-bottom-cta">
+                <div className="pointer-events-none absolute -top-20 -left-20 h-56 w-56 rounded-full bg-white/10 blur-3xl" aria-hidden="true" />
+                <div className="pointer-events-none absolute -bottom-24 -right-10 h-64 w-64 rounded-full bg-[#F26AA5]/20 blur-3xl" aria-hidden="true" />
+                <div className="relative">
+                  <div className="text-2xl font-bold">Ready to list your research on Omnivest?</div>
+                  <div className="mt-1.5 text-sm text-white/85">Founding partners keep 100% of their subscription revenue.</div>
+                </div>
+                <Link to="/partner/apply" className="relative shrink-0 rounded-full bg-white text-[#5320A8] font-semibold px-7 py-3.5 hover:bg-[#F1E7FE] hover:scale-[1.03] transition-all">Apply as a partner →</Link>
+              </section>
+            </Reveal>
           </div>
         )}
       </main>

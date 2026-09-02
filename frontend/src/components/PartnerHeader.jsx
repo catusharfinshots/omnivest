@@ -3,16 +3,15 @@ import { Link } from 'react-router-dom';
 import { LogIn, SearchCheck } from 'lucide-react';
 import omniMark from '../assets/omnivest-mark-white.svg';
 import { useAuth } from '../context/AuthContext';
+import { smoothScrollTo } from '../lib/smoothScroll';
 
 // Dedicated chrome for the partner funnel (/partner): partner links and the
 // partner door only — no customer nav, no "Get started".
 export default function PartnerHeader({ minimal = false, onTrack }) {
   const { openAuth } = useAuth();
-  // Note: behavior:'smooth' is a no-op on this site (the overflow-x:clip guard
-  // on html/body breaks Chromium's smooth scrollIntoView) — jump instantly.
   const anchor = (id) => (e) => {
     e.preventDefault();
-    document.getElementById(id)?.scrollIntoView({ block: 'start' });
+    smoothScrollTo(id);
   };
   return (
     <header data-testid="partner-header" className="sticky top-0 z-40 border-b border-[#E6E8F0] bg-white/85 backdrop-blur-md">
