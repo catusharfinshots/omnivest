@@ -92,3 +92,6 @@ credentials.json
 *.key
 .credentials
 frontend/node_modules/.cache/default-development/7.pack
+
+# local file uploads (dev only; prod uses its own storage)
+backend/uploads/
