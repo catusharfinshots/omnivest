@@ -3,7 +3,9 @@
 export function smoothScrollTo(target, { offset = -80, duration = 650 } = {}) {
   const el = typeof target === 'string' ? document.getElementById(target) || document.querySelector(target) : target;
   if (!el) return;
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  // Reduced-motion users, and hidden tabs (where requestAnimationFrame is
+  // paused, so an animated scroll would never complete): jump instantly.
+  if (document.hidden || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
     el.scrollIntoView({ block: 'start' });
     return;
   }
