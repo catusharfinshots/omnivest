@@ -263,7 +263,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         primary = doc.get("benchmark") if doc.get("benchmark") in BENCHMARKS else DEFAULT_BENCHMARK
         calendar_src = bench_series.get(primary) or next(iter(bench_series.values()), None)
         if not calendar_src or not prices:
-            perf = {"_id": pid, "as_of": _now(), "status": "unavailable", "errors": errors or ["Market data not connected — ask the admin to connect Kite."],
+            perf = {"_id": pid, "id": pid, "as_of": _now(), "status": "unavailable", "errors": errors or ["Market data not connected — ask the admin to connect Kite."],
                     "launch_date": doc.get("launch_date"), "benchmark": primary}
             await perf_col.update_one({"_id": pid}, {"$set": perf}, upsert=True)
             return perf
@@ -290,7 +290,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 bench_metrics[b] = {"live": _metrics(b_live_pts), "all": _metrics(norm)}
         current_w = versions[-1]["weights"] if versions else {}
         perf = {
-            "_id": pid, "as_of": _now(), "status": "ok",
+            "_id": pid, "id": pid, "as_of": _now(), "status": "ok",
             "launch_date": launch_s, "benchmark": primary, "benchmark_labels": BENCH_LABELS,
             "series": series, "benchmarks": bench_out,
             "metrics": metrics, "bench_metrics": bench_metrics,
