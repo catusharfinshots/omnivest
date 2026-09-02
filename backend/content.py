@@ -98,6 +98,21 @@ DEFAULT_CONTENT = {
                 ],
             },
         ],
+        "oldNew": {
+            "heading": "Running a research practice the old way is hard work",
+            "sub": "Manual lists, calls, spreadsheets and follow-ups — or one platform that does the operations for you.",
+            "oldTitle": "The old way",
+            "newTitle": "The Omnivest way",
+            "oldSteps": [
+                "Portfolio lists over WhatsApp",
+                "Manual KYC & onboarding",
+                "Rebalance updates on calls",
+                "Clients placing orders one by one",
+                "Trades tracked in spreadsheets",
+                "Reporting buy/sell prices by hand",
+            ],
+            "newText": "Publish once — verification, listings, rebalance updates, subscriptions and reporting all run on the platform, while investors execute with their own broker.",
+        },
         "how": [
             {"title": "Apply", "text": "A 10-minute application with your SEBI, RAASB and NISM details plus three documents."},
             {"title": "Get verified", "text": "We verify your registration and documents — typically within 2–3 working days."},

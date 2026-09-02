@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
 import axios from 'axios';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -9,7 +10,8 @@ import PartnerFooter from '../components/PartnerFooter';
 import Seo from '../components/Seo';
 import AnalystConsole from '../components/AnalystConsole';
 import { useAuth } from '../context/AuthContext';
-import { Loader2, LineChart, CheckCircle2, TrendingUp, SearchCheck, Clock3, XCircle, ArrowRight } from 'lucide-react';
+import { Loader2, LineChart, CheckCircle2, TrendingUp, SearchCheck, Clock3, XCircle, ArrowRight, MessageCircle, FileText, PhoneCall, ShoppingCart, FileSpreadsheet, IndianRupee, RefreshCw, BarChart3, ShieldCheck } from 'lucide-react';
+import omniMark from '../assets/omnivest-mark-white.svg';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -88,8 +90,36 @@ function TrackApplication({ openSignal = 0 }) {
   );
 }
 
+// ---- Motion helpers (respect prefers-reduced-motion) ----
+function Reveal({ children, delay = 0, className = '' }) {
+  const reduce = useReducedMotion();
+  if (reduce) return <div className={className}>{children}</div>;
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ duration: 0.55, delay, ease: 'easeOut' }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function Floating({ children, className = '' }) {
+  const reduce = useReducedMotion();
+  if (reduce) return <div className={className}>{children}</div>;
+  return (
+    <motion.div className={className} animate={{ y: [0, -9, 0] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}>
+      {children}
+    </motion.div>
+  );
+}
+
 // ---- Decorative product mockups (pure CSS, illustrate the console) ----
 function MockCreate() {
+  const reduce = useReducedMotion();
   const rows = [
     { s: 'RELIANCE', w: 24 }, { s: 'HDFCBANK', w: 22 }, { s: 'TCS', w: 18 }, { s: 'INFY', w: 16 }, { s: 'LT', w: 20 },
   ];
@@ -103,10 +133,18 @@ function MockCreate() {
         <span className="h-8 w-8 rounded-lg grad-card grid place-items-center text-white"><TrendingUp className="h-4 w-4" /></span>
       </div>
       <div className="mt-4 space-y-2.5">
-        {rows.map((r) => (
+        {rows.map((r, i) => (
           <div key={r.s} className="flex items-center gap-3">
             <span className="w-20 text-[11px] font-semibold text-[#475569]">{r.s}</span>
-            <div className="flex-1 h-2 rounded-full bg-[#F1F5F9] overflow-hidden"><div className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${r.w * 3}%` }} /></div>
+            <div className="flex-1 h-2 rounded-full bg-[#F1F5F9] overflow-hidden">
+              {reduce ? (
+                <div className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${r.w * 3}%` }} />
+              ) : (
+                <motion.div className="h-full rounded-full bg-[#8B5CF6]"
+                  initial={{ width: 0 }} whileInView={{ width: `${r.w * 3}%` }}
+                  viewport={{ once: true }} transition={{ duration: 0.9, delay: 0.3 + i * 0.12, ease: 'easeOut' }} />
+              )}
+            </div>
             <span className="w-8 text-right text-[11px] font-bold text-[#1A1030]">{r.w}%</span>
           </div>
         ))}
@@ -163,6 +201,87 @@ function MockGrow() {
 }
 
 const FEATURE_MOCKS = [MockCreate, MockManage, MockGrow];
+
+// ---- "Old way vs Omnivest way" illustrated diagram ----
+const OLD_NODES = [
+  { icon: MessageCircle, x: 12, y: 6, bg: 'bg-[#FEF3C7]', fg: 'text-[#B45309]' },
+  { icon: FileText, x: 58, y: 2, bg: 'bg-[#DBEAFE]', fg: 'text-[#1D4ED8]' },
+  { icon: PhoneCall, x: 30, y: 30, bg: 'bg-[#FCE7F3]', fg: 'text-[#BE185D]' },
+  { icon: ShoppingCart, x: 66, y: 42, bg: 'bg-[#DCFCE7]', fg: 'text-[#0E9F5E]' },
+  { icon: FileSpreadsheet, x: 14, y: 56, bg: 'bg-[#FFEDD5]', fg: 'text-[#C2410C]' },
+  { icon: IndianRupee, x: 52, y: 72, bg: 'bg-[#EDE9FE]', fg: 'text-[#5320A8]' },
+];
+const NEW_SPOKES = [
+  { icon: CheckCircle2, x: 50, y: 8, bg: 'bg-[#DCFCE7]', fg: 'text-[#0E9F5E]' },
+  { icon: FileText, x: 84, y: 28, bg: 'bg-[#DBEAFE]', fg: 'text-[#1D4ED8]' },
+  { icon: RefreshCw, x: 84, y: 64, bg: 'bg-[#EDE9FE]', fg: 'text-[#5320A8]' },
+  { icon: BarChart3, x: 50, y: 84, bg: 'bg-[#FEF3C7]', fg: 'text-[#B45309]' },
+  { icon: IndianRupee, x: 16, y: 64, bg: 'bg-[#FCE7F3]', fg: 'text-[#BE185D]' },
+  { icon: ShieldCheck, x: 16, y: 28, bg: 'bg-[#FFEDD5]', fg: 'text-[#C2410C]' },
+];
+
+function Pop({ children, delay, className, style }) {
+  const reduce = useReducedMotion();
+  if (reduce) return <div className={className} style={style}>{children}</div>;
+  return (
+    <motion.div className={className} style={style}
+      initial={{ opacity: 0, scale: 0.4 }} whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true }} transition={{ duration: 0.45, delay, type: 'spring', bounce: 0.45 }}>
+      {children}
+    </motion.div>
+  );
+}
+
+function OldNewWay({ data }) {
+  if (!data) return null;
+  const labels = data.oldSteps || [];
+  return (
+    <section className="mt-20" data-testid="old-new-way">
+      <Reveal>
+        <h2 className="text-2xl sm:text-3xl font-bold text-center">{data.heading}</h2>
+        <p className="mt-2 text-sm text-[#64748B] text-center max-w-2xl mx-auto">{data.sub}</p>
+      </Reveal>
+      <div className="mt-10 grid lg:grid-cols-2 gap-8 items-stretch">
+        <Reveal className="h-full">
+          <div className="relative h-[430px] rounded-2xl border border-[#E8E1F0] bg-white p-5 overflow-hidden">
+            <div className="text-[11px] font-bold uppercase tracking-widest text-[#DC2626]">{data.oldTitle}</div>
+            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M18 14 Q 45 2 62 10 Q 78 20 38 36 Q 20 44 70 50 Q 88 56 24 62 Q 8 70 56 80"
+                fill="none" stroke="#CBD5E1" strokeWidth="0.6" strokeDasharray="2 2.4" />
+            </svg>
+            {OLD_NODES.map((n, i) => (
+              <Pop key={i} delay={0.15 + i * 0.13} className="absolute w-[110px] text-center" style={{ left: `${n.x}%`, top: `${n.y + 8}%` }}>
+                <span className={`mx-auto h-11 w-11 rounded-full ${n.bg} ${n.fg} grid place-items-center shadow-sm`}><n.icon className="h-5 w-5" /></span>
+                <div className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#94A3B8] leading-snug">{labels[i] || ''}</div>
+              </Pop>
+            ))}
+          </div>
+        </Reveal>
+        <Reveal delay={0.15} className="h-full">
+          <div className="relative h-[430px] rounded-2xl border border-[#E8E1F0] bg-white p-5 overflow-hidden">
+            <div className="text-[11px] font-bold uppercase tracking-widest text-[#6C2BD9]">{data.newTitle}</div>
+            <div className="absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2 w-[86%] max-w-[360px] aspect-square">
+              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" aria-hidden="true">
+                {NEW_SPOKES.map((s, i) => (
+                  <line key={i} x1="50" y1="46" x2={s.x} y2={s.y} stroke="#E8E1F0" strokeWidth="0.8" />
+                ))}
+              </svg>
+              <Floating className="absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2">
+                <span className="h-16 w-16 rounded-2xl grad-card grid place-items-center shadow-lg"><img src={omniMark} alt="" className="h-9 w-9" /></span>
+              </Floating>
+              {NEW_SPOKES.map((s, i) => (
+                <Pop key={i} delay={0.25 + i * 0.1} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${s.x}%`, top: `${s.y}%` }}>
+                  <span className={`h-11 w-11 rounded-full ${s.bg} ${s.fg} grid place-items-center shadow-sm`}><s.icon className="h-5 w-5" /></span>
+                </Pop>
+              ))}
+            </div>
+            <p className="absolute bottom-5 left-5 right-5 text-center text-xs text-[#64748B] leading-relaxed">{data.newText}</p>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
 
 export default function PartnerLanding() {
   const { user, isAuthed, loading: authLoading, token } = useAuth();
@@ -248,7 +367,7 @@ export default function PartnerLanding() {
                 </div>
                 <div className="relative hidden sm:block" data-testid="hero-mockup">
                   <div className="absolute inset-0 translate-x-3 translate-y-3 rounded-2xl bg-white/10" />
-                  <MockCreate />
+                  <Floating><MockCreate /></Floating>
                 </div>
               </div>
             </section>
@@ -259,8 +378,8 @@ export default function PartnerLanding() {
                   const Mock = FEATURE_MOCKS[i % FEATURE_MOCKS.length];
                   const flip = i % 2 === 1;
                   return (
-                    <section key={i} className="mt-12 grid lg:grid-cols-2 gap-10 items-center">
-                      <div className={flip ? 'lg:order-2' : ''}>
+                    <section key={i} className="mt-14 grid lg:grid-cols-2 gap-10 items-center">
+                      <Reveal className={flip ? 'lg:order-2' : ''}>
                         <div className="text-[11px] font-bold uppercase tracking-widest text-[#6C2BD9]">{f.eyebrow}</div>
                         <h2 className="mt-2 text-2xl sm:text-3xl font-bold leading-snug">{f.title}</h2>
                         <ul className="mt-5 space-y-3">
@@ -270,23 +389,27 @@ export default function PartnerLanding() {
                             </li>
                           ))}
                         </ul>
-                      </div>
-                      <div className={flip ? 'lg:order-1' : ''}><Mock /></div>
+                      </Reveal>
+                      <Reveal delay={0.15} className={flip ? 'lg:order-1' : ''}><Mock /></Reveal>
                     </section>
                   );
                 })}
               </div>
             )}
 
+            <OldNewWay data={pp.oldNew} />
+
             <section className="mt-16" data-testid="partner-how">
-              <h2 className="text-2xl font-bold">How it works</h2>
+              <Reveal><h2 className="text-2xl font-bold">How it works</h2></Reveal>
               <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {(pp.how || []).map((s, i) => (
-                  <div key={i} className="surface p-5">
-                    <div className="h-8 w-8 rounded-full grad-card text-white grid place-items-center text-sm font-bold">{i + 1}</div>
-                    <div className="mt-3 text-sm font-semibold text-[#1A1030]">{s.title}</div>
-                    <div className="mt-1 text-xs text-[#64748B] leading-relaxed">{s.text}</div>
-                  </div>
+                  <Reveal key={i} delay={i * 0.1}>
+                    <div className="surface p-5 h-full">
+                      <div className="h-8 w-8 rounded-full grad-card text-white grid place-items-center text-sm font-bold">{i + 1}</div>
+                      <div className="mt-3 text-sm font-semibold text-[#1A1030]">{s.title}</div>
+                      <div className="mt-1 text-xs text-[#64748B] leading-relaxed">{s.text}</div>
+                    </div>
+                  </Reveal>
                 ))}
               </div>
             </section>
@@ -300,15 +423,17 @@ export default function PartnerLanding() {
               <p className="mt-1 text-sm text-[#64748B]">We verify every partner before listing — have these ready and the application takes about ten minutes.</p>
               <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(pp.requirements || []).map((r, i) => (
-                  <div key={i} className="surface p-5">
-                    <div className="flex items-start gap-3">
-                      <span className="h-8 w-8 shrink-0 rounded-lg bg-[#EDE9FE] text-[#5320A8] grid place-items-center"><CheckCircle2 className="h-4 w-4" /></span>
-                      <div>
-                        <div className="text-sm font-semibold text-[#1A1030]">{r.title}</div>
-                        <div className="mt-1 text-xs text-[#64748B] leading-relaxed">{r.text}</div>
+                  <Reveal key={i} delay={(i % 3) * 0.1}>
+                    <div className="surface p-5 h-full">
+                      <div className="flex items-start gap-3">
+                        <span className="h-8 w-8 shrink-0 rounded-lg bg-[#EDE9FE] text-[#5320A8] grid place-items-center"><CheckCircle2 className="h-4 w-4" /></span>
+                        <div>
+                          <div className="text-sm font-semibold text-[#1A1030]">{r.title}</div>
+                          <div className="mt-1 text-xs text-[#64748B] leading-relaxed">{r.text}</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </Reveal>
                 ))}
               </div>
               {pp.requirementsTip && <p className="mt-4 text-xs text-[#94A3B8]">{pp.requirementsTip}</p>}

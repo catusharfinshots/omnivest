@@ -112,6 +112,35 @@ export default function PartnerPageAdmin({ pp, onChange }) {
         </div>
       </Card>
 
+      <Card title="Old way vs Omnivest way" desc="The illustrated comparison diagram. Old-way steps: one per line (max 6 shown).">
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <Label>Heading</Label>
+            <Input value={p.oldNew?.heading || ''} onChange={(e) => set({ oldNew: { ...(p.oldNew || {}), heading: e.target.value } })} className="h-10 mt-1.5" />
+          </div>
+          <div>
+            <Label>Sub-text</Label>
+            <Input value={p.oldNew?.sub || ''} onChange={(e) => set({ oldNew: { ...(p.oldNew || {}), sub: e.target.value } })} className="h-10 mt-1.5" />
+          </div>
+          <div>
+            <Label>Left panel title</Label>
+            <Input value={p.oldNew?.oldTitle || ''} onChange={(e) => set({ oldNew: { ...(p.oldNew || {}), oldTitle: e.target.value } })} className="h-10 mt-1.5" />
+          </div>
+          <div>
+            <Label>Right panel title</Label>
+            <Input value={p.oldNew?.newTitle || ''} onChange={(e) => set({ oldNew: { ...(p.oldNew || {}), newTitle: e.target.value } })} className="h-10 mt-1.5" />
+          </div>
+        </div>
+        <div>
+          <Label>Old-way steps (one per line)</Label>
+          <Textarea rows={4} value={(p.oldNew?.oldSteps || []).join('\n')} onChange={(e) => set({ oldNew: { ...(p.oldNew || {}), oldSteps: e.target.value.split('\n') } })} className="mt-1.5" />
+        </div>
+        <div>
+          <Label>New-way description</Label>
+          <Textarea rows={2} value={p.oldNew?.newText || ''} onChange={(e) => set({ oldNew: { ...(p.oldNew || {}), newText: e.target.value } })} className="mt-1.5" />
+        </div>
+      </Card>
+
       <Card title="How it works" desc="The numbered steps strip.">
         <ListEditor testid="pp-how" items={p.how || []} onChange={(v) => set({ how: v })} addLabel="Add step"
           fields={[{ key: 'title', label: 'Step title' }, { key: 'text', label: 'Step text', multiline: true }]} />
