@@ -57,6 +57,7 @@ class PortfolioIn(BaseModel):
     feeCycle: str = "monthly"
     methodology: str = ""
     rebalanceFreq: str = "Quarterly"
+    benchmark: str = "NIFTY 50"
     constituents: List[Constituent] = []
     returns: Returns = Returns()
     factsheet: Factsheet = Factsheet()
@@ -160,6 +161,15 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         # editing an approved/pending item sends it back to draft (needs re-submit)
         doc["status"] = "draft"
         doc["updated_at"] = _now()
+        # Rebalance history: once a listing has launched, a change in constituents
+        # or weights is recorded as a new version (drives the rebalance timeline
+        # and keeps the computed NAV series continuous).
+        def _w(cons):
+            return {(c.get("symbol") or "").upper(): float(c.get("weight") or 0) for c in (cons or []) if c.get("symbol")}
+        if existing.get("launch_date") and _w(existing.get("constituents")) != _w(doc.get("constituents")):
+            versions = existing.get("versions") or [{"effective_date": existing["launch_date"], "constituents": existing.get("constituents") or []}]
+            versions.append({"effective_date": _now()[:10], "constituents": doc.get("constituents") or []})
+            doc["versions"] = versions
         await col.update_one({"id": pid}, {"$set": doc})
         merged = await col.find_one({"id": pid}, {"_id": 0})
         return {"portfolio": merged}
@@ -258,15 +268,21 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if action not in ("approve", "reject"):
             raise HTTPException(status_code=422, detail="action must be 'approve' or 'reject'")
         new_status = "approved" if action == "approve" else "rejected"
-        res = await col.update_one({"id": pid}, {"$set": {
+        update = {
             "status": new_status,
             "review_note": payload.get("note", ""),
             "reviewed_at": _now(),
             "updated_at": _now(),
-        }})
-        if res.matched_count == 0:
+        }
+        existing = await col.find_one({"id": pid}, {"_id": 0, "id": 1, "launch_date": 1})
+        if existing is None:
             raise HTTPException(status_code=404, detail="Portfolio not found")
-        return {"ok": True, "status": new_status}
+        # First approval = launch date: live track record starts here; anything
+        # earlier is a backtest.
+        if new_status == "approved" and not existing.get("launch_date"):
+            update["launch_date"] = _now()[:10]
+        await col.update_one({"id": pid}, {"$set": update})
+        return {"ok": True, "status": new_status, "launch_date": update.get("launch_date") or existing.get("launch_date")}
 
     # ---------- Public ----------
     @router.get("/portfolios")

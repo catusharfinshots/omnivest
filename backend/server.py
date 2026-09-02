@@ -130,6 +130,10 @@ api_router.include_router(build_og_router(db))
 from events import build_router as build_events_router  # noqa: E402
 api_router.include_router(build_events_router(db))
 
+# Listing performance engine: computed NAV/CAGR/benchmarks/min-investment
+from performance import build_router as build_performance_router  # noqa: E402
+api_router.include_router(build_performance_router(db))
+
 # Include the router in the main app
 app.include_router(api_router)
 
