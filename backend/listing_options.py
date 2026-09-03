@@ -83,7 +83,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
 
     @router.get("/listing-options")
     async def listing_options():
-        return await _get()
+        opts = await _get()
+        return {"options": opts, **opts}   # `options` wrapper for older clients; flat keys for new ones
 
     @router.put("/admin/listing-options")
     async def update_listing_options(payload: dict = Body(...), _: dict = Depends(require_admin)):
@@ -100,7 +101,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if not update:
             raise HTTPException(status_code=422, detail="Nothing to update")
         await col.update_one({"_id": DOC_ID}, {"$set": {**update, "updated_at": datetime.now(timezone.utc)}}, upsert=True)
-        return await _get()
+        opts = await _get()
+        return {"options": opts, **opts}
 
     @router.get("/listing-rules")
     async def listing_rules():

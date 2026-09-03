@@ -10,13 +10,14 @@ import { Textarea } from '../components/ui/textarea';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from '../components/ui/alert-dialog';
 import AboutAdmin from '../components/admin/AboutAdmin';
 import MarketDataAdmin from '../components/admin/MarketDataAdmin';
-import DropdownsAdmin from '../components/admin/DropdownsAdmin';
+import ListingSettingsAdmin from '../components/admin/ListingSettingsAdmin';
+import ListingReviewCard from '../components/admin/ListingReviewCard';
+import PostsModerationAdmin from '../components/admin/PostsModerationAdmin';
 import ApprovedPartnersAdmin from '../components/admin/ApprovedPartnersAdmin';
 import PartnerAppCard from '../components/admin/PartnerAppCard';
 import PartnerPageAdmin from '../components/admin/PartnerPageAdmin';
 import PartnerDashboardAdmin from '../components/admin/PartnerDashboardAdmin';
 import PerformanceEngineAdmin from '../components/admin/PerformanceEngineAdmin';
-import VersionDiff from '../components/admin/VersionDiff';
 import omniMark from '../assets/omnivest-mark-white.svg';
 import { toast } from 'sonner';
 
@@ -35,7 +36,7 @@ const NAV = [
   { key: 'partners', label: 'Partner applications', icon: UserPlus },
   { key: 'partnerpage', label: 'Partner page', icon: LayoutGrid },
   { key: 'market', label: 'Market data (Kite)', icon: TrendingUp },
-  { key: 'dropdowns', label: 'Form dropdowns', icon: SlidersHorizontal },
+  { key: 'dropdowns', label: 'Listing settings', icon: SlidersHorizontal },
   { key: 'database', label: 'Database', icon: Database },
   { key: 'settings', label: 'Site settings', icon: Settings },
 ];
@@ -67,12 +68,12 @@ const HEADER = {
   faqs: { title: 'FAQ', desc: 'Manage frequently asked questions.' },
   leads: { title: 'Leads', desc: 'People who registered interest via the AIF & Advisory pages.' },
   listings: { title: 'Research-analyst listings', desc: 'Approve or reject analyst submissions to publish them live.' },
+  dropdowns: { title: 'Listing settings', desc: 'Rules every partner listing must meet, subscription economics, NSE market-cap data, and the form dropdown options.' },
   engine: { title: 'Performance engine', desc: 'Monitor the computed track records (market data, freshness, failed symbols), recompute, correct launch dates, and edit the investor disclaimer.' },
   invites: { title: 'Analyst invites', desc: 'Invite research analysts to onboard themselves.' },
   partners: { title: 'Partner applications', desc: 'Review research-analyst applications submitted from the website and approve them.' },
   partnerpage: { title: 'Partner page', desc: 'Everything shown on the public partner landing page (/partner) — hero, benefits, steps, requirements and FAQ. Publish to go live.' },
   market: { title: 'Market data (Kite)', desc: 'Connect Zerodha Kite once each trading day to power analyst instrument search, live prices and returns.' },
-  dropdowns: { title: 'Form dropdowns', desc: 'Edit the options analysts pick from when creating a portfolio (strategy, risk, rebalance and more).' },
   database: { title: 'Database', desc: 'Read-only view of your live data. Sensitive fields (passwords, tokens) are redacted.' },
   settings: { title: 'Site settings', desc: 'Legal disclaimer and contact details.' },
 };
@@ -189,7 +190,7 @@ export default function AdminPage() {
 
   const [engineAlerts, setEngineAlerts] = useState(0);
   const [listings, setListings] = useState([]);
-  const [listingCounts, setListingCounts] = useState({ pending: 0, approved: 0, rejected: 0 });
+  const [listingCounts, setListingCounts] = useState({ pending: 0, approved: 0, paused: 0, rejected: 0 });
   const [listingFilter, setListingFilter] = useState('pending'); // drafts never reach admin
   const [listingsLoading, setListingsLoading] = useState(false);
   const fetchListings = async () => {
@@ -197,7 +198,7 @@ export default function AdminPage() {
     try {
       const { data } = await axios.get(`${LEADS_API}/admin/portfolios`, { headers: { Authorization: `Bearer ${token}` } });
       setListings(data.portfolios || []);
-      setListingCounts({ pending: 0, approved: 0, rejected: 0, ...(data.counts || {}) });
+      setListingCounts({ pending: 0, approved: 0, paused: 0, rejected: 0, ...(data.counts || {}) });
       setPendingListings(data.counts?.pending || 0);
     } catch { toast.error('Could not load listings'); }
     finally { setListingsLoading(false); }
@@ -205,10 +206,18 @@ export default function AdminPage() {
   useEffect(() => {
     if (tab === 'listings') fetchListings();
   }, [tab]);
-  const reviewListing = async (id, action) => {
+  const reviewListing = async (id, action, note = '') => {
     try {
-      await axios.post(`${LEADS_API}/admin/portfolios/${id}/review`, { action, note: '' }, { headers: { Authorization: `Bearer ${token}` } });
-      toast.success(action === 'approve' ? 'Approved — now live on the site' : 'Rejected');
+      await axios.post(`${LEADS_API}/admin/portfolios/${id}/review`, { action, note }, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success(action === 'approve' ? 'Approved — live now; the track record starts at today\'s close' : action === 'reject' ? 'Rejected — the partner sees your note' : 'Sent back to the partner with your note');
+      fetchListings();
+      refreshCounts();
+    } catch (e) { toast.error(e?.response?.data?.detail || 'Could not update'); }
+  };
+  const listingAction = async (id, kind, body = {}) => {
+    try {
+      await axios.post(`${LEADS_API}/admin/portfolios/${id}/${kind}`, body, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success(kind === 'feature' ? (body.featured ? 'Pinned to the top of explore' : 'Removed from featured') : kind === 'pause' ? 'Listing paused — hidden from investors' : 'Listing is live again');
       fetchListings();
       refreshCounts();
     } catch (e) { toast.error(e?.response?.data?.detail || 'Could not update'); }
@@ -563,7 +572,7 @@ export default function AdminPage() {
               {tab === 'market' && <MarketDataAdmin token={token} />}
               {tab === 'engine' && <PerformanceEngineAdmin token={token} disclaimer={content.performanceDisclaimer} onDisclaimerChange={(v) => patchContent('performanceDisclaimer', v)} onAlerts={setEngineAlerts} />}
 
-              {tab === 'dropdowns' && <DropdownsAdmin token={token} />}
+              {tab === 'dropdowns' && <ListingSettingsAdmin token={token} />}
 
               {tab === 'leads' && (
                 <section className="surface p-6">
@@ -603,7 +612,7 @@ export default function AdminPage() {
                 </section>
               )}
 
-              {tab === 'listings' && (
+              {tab === 'listings' && (<>
                 <section className="surface p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -613,7 +622,7 @@ export default function AdminPage() {
                     <button onClick={fetchListings} className="btn-outline">Refresh</button>
                   </div>
                   <div className="mt-4 flex items-center gap-2 flex-wrap" data-testid="listing-filters">
-                    {[['pending', 'Awaiting approval'], ['approved', 'Live'], ['rejected', 'Rejected']].map(([k, label]) => (
+                    {[['pending', 'Awaiting approval'], ['approved', 'Live'], ['paused', 'Paused'], ['rejected', 'Rejected']].map(([k, label]) => (
                       <button key={k} type="button" onClick={() => setListingFilter(k)}
                         className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${listingFilter === k ? 'bg-[#F1E7FE] border-[#D8C7F1] text-[#5320A8]' : 'border-[#E8E1F0] text-[#6B6480] hover:border-[#D8C7F1]'}`}>
                         {label} <span className={`min-w-[18px] px-1 rounded-full text-[10px] text-center ${k === 'pending' && listingCounts.pending ? 'bg-[#DC2626] text-white' : 'bg-[#F1F1F4] text-[#6B6480]'}`}>{listingCounts[k] || 0}</span>
@@ -625,31 +634,18 @@ export default function AdminPage() {
                     <div className="mt-6 text-sm text-[#6B6480]">Loading…</div>
                   ) : listings.filter((p) => p.status === listingFilter).length === 0 ? (
                     <div className="mt-6 text-sm text-[#6B6480]" data-testid="listings-empty">
-                      {listingFilter === 'pending' ? 'Nothing awaiting approval. Partners submit from their console once a listing is complete.' : listingFilter === 'approved' ? 'No live listings yet.' : 'No rejected listings.'}
+                      {listingFilter === 'pending' ? 'Nothing awaiting approval. Partners submit from their console once a listing is complete.' : listingFilter === 'approved' ? 'No live listings yet.' : listingFilter === 'paused' ? 'No paused listings.' : 'No rejected listings.'}
                     </div>
                   ) : (
                     <div className="mt-4 space-y-3">
                       {listings.filter((p) => p.status === listingFilter).map((p) => (
-                        <div key={p.id} className="border border-[#E8E1F0] rounded-xl p-4 flex items-start justify-between gap-4">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-[#1A1030] truncate">{p.name}</span>
-                              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${p.status === 'approved' ? 'bg-[#DCFCE7] text-[#0E9F5E]' : p.status === 'pending' ? 'bg-[#FEF3C7] text-[#B45309]' : p.status === 'rejected' ? 'bg-[#FEE2E2] text-[#DC2626]' : 'bg-[#F1F1F4] text-[#6B6480]'}`}>{p.status}</span>
-                            </div>
-                            <div className="text-xs text-[#6B6480] mt-0.5">by {p.owner_name || '—'} · {p.subtitle || 'No subtitle'} · {p.constituents?.length || 0} holdings · min ₹{Number(p.minAmount).toLocaleString('en-IN')} · {p.strategy}</div>
-                            <div className="text-xs text-[#6B6480] mt-1 line-clamp-2">{p.methodology || 'No methodology provided.'}</div>
-                            <VersionDiff p={p} />
-                          </div>
-                          <div className="flex flex-col gap-2 shrink-0">
-                            <button type="button" onClick={() => reviewListing(p.id, 'approve')} disabled={p.status !== 'pending'} title={p.status !== 'pending' ? 'Only submitted listings can be approved' : ''} className="inline-flex items-center justify-center gap-1 rounded-lg bg-[#12B76A] text-white text-xs font-semibold px-4 py-2 hover:bg-[#0E9F5E] disabled:opacity-40">Approve</button>
-                            <button type="button" onClick={() => reviewListing(p.id, 'reject')} disabled={p.status === 'rejected'} className="inline-flex items-center justify-center gap-1 rounded-lg border border-[#E8E1F0] text-[#DC2626] text-xs font-semibold px-4 py-2 hover:bg-[#FEF2F2] disabled:opacity-40">Reject</button>
-                          </div>
-                        </div>
+                        <ListingReviewCard key={p.id} p={p} onReview={reviewListing} onAction={listingAction} />
                       ))}
                     </div>
                   )}
                 </section>
-              )}
+                <PostsModerationAdmin token={token} />
+              </>)}
 
               {tab === 'partners' && (
                 <section className="surface p-6" data-testid="partners-panel">

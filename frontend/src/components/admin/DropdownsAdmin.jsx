@@ -7,13 +7,14 @@ import { Input } from '../ui/input';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const LABELS = {
-  strategy: 'Strategy',
-  risk: 'Risk / volatility',
+  strategy: 'Category (strategy)',
+  tags: 'Style tags (partners pick up to N)',
   rebalanceFreq: 'Rebalance frequency',
-  subscription: 'Subscription',
+  subscription: 'Subscription types',
   constituentType: 'Constituent type',
+  risk: 'Risk labels (legacy — volatility is computed now)',
 };
-const ORDER = ['strategy', 'risk', 'rebalanceFreq', 'subscription', 'constituentType'];
+const ORDER = ['strategy', 'tags', 'rebalanceFreq', 'subscription', 'constituentType', 'risk'];
 
 export default function DropdownsAdmin({ token }) {
   const auth = { headers: { Authorization: `Bearer ${token}` } };
@@ -48,7 +49,7 @@ export default function DropdownsAdmin({ token }) {
 
   return (
     <section className="surface p-6 space-y-6" data-testid="dropdowns-admin">
-      <p className="text-xs text-[#6B6480]">These options appear in the analyst's “New portfolio” form dropdowns. Changes apply to new selections immediately after saving.</p>
+      <p className="text-xs text-[#6B6480]">These options appear in the partner's listing form (category, style tags, rebalance frequency…). Changes apply to new selections immediately after saving.</p>
       <div className="grid md:grid-cols-2 gap-6">
         {ORDER.map((field) => (
           <div key={field} className="rounded-xl border border-[#E8E1F0] bg-white p-4" data-testid={`option-group-${field}`}>
