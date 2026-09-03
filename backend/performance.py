@@ -347,6 +347,12 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             latest[s] = c[-1][1]
             price_dates.append(c[-1][0])
         current_w = versions[-1]["weights"] if versions else {}
+        try:
+            from classification import distribution as _dist
+            dist = _dist(current_w)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("classification unavailable: %s", e)
+            dist = None
         launch = _parse_date(doc.get("launch_date"))
         launch_s = launch.isoformat() if launch else None
         lpd_date = _launch_price_date(doc) if launch else None
@@ -354,7 +360,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 "launch_price_date": lpd_date.isoformat() if lpd_date else None,
                 "launched_days_ago": (ist_today() - launch).days if launch else None,
                 "benchmark": doc.get("benchmark") if doc.get("benchmark") in BENCHMARKS else DEFAULT_BENCHMARK,
-                "benchmark_labels": BENCH_LABELS, "min_investment": min_investment(current_w, latest),
+                "benchmark_labels": BENCH_LABELS, "min_investment": min_investment(current_w, latest), "distribution": dist,
                 "latest_prices": latest, "price_date": max(price_dates) if price_dates else None, "errors": errors}
 
         if not prices:

@@ -3,7 +3,7 @@
 Covers the Phase-3 change brief items:
 - POST /api/analyst/portfolios/{pid}/submit returns 422 with detail.errors[]
   when the stored portfolio is incomplete (name/subtitle/methodology/factsheet
-  fields/factsheet PDF/constituents/weights != 100%).
+  fields/rationale/constituents/weights != 100%; factsheet PDF optional since Listing 2.0).
 - Returns 200 when the portfolio is fully complete.
 - Drafts (create/update) are permissive (no strict validation).
 """
@@ -121,8 +121,8 @@ class TestSubmitGate:
         assert "Factsheet objective is required." in errs
         assert "Factsheet who should invest is required." in errs
         assert "Factsheet risk factors is required." in errs
-        assert "Factsheet PDF is required." in errs
-        assert "Add at least one constituent." in errs
+        assert "Investment rationale is required." in errs  # PDF is optional since Listing 2.0
+        assert "Add at least 2 constituents." in errs
         # cleanup
         s.delete(f"{BASE_URL}/api/analyst/portfolios/{pid}", headers=a_headers)
 
@@ -147,7 +147,7 @@ class TestSubmitGate:
         # message should mention "100%" and currently 70%
         assert any("100%" in e and "70%" in e for e in errs), f"missing weight-total msg: {errs}"
         # factsheet PDF still missing
-        assert "Factsheet PDF is required." in errs
+        assert "Investment rationale is required." in errs  # PDF is optional since Listing 2.0
         s.delete(f"{BASE_URL}/api/analyst/portfolios/{pid}", headers=a_headers)
 
     def test_submit_subtitle_over_30_words_returns_422(self, s, a_headers):
@@ -182,6 +182,7 @@ class TestSubmitGate:
             "name": "TEST_complete_pf",
             "subtitle": "Well built thematic portfolio for long-term compounding",
             "methodology": "Rules-based rebalanced quarterly using factor tilts.",
+            "rationale": "<p>Factor-tilted large caps for steady compounding.</p>",
             "factsheet": {
                 "objective": "Long-term wealth creation",
                 "whoShouldInvest": "Investors with a 5+ year horizon",

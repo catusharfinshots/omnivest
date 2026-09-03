@@ -99,8 +99,8 @@ def test_launch_correction_and_recompute():
             _seedlock.acquire()
             seeded = _seed_prices()
         pid = _listing.create_submitted_listing(API, analyst, "Perf Admin Basket", [
-            {"symbol": "PERFA", "name": "Perf A", "exchange": "NSE", "type": "Stock", "weight": 70},
-            {"symbol": "PERFB", "name": "Perf B", "exchange": "NSE", "type": "Stock", "weight": 30}], benchmark="NIFTY 500")
+            {"symbol": "PERFA", "name": "Perf A", "exchange": "NSE", "type": "Stock", "weight": 50},
+            {"symbol": "PERFB", "name": "Perf B", "exchange": "NSE", "type": "Stock", "weight": 50}], benchmark="NIFTY 500")
         requests.post(f"{API}/admin/portfolios/{pid}/review", json={"action": "approve"}, headers=h, timeout=30).raise_for_status()
         # already approved -> cannot be approved again
         assert requests.post(f"{API}/admin/portfolios/{pid}/review", json={"action": "approve"}, headers=h, timeout=30).status_code == 409

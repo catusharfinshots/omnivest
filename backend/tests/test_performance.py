@@ -123,8 +123,8 @@ def test_launch_day_performance_end_to_end():
     headers = _admin_headers()
     app_id, user_id, analyst, firm = _make_analyst(headers)
     pid, seeded = None, []
-    cons = [{"symbol": "PERFA", "name": "Perf A", "exchange": "NSE", "type": "Stock", "weight": 70},
-            {"symbol": "PERFB", "name": "Perf B", "exchange": "NSE", "type": "Stock", "weight": 30}]
+    cons = [{"symbol": "PERFA", "name": "Perf A", "exchange": "NSE", "type": "Stock", "weight": 50},
+            {"symbol": "PERFB", "name": "Perf B", "exchange": "NSE", "type": "Stock", "weight": 50}]
     try:
         if LOCAL:
             _seedlock.acquire()
@@ -189,13 +189,13 @@ def test_launch_day_performance_end_to_end():
         d = requests.get(f"{API}/portfolios/{pid}/performance", timeout=60).json()
         assert d["start_date"] == lp.isoformat() and d["series"][0]["nav"] == 100.0
         m = d["metrics"]
-        assert 15 < m["cagr_pct"] < 23, m                      # 70/30 of +25%/+5% ≈ 19%
+        assert 12 < m["cagr_pct"] < 18, m                      # 50/50 of +25%/+5% ≈ 15%
         assert m["windows"]["1Y"] is not None and m["windows"]["3Y"] is None and m["windows"]["5Y"] is None
         assert m["volatility_label"] in ("Low", "Medium", "High")
         assert d["bench_metrics"]["NIFTY 500"]["cagr_pct"] is not None and d["launched_days_ago"] >= 400
 
         # rebalance after launch -> version recorded with today's IST date
-        up = requests.put(f"{API}/analyst/portfolios/{pid}", json=_listing.complete_payload("Perf Basket", [{**cons[0], "weight": 50}, {**cons[1], "weight": 50}], "NIFTY 500"), headers=analyst, timeout=30)
+        up = requests.put(f"{API}/analyst/portfolios/{pid}", json=_listing.complete_payload("Perf Basket", [{**cons[0], "weight": 40}, {**cons[1], "weight": 60}], "NIFTY 500"), headers=analyst, timeout=30)
         assert up.status_code == 200
         vs = up.json()["portfolio"].get("versions") or []
         assert len(vs) == 2 and vs[-1]["effective_date"] == pe.ist_today().isoformat()

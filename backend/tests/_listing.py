@@ -11,10 +11,12 @@ TINY_PDF = (b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Ty
 
 
 def complete_payload(name, cons, benchmark="NIFTY 50", subtitle="Test listing for the engine.", **extra):
+    """Listing 2.0 shape: rationale + methodology are rich text, tags ≤3, no typed returns/risk/min."""
     return {
-        "name": name, "subtitle": subtitle, "benchmark": benchmark, "strategy": "thematic", "risk": "Medium",
-        "minAmount": 5000, "rebalanceFreq": "Quarterly", "subscription": "Free", "constituents": cons,
-        "methodology": "Rules-based basket rebalanced quarterly on fundamentals and momentum.",
+        "name": name, "subtitle": subtitle, "benchmark": benchmark, "strategy": "thematic", "tags": ["Growth", "Quality"],
+        "rebalanceFreq": "Quarterly", "subscription": "Free", "plans": [], "videoUrl": "", "constituents": cons,
+        "rationale": "<p>Quality compounders with <strong>steady earnings</strong>.</p><ul><li>Low leverage</li><li>High ROCE</li></ul>",
+        "methodology": "<p>Rules-based basket rebalanced quarterly on fundamentals and momentum.</p>",
         "factsheet": {"objective": "Long-term growth", "whoShouldInvest": "Investors with a 3+ year horizon", "riskFactors": "Equity market risk", "pdfName": ""},
         **extra,
     }
