@@ -149,3 +149,17 @@ code {
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 }
+
+/* Rich text (partner rationale / methodology / updates) — mirrors the sanitiser allow-list */
+.rich-text h2 { font-size: 1.05rem; font-weight: 700; color: #1A1030; margin: 0.9em 0 0.35em; }
+.rich-text h3 { font-size: 0.95rem; font-weight: 700; color: #1A1030; margin: 0.8em 0 0.3em; }
+.rich-text h4 { font-size: 0.9rem; font-weight: 600; margin: 0.7em 0 0.25em; }
+.rich-text p { margin: 0 0 0.6em; line-height: 1.6; }
+.rich-text ul, .rich-text ol { margin: 0 0 0.7em; padding-left: 1.4em; }
+.rich-text ul { list-style: disc; }
+.rich-text ol { list-style: decimal; }
+.rich-text li { margin: 0.2em 0; line-height: 1.55; }
+.rich-text a { color: #6C2BD9; text-decoration: underline; }
+.rich-text blockquote { border-left: 3px solid #D8C7F1; padding-left: 0.8em; color: #6B6480; margin: 0.6em 0; }
+.rich-text strong, .rich-text b { font-weight: 700; color: #1A1030; }
+.rich-text > :last-child { margin-bottom: 0; }
