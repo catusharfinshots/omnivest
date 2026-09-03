@@ -26,6 +26,7 @@ from __future__ import annotations
 import logging
 import math
 import os
+import uuid
 from datetime import date, datetime, time, timedelta, timezone
 from types import SimpleNamespace
 from typing import Dict, List, Optional
@@ -33,6 +34,7 @@ from typing import Dict, List, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pydantic import BaseModel
 
 from auth import build_current_user_dep
 
@@ -58,6 +60,13 @@ IST = timezone(timedelta(hours=5, minutes=30))
 MARKET_CLOSE = time(15, 35)          # NSE closes 15:30; candles settle a few minutes later
 
 ENGINE: Optional[SimpleNamespace] = None   # set by build_router(); used by analyst.py hooks
+
+
+class LaunchFix(BaseModel):
+    """Admin correction of a listing's launch / purchase date (module-level so FastAPI resolves it as a body)."""
+    launch_date: str
+    launch_price_date: Optional[str] = None
+    reason: str = ""
 
 
 def _now() -> datetime:
@@ -404,11 +413,17 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         behind = (perf.get("price_date") or "") < last_close_date().isoformat()
         return behind and age > timedelta(minutes=RETRY_MINUTES)
 
+    def _iso_utc(dt) -> Optional[str]:
+        """Mongo returns naive UTC datetimes; always emit an explicit offset so browsers parse them correctly."""
+        if not isinstance(dt, datetime):
+            return None
+        return (dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)).isoformat()
+
     def _public(perf: dict) -> dict:
         p = dict(perf)
         p["portfolio_id"] = p.pop("_id", None)
         if isinstance(p.get("as_of"), datetime):
-            p["as_of"] = p["as_of"].isoformat()
+            p["as_of"] = _iso_utc(p["as_of"])
         return p
 
     async def _refresh_bg(pid: str):
@@ -481,6 +496,112 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if _is_stale(perf):
             perf = await _refresh_inline(pid) or perf
         return _public(perf) if perf else {"portfolio_id": pid, "status": "unavailable", "errors": ["Market data unavailable right now."]}
+
+    # ---------------- admin: monitor + control ----------------
+    async def _kite_status() -> dict:
+        row = await sessions.find_one({"account": ACCOUNT})
+        return {"connected": bool(row and row.get("access_token") and not row.get("needs_reconnect") and KITE_API_KEY and KiteConnect is not None),
+                "needs_reconnect": bool(row and row.get("needs_reconnect")),
+                "connected_at": _iso_utc(row.get("connected_at")) if row else None,
+                "user_name": row.get("user_name") if row else None}
+
+    async def _engine_rows() -> dict:
+        """Everything the admin panel needs: per-listing engine state + data health."""
+        expected = last_close_date().isoformat()
+        docs = await portfolios.find({"status": {"$in": ["approved", "pending", "draft"]}},
+                                     {"_id": 0, "id": 1, "name": 1, "owner_name": 1, "status": 1, "launch_date": 1, "launch_price_date": 1,
+                                      "benchmark": 1, "versions": 1, "constituents": 1, "launch_history": 1, "updated_at": 1}).sort("updated_at", -1).to_list(1000)
+        perfs = {d["_id"]: d async for d in perf_col.find({}, {"series": 0, "benchmarks": 0, "latest_prices": 0})}
+        cached = {d["_id"] async for d in prices_col.find({}, {"_id": 1})}
+        rows, behind, needed = [], [], set()
+        for d in docs:
+            p = perfs.get(d["id"]) or {}
+            s = summary(p) or {}
+            syms = [f"{(c.get('exchange') or 'NSE')}:{(c.get('symbol') or '').upper()}" for c in (d.get("constituents") or []) if c.get("symbol")]
+            if d["status"] == "approved":
+                needed.update(syms)
+            is_behind = d["status"] == "approved" and bool(d.get("launch_date")) and ((p.get("price_date") or "") < expected)
+            if is_behind:
+                behind.append(d["id"])
+            rows.append({
+                "id": d["id"], "name": d.get("name"), "owner_name": d.get("owner_name"), "status": d["status"],
+                "launch_date": d.get("launch_date"), "launch_price_date": d.get("launch_price_date"), "benchmark": d.get("benchmark") or DEFAULT_BENCHMARK,
+                "versions": len(d.get("versions") or []) or (1 if d.get("launch_date") else 0), "symbols": syms,
+                "perf_status": p.get("status") or "not_computed", "price_date": p.get("price_date"), "start_date": p.get("start_date"),
+                "as_of": _iso_utc(p.get("as_of")), "errors": p.get("errors") or [],
+                "days": s.get("days") or 0, "return_pct": s.get("return_pct"), "cagr_pct": s.get("cagr_pct"), "alpha_pct": s.get("alpha_pct"),
+                "volatility_label": s.get("volatility_label"), "min_investment": s.get("min_investment"), "launched_days_ago": s.get("launched_days_ago"),
+                "behind": is_behind, "launch_history": d.get("launch_history") or [],
+            })
+        failed = sorted(needed - cached)
+        for p in perfs.values():
+            for e in p.get("errors") or []:
+                if e.startswith("No price history for "):
+                    sym = e.replace("No price history for ", "").strip()
+                    if not any(k.endswith(":" + sym) for k in cached) and sym not in failed:
+                        failed.append(sym)
+        bench_missing = [b for b in BENCHMARKS if f"NSE:{b}" not in cached]
+        return {"expected_close_date": expected, "symbols_cached": len(cached), "listings": rows, "behind": behind,
+                "failed_symbols": failed, "benchmarks_missing": bench_missing}
+
+    POLICY = {
+        "engine_version": ENGINE_VERSION, "purchase_price": "last NSE close available at approval (before 15:35 IST or weekend → previous trading day)",
+        "cagr_after_days": 365, "volatility_after_trading_days": 20, "volatility_bands": {"Low": "< 12% annualised", "Medium": "12–20%", "High": "> 20%"},
+        "windows": WINDOWS, "returns_basis": "price returns from exchange closes — bonus/split adjusted, dividends, brokerage and taxes excluded",
+        "benchmarks": BENCHMARKS, "history_days": HISTORY_DAYS, "refresh": "automatic after each market close (page views trigger it); approval triggers the first compute",
+    }
+
+    @router.get("/admin/performance/overview")
+    async def admin_overview(_: dict = Depends(require_admin)):
+        data = await _engine_rows()
+        audit = await db.audit_log.find({"type": "launch_date_change"}, {"_id": 0}).sort("at", -1).to_list(20)
+        return {**data, "kite": await _kite_status(), "policy": POLICY, "audit": audit, "now_ist": datetime.now(IST).isoformat()}
+
+    @router.get("/admin/performance/alerts")
+    async def admin_alerts(_: dict = Depends(require_admin)):
+        data = await _engine_rows()
+        kite = await _kite_status()
+        approved = [r for r in data["listings"] if r["status"] == "approved"]
+        total = len(data["behind"]) + len(data["failed_symbols"]) + len(data["benchmarks_missing"]) + (0 if (kite["connected"] or not approved) else 1)
+        return {"behind": len(data["behind"]), "failed_symbols": len(data["failed_symbols"]), "benchmarks_missing": len(data["benchmarks_missing"]),
+                "kite_connected": kite["connected"], "approved": len(approved), "total": total}
+
+    @router.post("/admin/performance/recompute/{pid}")
+    async def admin_recompute_one(pid: str, _: dict = Depends(require_admin)):
+        if not await portfolios.find_one({"id": pid}, {"_id": 0, "id": 1}):
+            raise HTTPException(status_code=404, detail="Portfolio not found")
+        perf = await _refresh_inline(pid)
+        return {"ok": True, "market_data": "live" if await _client() else "cached", "performance": _public(perf) if perf else None}
+
+    @router.put("/admin/portfolios/{pid}/launch")
+    async def admin_set_launch(pid: str, payload: LaunchFix, user: dict = Depends(require_admin)):
+        """Correct a listing's launch / purchase date. Requires a reason; logged to audit_log and on the listing."""
+        doc = await portfolios.find_one({"id": pid}, {"_id": 0})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Portfolio not found")
+        reason = (payload.reason or "").strip()
+        if len(reason) < 5:
+            raise HTTPException(status_code=422, detail="Give a reason (at least 5 characters) — it is logged with your name.")
+        ld = _parse_date(payload.launch_date)
+        if not ld:
+            raise HTTPException(status_code=422, detail="Launch date must be YYYY-MM-DD")
+        lpd = _parse_date(payload.launch_price_date) if payload.launch_price_date else last_close_date(datetime.combine(ld, time(23, 0), tzinfo=IST))
+        if not lpd:
+            raise HTTPException(status_code=422, detail="Purchase date must be YYYY-MM-DD")
+        if lpd > ld:
+            raise HTTPException(status_code=422, detail="Purchase (price) date cannot be after the launch date")
+        if lpd > last_close_date():
+            raise HTTPException(status_code=422, detail=f"No close exists for {lpd.isoformat()} yet — latest available is {last_close_date().isoformat()}")
+        if lpd.weekday() >= 5:
+            raise HTTPException(status_code=422, detail="Purchase date must be a trading day (Mon–Fri)")
+        before = {"launch_date": doc.get("launch_date"), "launch_price_date": doc.get("launch_price_date")}
+        after = {"launch_date": ld.isoformat(), "launch_price_date": lpd.isoformat()}
+        entry = {"id": str(uuid.uuid4()), "type": "launch_date_change", "portfolio_id": pid, "portfolio_name": doc.get("name"),
+                 "before": before, "after": after, "reason": reason, "admin": user.get("email") or user.get("name") or user.get("id"), "at": _now().isoformat()}
+        await portfolios.update_one({"id": pid}, {"$set": after, "$push": {"launch_history": entry}})
+        await db.audit_log.insert_one(dict(entry))
+        perf = await _refresh_inline(pid)
+        return {"ok": True, "launch": after, "audit": entry, "performance": _public(perf) if perf else None}
 
     @router.post("/admin/performance/recompute")
     async def admin_recompute(_: dict = Depends(require_admin)):

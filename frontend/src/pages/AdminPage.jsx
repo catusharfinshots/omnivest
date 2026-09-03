@@ -3,7 +3,7 @@ import { Link, useNavigate, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { baskets as seedBaskets, collections as seedCollections, mutualFunds as seedMF, testimonials as seedT, faqs as seedFaqs } from '../mock';
-import { LayoutGrid, Users, Package, LineChart, Landmark, MessageSquare, HelpCircle, Settings, Plus, Trash2, ExternalLink, LogOut, Inbox, ClipboardCheck, UserPlus, Copy, Database, ChevronLeft, ChevronRight, ChevronDown, Download, Pencil, TrendingUp, SlidersHorizontal } from 'lucide-react';
+import { Activity, LayoutGrid, Users, Package, LineChart, Landmark, MessageSquare, HelpCircle, Settings, Plus, Trash2, ExternalLink, LogOut, Inbox, ClipboardCheck, UserPlus, Copy, Database, ChevronLeft, ChevronRight, ChevronDown, Download, Pencil, TrendingUp, SlidersHorizontal } from 'lucide-react';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
@@ -15,6 +15,8 @@ import ApprovedPartnersAdmin from '../components/admin/ApprovedPartnersAdmin';
 import PartnerAppCard from '../components/admin/PartnerAppCard';
 import PartnerPageAdmin from '../components/admin/PartnerPageAdmin';
 import PartnerDashboardAdmin from '../components/admin/PartnerDashboardAdmin';
+import PerformanceEngineAdmin from '../components/admin/PerformanceEngineAdmin';
+import VersionDiff from '../components/admin/VersionDiff';
 import omniMark from '../assets/omnivest-mark-white.svg';
 import { toast } from 'sonner';
 
@@ -29,6 +31,7 @@ const NAV = [
   { key: 'faqs', label: 'FAQ', icon: HelpCircle },
   { key: 'leads', label: 'Leads', icon: Inbox },
   { key: 'listings', label: 'Listings (approve)', icon: ClipboardCheck },
+  { key: 'engine', label: 'Performance engine', icon: Activity },
   { key: 'partners', label: 'Partner applications', icon: UserPlus },
   { key: 'partnerpage', label: 'Partner page', icon: LayoutGrid },
   { key: 'market', label: 'Market data (Kite)', icon: TrendingUp },
@@ -41,7 +44,7 @@ const NAV_BY_KEY = NAV.reduce((m, n) => { m[n.key] = n; return m; }, {});
 
 // Sidebar groups (exact order + membership per spec).
 const NAV_GROUPS = [
-  { label: 'Partners & Listings', keys: ['partners', 'managers', 'partnerpage', 'listings', 'dropdowns'] },
+  { label: 'Partners & Listings', keys: ['partners', 'managers', 'partnerpage', 'listings', 'engine', 'dropdowns'] },
   { label: 'Site content', keys: ['home', 'about', 'testimonials', 'faqs'] },
   { label: 'Investment catalog', keys: ['collections', 'mutual-funds', 'fds'] },
   { label: 'Operations', keys: ['leads', 'market'] },
@@ -51,7 +54,7 @@ const NAV_STATE_KEY = 'omni-admin-nav-groups-v1';
 
 const LEADS_API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-const CONTENT_TABS = ['home', 'baskets', 'collections', 'mutual-funds', 'fds', 'testimonials', 'faqs', 'settings', 'partnerpage'];
+const CONTENT_TABS = ['home', 'baskets', 'collections', 'mutual-funds', 'fds', 'testimonials', 'faqs', 'settings', 'partnerpage', 'engine'];
 const HEADER = {
   home: { title: 'Content manager', desc: 'Edit what investors see on the homepage, then hit Publish changes to push it live.' },
   about: { title: 'About Us page', desc: 'Manage every section of the public /about page. Changes go live when you click Save About page.' },
@@ -64,6 +67,7 @@ const HEADER = {
   faqs: { title: 'FAQ', desc: 'Manage frequently asked questions.' },
   leads: { title: 'Leads', desc: 'People who registered interest via the AIF & Advisory pages.' },
   listings: { title: 'Research-analyst listings', desc: 'Approve or reject analyst submissions to publish them live.' },
+  engine: { title: 'Performance engine', desc: 'Monitor the computed track records (market data, freshness, failed symbols), recompute, correct launch dates, and edit the investor disclaimer.' },
   invites: { title: 'Analyst invites', desc: 'Invite research analysts to onboard themselves.' },
   partners: { title: 'Partner applications', desc: 'Review research-analyst applications submitted from the website and approve them.' },
   partnerpage: { title: 'Partner page', desc: 'Everything shown on the public partner landing page (/partner) — hero, benefits, steps, requirements and FAQ. Publish to go live.' },
@@ -111,6 +115,7 @@ const CONTENT_DEFAULTS = {
     body: '',
   },
   partnerPage: { hero: {}, benefits: [], features: [], how: [], requirements: [], requirementsTip: '', faqs: [] },
+  performanceDisclaimer: '',
 };
 
 function Row({ children }) {
@@ -178,9 +183,11 @@ export default function AdminPage() {
     const h = { headers: { Authorization: `Bearer ${token}` } };
     try { const { data } = await axios.get(`${LEADS_API}/admin/partners`, h); setPendingPartners((data.applications || []).filter((a) => a.status === 'pending').length); } catch { /* ignore */ }
     try { const { data } = await axios.get(`${LEADS_API}/admin/portfolios`, h); setPendingListings((data.portfolios || []).filter((p) => p.status === 'pending').length); } catch { /* ignore */ }
+    try { const { data } = await axios.get(`${LEADS_API}/admin/performance/alerts`, h); setEngineAlerts(data.total || 0); } catch { /* ignore */ }
   };
   useEffect(() => { refreshCounts(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [token]);
 
+  const [engineAlerts, setEngineAlerts] = useState(0);
   const [listings, setListings] = useState([]);
   const [listingsLoading, setListingsLoading] = useState(false);
   const fetchListings = async () => {
@@ -368,7 +375,7 @@ export default function AdminPage() {
 
   const publish = async () => {
     try {
-      const payload = { hero: content.hero, stats: content.stats, trust: content.trust, testimonials: content.testimonials, footer: content.footer, partnerTerms: content.partnerTerms, partnerPage: content.partnerPage };
+      const payload = { hero: content.hero, stats: content.stats, trust: content.trust, testimonials: content.testimonials, footer: content.footer, partnerTerms: content.partnerTerms, partnerPage: content.partnerPage, performanceDisclaimer: content.performanceDisclaimer };
       await axios.put(`${LEADS_API}/content`, payload, { headers: { Authorization: `Bearer ${token}` } });
       try { localStorage.setItem('bk_home_content_v1', JSON.stringify(payload)); } catch (e) {}
       toast.success('Published', { description: 'Home page content is now live on the site.' });
@@ -453,7 +460,7 @@ export default function AdminPage() {
                       {g.keys.map((key) => {
                         const n = NAV_BY_KEY[key];
                         if (!n) return null;
-                        const badge = key === 'partners' ? pendingPartners : key === 'listings' ? pendingListings : 0;
+                        const badge = key === 'partners' ? pendingPartners : key === 'listings' ? pendingListings : key === 'engine' ? engineAlerts : 0;
                         return (
                           <button key={key} data-testid={`admin-nav-${key}`} onClick={() => setTab(key)}
                             className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${tab === key ? 'bg-[#F1E7FE] text-[#5320A8]' : 'text-[#1A1030] hover:bg-[#F7F4FB]'}`}>
@@ -550,6 +557,7 @@ export default function AdminPage() {
               {tab === 'about' && <AboutAdmin token={token} />}
 
               {tab === 'market' && <MarketDataAdmin token={token} />}
+              {tab === 'engine' && <PerformanceEngineAdmin token={token} disclaimer={content.performanceDisclaimer} onDisclaimerChange={(v) => patchContent('performanceDisclaimer', v)} onAlerts={setEngineAlerts} />}
 
               {tab === 'dropdowns' && <DropdownsAdmin token={token} />}
 
@@ -615,6 +623,7 @@ export default function AdminPage() {
                             </div>
                             <div className="text-xs text-[#6B6480] mt-0.5">by {p.owner_name || '—'} · {p.subtitle || 'No subtitle'} · {p.constituents?.length || 0} holdings · min ₹{Number(p.minAmount).toLocaleString('en-IN')} · {p.strategy}</div>
                             <div className="text-xs text-[#6B6480] mt-1 line-clamp-2">{p.methodology || 'No methodology provided.'}</div>
+                            <VersionDiff p={p} />
                           </div>
                           <div className="flex flex-col gap-2 shrink-0">
                             <button type="button" onClick={() => reviewListing(p.id, 'approve')} disabled={p.status === 'approved'} className="inline-flex items-center justify-center gap-1 rounded-lg bg-[#12B76A] text-white text-xs font-semibold px-4 py-2 hover:bg-[#0E9F5E] disabled:opacity-40">Approve</button>

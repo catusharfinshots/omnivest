@@ -18,6 +18,7 @@ import requests
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import performance as pe  # noqa: E402
+import _seedlock  # noqa: E402  (serialises price_history seeding across xdist workers)
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8000").rstrip("/")
 API = f"{BASE_URL}/api"
@@ -125,6 +126,7 @@ def test_launch_day_performance_end_to_end():
             {"symbol": "PERFB", "name": "Perf B", "exchange": "NSE", "type": "Stock", "weight": 30}]
     try:
         if LOCAL:
+            _seedlock.acquire()
             seeded = _seed_prices()
         p = requests.post(f"{API}/analyst/portfolios", json={"name": "Perf Basket", "benchmark": "NIFTY 500", "constituents": cons}, headers=analyst, timeout=30)
         assert p.status_code == 200, p.text
@@ -196,3 +198,4 @@ def test_launch_day_performance_end_to_end():
             requests.delete(f"{API}/admin/db/managers/{m['id']}", headers=headers, timeout=30)
         if seeded:
             _unseed(seeded)
+            _seedlock.release()

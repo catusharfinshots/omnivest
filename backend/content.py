@@ -41,6 +41,11 @@ DEFAULT_CONTENT = {
         "subscribeHeading": "Get market insights & product updates in your inbox",
         "socials": {"facebook": "", "x": "", "youtube": "", "linkedin": "", "instagram": ""},
     },
+    "performanceDisclaimer": (
+        "Performance is computed by Omnivest from NSE closing prices, starting on the day the portfolio was approved. "
+        "Figures are price returns: bonus and split adjusted, but dividends, brokerage, taxes and slippage are excluded. "
+        "Past performance is not indicative of future returns. Investments in securities are subject to market risk."
+    ),
     "partnerTerms": {
         "title": "Partner Terms & Conditions",
         "body": (
@@ -144,7 +149,7 @@ DEFAULT_CONTENT = {
     },
 }
 
-ALLOWED_KEYS = ("hero", "stats", "trust", "testimonials", "footer", "partnerTerms", "partnerPage")
+ALLOWED_KEYS = ("hero", "stats", "trust", "testimonials", "footer", "partnerTerms", "partnerPage", "performanceDisclaimer")
 
 
 def build_router(db: AsyncIOMotorDatabase) -> APIRouter:

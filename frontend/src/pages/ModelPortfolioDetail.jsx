@@ -30,6 +30,10 @@ export default function ModelPortfolioDetail() {
   const [tab, setTab] = useState('Overview');
   const [investOpen, setInvestOpen] = useState(false);
   const [perf, setPerf] = useState(null); // computed performance (engine)
+  const [disclaimer, setDisclaimer] = useState('');
+  useEffect(() => {
+    axios.get(`${API}/content`).then(({ data }) => setDisclaimer(data?.performanceDisclaimer || '')).catch(() => {});
+  }, []);
   const [methodOpen, setMethodOpen] = useState(false);
   const [basket, setBasket] = useState(mockBasket || null);
   const [notFound, setNotFound] = useState(false);
@@ -167,6 +171,11 @@ export default function ModelPortfolioDetail() {
               </div>
             ))}
           </div>
+          {perfOk && disclaimer && (
+            <div className="mt-2 flex items-start gap-1.5 text-[11px] leading-relaxed text-[#94A3B8]" data-testid="performance-disclaimer">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" /> <span>{disclaimer}</span>
+            </div>
+          )}
 
           {/* Tabs */}
           <div className="mt-8 border-b border-[#E6E8F0] flex gap-6">
