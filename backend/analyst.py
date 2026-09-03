@@ -257,11 +257,16 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     # ---------- Admin: review ----------
     @router.get("/admin/portfolios")
     async def all_portfolios(status: Optional[str] = Query(default=None), user: dict = Depends(require_admin)):
-        q = {}
-        if status:
-            q["status"] = status
+        """Drafts are the partner's private work and never reach the admin console:
+        only submitted (pending), approved and rejected listings are listed."""
+        q = {"status": {"$in": ["pending", "approved", "rejected"]}}
+        if status in ("pending", "approved", "rejected"):
+            q = {"status": status}
         docs = await col.find(q, {"_id": 0}).sort("updated_at", -1).to_list(1000)
-        return {"portfolios": docs}
+        counts = {k: 0 for k in ("pending", "approved", "rejected")}
+        async for row in col.aggregate([{"$match": {"status": {"$in": list(counts)}}}, {"$group": {"_id": "$status", "n": {"$sum": 1}}}]):
+            counts[row["_id"]] = row["n"]
+        return {"portfolios": docs, "counts": counts}
 
     @router.post("/admin/portfolios/{pid}/review")
     async def review_portfolio(pid: str, background: BackgroundTasks, payload: dict = Body(...), user: dict = Depends(require_admin)):
@@ -275,9 +280,12 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             "reviewed_at": _now(),
             "updated_at": _now(),
         }
-        existing = await col.find_one({"id": pid}, {"_id": 0, "id": 1, "launch_date": 1})
-        if existing is None:
+        existing = await col.find_one({"id": pid}, {"_id": 0, "id": 1, "launch_date": 1, "status": 1})
+        if existing is None or existing.get("status") == "draft":
+            # drafts are invisible to admin; approval is only possible via the partner's submit gate
             raise HTTPException(status_code=404, detail="Portfolio not found")
+        if action == "approve" and existing.get("status") != "pending":
+            raise HTTPException(status_code=409, detail="Only submitted (pending) listings can be approved.")
         # First approval = launch day. Constituents are "bought" at the last NSE
         # close available right now (weekend / pre-close approvals roll back to
         # the previous trading day) and the computed track record starts there.

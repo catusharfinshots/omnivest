@@ -182,19 +182,23 @@ export default function AdminPage() {
     if (!token) return;
     const h = { headers: { Authorization: `Bearer ${token}` } };
     try { const { data } = await axios.get(`${LEADS_API}/admin/partners`, h); setPendingPartners((data.applications || []).filter((a) => a.status === 'pending').length); } catch { /* ignore */ }
-    try { const { data } = await axios.get(`${LEADS_API}/admin/portfolios`, h); setPendingListings((data.portfolios || []).filter((p) => p.status === 'pending').length); } catch { /* ignore */ }
+    try { const { data } = await axios.get(`${LEADS_API}/admin/portfolios`, h); setPendingListings(data.counts?.pending ?? (data.portfolios || []).filter((p) => p.status === 'pending').length); } catch { /* ignore */ }
     try { const { data } = await axios.get(`${LEADS_API}/admin/performance/alerts`, h); setEngineAlerts(data.total || 0); } catch { /* ignore */ }
   };
   useEffect(() => { refreshCounts(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [token]);
 
   const [engineAlerts, setEngineAlerts] = useState(0);
   const [listings, setListings] = useState([]);
+  const [listingCounts, setListingCounts] = useState({ pending: 0, approved: 0, rejected: 0 });
+  const [listingFilter, setListingFilter] = useState('pending'); // drafts never reach admin
   const [listingsLoading, setListingsLoading] = useState(false);
   const fetchListings = async () => {
     setListingsLoading(true);
     try {
       const { data } = await axios.get(`${LEADS_API}/admin/portfolios`, { headers: { Authorization: `Bearer ${token}` } });
       setListings(data.portfolios || []);
+      setListingCounts({ pending: 0, approved: 0, rejected: 0, ...(data.counts || {}) });
+      setPendingListings(data.counts?.pending || 0);
     } catch { toast.error('Could not load listings'); }
     finally { setListingsLoading(false); }
   };
@@ -608,13 +612,24 @@ export default function AdminPage() {
                     </div>
                     <button onClick={fetchListings} className="btn-outline">Refresh</button>
                   </div>
+                  <div className="mt-4 flex items-center gap-2 flex-wrap" data-testid="listing-filters">
+                    {[['pending', 'Awaiting approval'], ['approved', 'Live'], ['rejected', 'Rejected']].map(([k, label]) => (
+                      <button key={k} type="button" onClick={() => setListingFilter(k)}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${listingFilter === k ? 'bg-[#F1E7FE] border-[#D8C7F1] text-[#5320A8]' : 'border-[#E8E1F0] text-[#6B6480] hover:border-[#D8C7F1]'}`}>
+                        {label} <span className={`min-w-[18px] px-1 rounded-full text-[10px] text-center ${k === 'pending' && listingCounts.pending ? 'bg-[#DC2626] text-white' : 'bg-[#F1F1F4] text-[#6B6480]'}`}>{listingCounts[k] || 0}</span>
+                      </button>
+                    ))}
+                    <span className="text-[11px] text-[#94A3B8] ml-auto">Partners' drafts stay private until they submit — only submitted listings appear here.</span>
+                  </div>
                   {listingsLoading ? (
                     <div className="mt-6 text-sm text-[#6B6480]">Loading…</div>
-                  ) : listings.length === 0 ? (
-                    <div className="mt-6 text-sm text-[#6B6480]">No analyst submissions yet.</div>
+                  ) : listings.filter((p) => p.status === listingFilter).length === 0 ? (
+                    <div className="mt-6 text-sm text-[#6B6480]" data-testid="listings-empty">
+                      {listingFilter === 'pending' ? 'Nothing awaiting approval. Partners submit from their console once a listing is complete.' : listingFilter === 'approved' ? 'No live listings yet.' : 'No rejected listings.'}
+                    </div>
                   ) : (
                     <div className="mt-4 space-y-3">
-                      {listings.map((p) => (
+                      {listings.filter((p) => p.status === listingFilter).map((p) => (
                         <div key={p.id} className="border border-[#E8E1F0] rounded-xl p-4 flex items-start justify-between gap-4">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
@@ -626,7 +641,7 @@ export default function AdminPage() {
                             <VersionDiff p={p} />
                           </div>
                           <div className="flex flex-col gap-2 shrink-0">
-                            <button type="button" onClick={() => reviewListing(p.id, 'approve')} disabled={p.status === 'approved'} className="inline-flex items-center justify-center gap-1 rounded-lg bg-[#12B76A] text-white text-xs font-semibold px-4 py-2 hover:bg-[#0E9F5E] disabled:opacity-40">Approve</button>
+                            <button type="button" onClick={() => reviewListing(p.id, 'approve')} disabled={p.status !== 'pending'} title={p.status !== 'pending' ? 'Only submitted listings can be approved' : ''} className="inline-flex items-center justify-center gap-1 rounded-lg bg-[#12B76A] text-white text-xs font-semibold px-4 py-2 hover:bg-[#0E9F5E] disabled:opacity-40">Approve</button>
                             <button type="button" onClick={() => reviewListing(p.id, 'reject')} disabled={p.status === 'rejected'} className="inline-flex items-center justify-center gap-1 rounded-lg border border-[#E8E1F0] text-[#DC2626] text-xs font-semibold px-4 py-2 hover:bg-[#FEF2F2] disabled:opacity-40">Reject</button>
                           </div>
                         </div>

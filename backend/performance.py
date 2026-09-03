@@ -508,7 +508,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     async def _engine_rows() -> dict:
         """Everything the admin panel needs: per-listing engine state + data health."""
         expected = last_close_date().isoformat()
-        docs = await portfolios.find({"status": {"$in": ["approved", "pending", "draft"]}},
+        docs = await portfolios.find({"status": {"$in": ["approved", "pending"]}},   # drafts never appear in admin
                                      {"_id": 0, "id": 1, "name": 1, "owner_name": 1, "status": 1, "launch_date": 1, "launch_price_date": 1,
                                       "benchmark": 1, "versions": 1, "constituents": 1, "launch_history": 1, "updated_at": 1}).sort("updated_at", -1).to_list(1000)
         perfs = {d["_id"]: d async for d in perf_col.find({}, {"series": 0, "benchmarks": 0, "latest_prices": 0})}

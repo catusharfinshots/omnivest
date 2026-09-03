@@ -19,6 +19,7 @@ import requests
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import performance as pe  # noqa: E402
 import _seedlock  # noqa: E402  (serialises price_history seeding across xdist workers)
+import _listing  # noqa: E402
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8000").rstrip("/")
 API = f"{BASE_URL}/api"
@@ -131,6 +132,11 @@ def test_launch_day_performance_end_to_end():
         p = requests.post(f"{API}/analyst/portfolios", json={"name": "Perf Basket", "benchmark": "NIFTY 500", "constituents": cons}, headers=analyst, timeout=30)
         assert p.status_code == 200, p.text
         pid = p.json()["portfolio"]["id"]
+        # a draft never reaches admin: not listed, cannot be approved, absent from the engine panel
+        adm = requests.get(f"{API}/admin/portfolios", headers=headers, timeout=30).json()
+        assert pid not in [x["id"] for x in adm["portfolios"]] and "counts" in adm
+        assert requests.post(f"{API}/admin/portfolios/{pid}/review", json={"action": "approve"}, headers=headers, timeout=30).status_code == 404
+        assert pid not in [r["id"] for r in requests.get(f"{API}/admin/performance/overview", headers=headers, timeout=60).json()["listings"]]
 
         # draft: preview only, no track record, nothing to click (old recompute endpoint is gone)
         assert requests.post(f"{API}/analyst/portfolios/{pid}/performance/recompute", headers=analyst, timeout=30).status_code in (404, 405)
@@ -140,6 +146,12 @@ def test_launch_day_performance_end_to_end():
         if LOCAL:
             assert d["status"] == "not_launched" and d["min_investment"]["amount"] > 0
 
+        # partner completes + submits (real gate) -> pending, now visible to admin
+        requests.put(f"{API}/analyst/portfolios/{pid}", json=_listing.complete_payload("Perf Basket", cons, "NIFTY 500"), headers=analyst, timeout=30).raise_for_status()
+        import io
+        requests.post(f"{API}/analyst/portfolios/{pid}/factsheet", files={"file": ("f.pdf", io.BytesIO(_listing.TINY_PDF), "application/pdf")}, headers=analyst, timeout=30).raise_for_status()
+        requests.post(f"{API}/analyst/portfolios/{pid}/submit", headers=analyst, timeout=30).raise_for_status()
+        assert pid in [x["id"] for x in requests.get(f"{API}/admin/portfolios", headers=headers, timeout=30).json()["portfolios"]]
         # approve -> launch day = IST today, purchase price = last close available now
         rv = requests.post(f"{API}/admin/portfolios/{pid}/review", json={"action": "approve"}, headers=headers, timeout=30)
         assert rv.status_code == 200, rv.text
@@ -183,8 +195,7 @@ def test_launch_day_performance_end_to_end():
         assert d["bench_metrics"]["NIFTY 500"]["cagr_pct"] is not None and d["launched_days_ago"] >= 400
 
         # rebalance after launch -> version recorded with today's IST date
-        up = requests.put(f"{API}/analyst/portfolios/{pid}", json={"name": "Perf Basket", "benchmark": "NIFTY 500",
-                          "constituents": [{**cons[0], "weight": 50}, {**cons[1], "weight": 50}]}, headers=analyst, timeout=30)
+        up = requests.put(f"{API}/analyst/portfolios/{pid}", json=_listing.complete_payload("Perf Basket", [{**cons[0], "weight": 50}, {**cons[1], "weight": 50}], "NIFTY 500"), headers=analyst, timeout=30)
         assert up.status_code == 200
         vs = up.json()["portfolio"].get("versions") or []
         assert len(vs) == 2 and vs[-1]["effective_date"] == pe.ist_today().isoformat()

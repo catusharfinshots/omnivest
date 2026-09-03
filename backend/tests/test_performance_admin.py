@@ -11,6 +11,7 @@ import requests
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import performance as pe  # noqa: E402
 import _seedlock  # noqa: E402  (serialises price_history seeding across xdist workers)
+import _listing  # noqa: E402
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8000").rstrip("/")
 API = f"{BASE_URL}/api"
@@ -97,11 +98,12 @@ def test_launch_correction_and_recompute():
         if LOCAL:
             _seedlock.acquire()
             seeded = _seed_prices()
-        p = requests.post(f"{API}/analyst/portfolios", json={"name": "Perf Admin Basket", "benchmark": "NIFTY 500", "constituents": [
+        pid = _listing.create_submitted_listing(API, analyst, "Perf Admin Basket", [
             {"symbol": "PERFA", "name": "Perf A", "exchange": "NSE", "type": "Stock", "weight": 70},
-            {"symbol": "PERFB", "name": "Perf B", "exchange": "NSE", "type": "Stock", "weight": 30}]}, headers=analyst, timeout=30)
-        pid = p.json()["portfolio"]["id"]
+            {"symbol": "PERFB", "name": "Perf B", "exchange": "NSE", "type": "Stock", "weight": 30}], benchmark="NIFTY 500")
         requests.post(f"{API}/admin/portfolios/{pid}/review", json={"action": "approve"}, headers=h, timeout=30).raise_for_status()
+        # already approved -> cannot be approved again
+        assert requests.post(f"{API}/admin/portfolios/{pid}/review", json={"action": "approve"}, headers=h, timeout=30).status_code == 409
 
         # row appears in the overview
         rows = requests.get(f"{API}/admin/performance/overview", headers=h, timeout=60).json()["listings"]
