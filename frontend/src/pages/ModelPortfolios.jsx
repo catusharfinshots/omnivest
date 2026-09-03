@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { track } from '../lib/track';
 import { getManager } from '../mock';
-import { TrendingUp, TrendingDown, Users, Search } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Search, Sparkles, Lock } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -26,12 +26,13 @@ function PortfolioCard({ b }) {
   const c = b.computed && b.computed.status === 'ok' ? b.computed : null;
   const useCagr = !!(c && c.cagr_pct !== null && c.cagr_pct !== undefined);
   const headline = c ? (useCagr ? c.cagr_pct : c.return_pct) : null;
-  const risk = (c && c.volatility_label) || b.risk;
+  const risk = c ? c.volatility_label : (b._db ? null : b.risk);
   const minAmount = (c && c.min_investment) || b.minAmount;
   const isNew = b._db && c && !useCagr;
   return (
-    <Link to={`/model-portfolios/${b.id}`}
-      className="group surface p-5 hover:shadow-[0_16px_40px_-24px_rgba(108,43,217,0.35)] hover:border-[#D8C7F1] transition-all block">
+    <Link to={`/model-portfolios/${b.id}`} data-testid="explore-card"
+      className={`group surface p-5 hover:shadow-[0_16px_40px_-24px_rgba(108,43,217,0.35)] hover:border-[#D8C7F1] transition-all block relative ${b.featured ? 'border-[#D8C7F1] ring-1 ring-[#EDE9FE]' : ''}`}>
+      {b.featured && <span className="absolute -top-2.5 left-4 inline-flex items-center gap-1 rounded-full grad-card text-white text-[10px] font-bold px-2.5 py-0.5 shadow"><Sparkles className="h-3 w-3" /> Featured</span>}
       <div className="flex items-start gap-3">
         <span className="h-11 w-11 shrink-0 rounded-xl grad-card text-white grid place-items-center text-sm font-bold">
           {b.name.slice(0, 2).toUpperCase()}
@@ -47,7 +48,9 @@ function PortfolioCard({ b }) {
         {risk ? <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${riskColor(risk)}`}>{risk} volatility</span> : null}
         {isNew ? <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-[#EDE9FE] text-[#6C2BD9]">New</span> : null}
         <span className="chip-brand">{b.strategy.replace('-', ' ')}</span>
+        {(b.tags || []).slice(0, 2).map((t) => <span key={t} className="chip">{t}</span>)}
         <span className="chip">{(b.constituents || []).length} stocks</span>
+        {b.subscription === 'Paid' ? <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-[#FEF3C7] text-[#B45309]"><Lock className="h-3 w-3" /> {b.feeAmount ? `from ₹${Math.round(b.feeAmount / ({ monthly: 1, quarterly: 3, 'half-yearly': 6, yearly: 12 }[b.feeCycle] || 1))}/mo` : 'Paid'}</span> : null}
       </div>
 
       <div className="mt-4 pt-3 border-t border-[#EEF1F6] grid grid-cols-2 gap-3">
@@ -114,7 +117,7 @@ export default function ModelPortfolios() {
   const list = useMemo(() => {
     const f = FILTERS.find((x) => x.key === active) || FILTERS[0];
     return allBaskets.filter(f.match).filter((b) =>
-      !q || b.name.toLowerCase().includes(q.toLowerCase()) || (b.subtitle || '').toLowerCase().includes(q.toLowerCase())
+      !q || b.name.toLowerCase().includes(q.toLowerCase()) || (b.subtitle || '').toLowerCase().includes(q.toLowerCase()) || (b.tags || []).some((t) => t.toLowerCase().includes(q.toLowerCase()))
     );
   }, [active, q, allBaskets]);
 

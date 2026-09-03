@@ -426,14 +426,32 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     async def public_portfolio(pid: str, authorization: Optional[str] = Header(None)):
         """Approved listings are public. Admins may preview a submitted (pending/paused/rejected)
         listing exactly as investors would see it; drafts stay private to the partner."""
-        doc = await col.find_one({"id": pid}, {"_id": 0, "owner_id": 0})
+        doc = await col.find_one({"id": pid}, {"_id": 0})
         if not doc or doc.get("status") == "draft":
             raise HTTPException(status_code=404, detail="Portfolio not found")
         if doc.get("status") != "approved":
             if not await _is_admin(authorization):
                 raise HTTPException(status_code=404, detail="Portfolio not found")
             doc["preview"] = True
+        owner_id = doc.pop("owner_id", None)
         doc.pop("review_note", None)
+        # manager card: approved-partner record merged with the analyst's own profile
+        mgr = await db.managers.find_one({"user_id": owner_id, "active": True}, {"_id": 0}) if owner_id else None
+        usr = await db.users.find_one({"id": owner_id}, {"_id": 0, "analyst_profile": 1, "name": 1}) if owner_id else None
+        prof = (usr or {}).get("analyst_profile") or {}
+        live_count = await col.count_documents({"owner_id": owner_id, "status": "approved"}) if owner_id else 0
+        doc["manager"] = {
+            "id": (mgr or {}).get("id"),
+            "name": prof.get("displayName") or (mgr or {}).get("name") or doc.get("owner_name") or (usr or {}).get("name"),
+            "firm": (mgr or {}).get("firm", ""),
+            "logo": prof.get("logo") or (mgr or {}).get("logo") or (doc.get("owner_name") or "RA")[:2].upper(),
+            "sebiReg": prof.get("sebiReg") or (mgr or {}).get("sebi_reg", ""),
+            "philosophy": prof.get("philosophy") or (mgr or {}).get("philosophy", ""),
+            "description": prof.get("description") or (mgr or {}).get("description", ""),
+            "experienceYears": (mgr or {}).get("experience_years", ""),
+            "website": (mgr or {}).get("website", ""),
+            "listings": live_count,
+        }
         return {"portfolio": doc}
 
     return router

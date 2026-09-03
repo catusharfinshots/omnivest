@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 
 from auth import build_current_user_dep, decode_token
 
-EVENT_TYPES = {"portfolio_impression", "portfolio_view", "invest_click", "factsheet_download", "share_click"}
+EVENT_TYPES = {"portfolio_impression", "portfolio_view", "invest_click", "subscribe_click", "factsheet_download", "share_click"}
 SETTINGS_ID = "partner_dashboard"
 SETTINGS_DEFAULTS = {
     "enabled": True,
