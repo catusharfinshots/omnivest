@@ -11,12 +11,13 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, List
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, UploadFile, File, Header
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Query, UploadFile, File, Header
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from auth import build_current_user_dep, decode_token
+import performance as perf_engine
 import storage
 
 
@@ -168,7 +169,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             return {(c.get("symbol") or "").upper(): float(c.get("weight") or 0) for c in (cons or []) if c.get("symbol")}
         if existing.get("launch_date") and _w(existing.get("constituents")) != _w(doc.get("constituents")):
             versions = existing.get("versions") or [{"effective_date": existing["launch_date"], "constituents": existing.get("constituents") or []}]
-            versions.append({"effective_date": _now()[:10], "constituents": doc.get("constituents") or []})
+            versions.append({"effective_date": perf_engine.ist_today().isoformat(), "constituents": doc.get("constituents") or []})
             doc["versions"] = versions
         await col.update_one({"id": pid}, {"$set": doc})
         merged = await col.find_one({"id": pid}, {"_id": 0})
@@ -263,7 +264,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         return {"portfolios": docs}
 
     @router.post("/admin/portfolios/{pid}/review")
-    async def review_portfolio(pid: str, payload: dict = Body(...), user: dict = Depends(require_admin)):
+    async def review_portfolio(pid: str, background: BackgroundTasks, payload: dict = Body(...), user: dict = Depends(require_admin)):
         action = (payload.get("action") or "").lower()
         if action not in ("approve", "reject"):
             raise HTTPException(status_code=422, detail="action must be 'approve' or 'reject'")
@@ -277,17 +278,27 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         existing = await col.find_one({"id": pid}, {"_id": 0, "id": 1, "launch_date": 1})
         if existing is None:
             raise HTTPException(status_code=404, detail="Portfolio not found")
-        # First approval = launch date: live track record starts here; anything
-        # earlier is a backtest.
+        # First approval = launch day. Constituents are "bought" at the last NSE
+        # close available right now (weekend / pre-close approvals roll back to
+        # the previous trading day) and the computed track record starts there.
         if new_status == "approved" and not existing.get("launch_date"):
-            update["launch_date"] = _now()[:10]
+            update["launch_date"] = perf_engine.ist_today().isoformat()
+            update["launch_price_date"] = perf_engine.last_close_date().isoformat()
         await col.update_one({"id": pid}, {"$set": update})
-        return {"ok": True, "status": new_status, "launch_date": update.get("launch_date") or existing.get("launch_date")}
+        if new_status == "approved" and perf_engine.ENGINE is not None:
+            background.add_task(perf_engine.ENGINE.refresh_bg, pid)
+        return {"ok": True, "status": new_status, "launch_date": update.get("launch_date") or existing.get("launch_date"),
+                "launch_price_date": update.get("launch_price_date")}
 
     # ---------- Public ----------
     @router.get("/portfolios")
-    async def public_portfolios():
+    async def public_portfolios(background: BackgroundTasks):
         docs = await col.find({"status": "approved"}, {"_id": 0, "owner_id": 0, "review_note": 0}).sort("updated_at", -1).to_list(1000)
+        # computed performance summary per card (auto-refreshed in the background when stale)
+        if docs and perf_engine.ENGINE is not None:
+            summaries = await perf_engine.ENGINE.summaries([d["id"] for d in docs], background)
+            for d in docs:
+                d["computed"] = summaries.get(d["id"])
         return {"portfolios": docs}
 
     @router.get("/portfolios/{pid}")

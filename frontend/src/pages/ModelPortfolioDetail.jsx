@@ -13,7 +13,7 @@ import { usePortfolio } from '../context/PortfolioContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, TrendingUp, ShieldCheck, Repeat, Layers, FileText, BookOpen, FlaskConical,
+  ArrowLeft, TrendingUp, TrendingDown, ShieldCheck, Repeat, Layers, FileText, BookOpen, FlaskConical,
   Heart, ChevronRight, Award, Info,
 } from 'lucide-react';
 
@@ -85,10 +85,29 @@ export default function ModelPortfolioDetail() {
     setInvestOpen(true);
   };
 
-  const stats = [
-    { label: 'CAGR', value: `${basket.returns.cagr.toFixed(1)}%`, sub: 'since inception', good: true },
-    { label: '3Y Return', value: `${basket.returns.y3.toFixed(1)}%`, sub: 'annualised', good: true },
-    { label: 'Min. Investment', value: INR(basket.minAmount), sub: 'to start' },
+  // Computed performance (engine): live since launch day, never typed.
+  const perfOk = perf && perf.status === 'ok';
+  const pm = perfOk ? perf.metrics : null;
+  const pmBench = perfOk ? perf.bench_metrics?.[perf.benchmark] : null;
+  const pmUseCagr = !!(pm && pm.cagr_pct !== null);
+  const pmHeadline = pm ? (pmUseCagr ? pm.cagr_pct : pm.return_pct) : null;
+  const pmBenchHeadline = pmBench ? (pmUseCagr ? pmBench.cagr_pct : pmBench.return_pct) : null;
+  const pmAlpha = pmHeadline !== null && pmBenchHeadline !== null && pmBenchHeadline !== undefined ? +(pmHeadline - pmBenchHeadline).toFixed(2) : null;
+  const pmVol = (pm && pm.volatility_label) || null;
+  const minAmount = perfOk && perf.min_investment?.amount ? perf.min_investment.amount : basket.minAmount;
+  const launchedAgo = perf?.launched_days_ago;
+  const launchedLabel = launchedAgo === 0 ? 'launched today' : launchedAgo === 1 ? 'launched yesterday' : launchedAgo > 1 ? `launched ${launchedAgo} days ago` : 'since launch';
+  const pct = (v) => (v === null || v === undefined ? '—' : `${v > 0 ? '+' : ''}${Number(v).toFixed(1)}%`);
+  const headlineText = pmHeadline === null ? 'New' : pct(pmHeadline);
+  const stats = perfOk ? [
+    { label: pmUseCagr ? 'CAGR' : 'Since launch', value: headlineText, sub: pmUseCagr ? `${pm.days} days live` : (pmHeadline === null ? 'returns from next market close' : launchedLabel), good: pmHeadline !== null && pmHeadline >= 0, bad: pmHeadline !== null && pmHeadline < 0 },
+    { label: `vs ${perf.benchmark_labels?.[perf.benchmark] || perf.benchmark}`, value: pct(pmAlpha), sub: pmAlpha === null ? 'from next market close' : (pmAlpha >= 0 ? 'ahead of benchmark' : 'behind benchmark'), good: pmAlpha !== null && pmAlpha >= 0, bad: pmAlpha !== null && pmAlpha < 0 },
+    { label: 'Min. Investment', value: INR(minAmount), sub: "at today's prices" },
+    { label: 'Rebalance', value: basket.rebalanceFreq, sub: 'by manager' },
+  ] : [
+    { label: 'Performance', value: '—', sub: perf?.status === 'unavailable' ? 'market data reconnecting' : 'computing from exchange data' },
+    { label: 'Launched', value: basket.launch_date ? new Date(`${basket.launch_date}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—', sub: 'live track record' },
+    { label: 'Min. Investment', value: INR(minAmount), sub: 'to start' },
     { label: 'Rebalance', value: basket.rebalanceFreq, sub: 'by manager' },
   ];
 
@@ -115,30 +134,21 @@ export default function ModelPortfolioDetail() {
                 <button onClick={() => navigate(`/manager/${basket.managerId}`)} className="mt-1 text-sm text-[#64748B] hover:text-[#6C2BD9]">by {manager?.name}</button>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <span className="chip"><Layers className="h-3.5 w-3.5" /> {basket.strategy.replace('-', ' ')}</span>
-                  <span className="chip"><ShieldCheck className="h-3.5 w-3.5" /> {(() => { const ok = perf && perf.status === 'ok'; const m = ok ? (perf.metrics.live?.days >= 30 ? perf.metrics.live : perf.metrics.all) : null; return (m && m.volatility_label) || basket.risk; })()} volatility</span>
+                  <span className="chip"><ShieldCheck className="h-3.5 w-3.5" /> {pmVol || basket.risk} volatility</span>
                   <span className={basket.subscription === 'Free' ? 'chip-brand' : 'chip-accent'}>{basket.subscription === 'Free' ? 'Free access' : `₹${basket.fee.amount}/${basket.fee.cycle === 'monthly' ? 'mo' : basket.fee.cycle}`}</span>
                 </div>
               </div>
             </div>
             <div className="text-right" data-testid="header-cagr">
-              {(() => {
-                const ok = perf && perf.status === 'ok';
-                const live = ok ? perf.metrics.live : null;
-                const m = ok ? (live && live.days >= 30 ? live : perf.metrics.all) : null;
-                const isLive = ok && live && live.days >= 30;
-                const val = m ? (m.cagr_pct !== null ? m.cagr_pct : m.return_pct) : null;
-                return (
-                  <>
-                    <div className="text-xs text-[#64748B]">{ok ? (m.cagr_pct !== null ? 'CAGR' : 'Return') : 'CAGR'}{ok && !isLive ? <span className="ml-1 rounded-full bg-[#FEF3C7] text-[#B45309] px-1.5 py-0.5 text-[10px] font-bold">backtest</span> : null}</div>
-                    <div className={`num text-3xl font-bold flex items-center gap-1 justify-end ${val !== null && val < 0 ? 'text-[#DC2626]' : 'text-[#0E9F5E]'}`}>
-                      <TrendingUp className="h-6 w-6" /> {val !== null ? `${val.toFixed(1)}%` : (basket.returns?.cagr ? `${Number(basket.returns.cagr).toFixed(1)}%` : '—')}
-                    </div>
-                    {ok && m.volatility_label && (
-                      <div className="mt-1 text-[11px] text-[#64748B]">{m.volatility_label} volatility · computed from exchange data</div>
-                    )}
-                  </>
-                );
-              })()}
+              <div className="text-xs text-[#64748B]">{perfOk ? (pmUseCagr ? 'CAGR' : 'Since launch') : 'Performance'}</div>
+              <div className={`num text-3xl font-bold flex items-center gap-1 justify-end ${pmHeadline !== null && pmHeadline < 0 ? 'text-[#DC2626]' : pmHeadline !== null ? 'text-[#0E9F5E]' : perfOk ? 'text-[#6C2BD9]' : 'text-[#94A3B8]'}`}>
+                {pmHeadline !== null && pmHeadline < 0 ? <TrendingDown className="h-6 w-6" /> : <TrendingUp className="h-6 w-6" />} {perfOk ? headlineText : '—'}
+              </div>
+              <div className="mt-1 text-[11px] text-[#64748B]">
+                {perfOk
+                  ? `${launchedLabel.charAt(0).toUpperCase() + launchedLabel.slice(1)}${pmVol ? ` · ${pmVol} volatility` : ''} · computed from exchange data`
+                  : (perf?.status === 'unavailable' ? 'Market data reconnecting' : 'Computing from exchange data…')}
+              </div>
             </div>
           </div>
         </div>
@@ -152,7 +162,7 @@ export default function ModelPortfolioDetail() {
             {stats.map((s) => (
               <div key={s.label} className="surface p-4">
                 <div className="text-[11px] uppercase tracking-wider text-[#64748B] font-semibold">{s.label}</div>
-                <div className={`num mt-1 text-lg font-bold ${s.good ? 'text-[#0E9F5E]' : 'text-[#0F1729]'}`}>{s.value}</div>
+                <div className={`num mt-1 text-lg font-bold ${s.bad ? 'text-[#DC2626]' : s.good ? 'text-[#0E9F5E]' : 'text-[#0F1729]'}`}>{s.value}</div>
                 <div className="text-[11px] text-[#94A3B8] mt-0.5">{s.sub}</div>
               </div>
             ))}
@@ -280,7 +290,8 @@ export default function ModelPortfolioDetail() {
         <div className="lg:col-span-4">
           <div className="surface p-6 lg:sticky lg:top-24">
             <div className="flex items-center gap-1.5 text-xs text-[#64748B]"><span>Minimum Investment Amount</span><Info className="h-3.5 w-3.5" /></div>
-            <div className="num mt-1 text-3xl font-bold text-[#0F1729]">{INR(basket.minAmount)}</div>
+            <div className="num mt-1 text-3xl font-bold text-[#0F1729]">{INR(minAmount)}</div>
+            {perfOk && perf.min_investment?.amount ? <div className="text-[11px] text-[#94A3B8]">buys 1+ share of every stock at today's prices</div> : null}
             <div className="mt-1 text-sm text-[#64748B]">{basket.subscription === 'Free' ? 'Free access forever' : `Subscription ₹${basket.fee.amount}/${basket.fee.cycle}`}</div>
 
             <button onClick={onInvest} className="btn-invest w-full mt-5">Invest now</button>

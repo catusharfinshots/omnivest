@@ -1,24 +1,33 @@
-"""Listing performance engine (Listing 2.0 — step 4a).
+"""Listing performance engine (Listing 2.0).
 
-Performance is COMPUTED, never typed. For each portfolio we build a daily NAV
-series from Kite historical closes (buy-and-hold between rebalance versions,
-starting at 100), then derive CAGR, window returns (1M…5Y, since launch),
-max drawdown, annualised volatility (Low/Med/High label), benchmark series
-for the core-4 indices, and an auto minimum-investment amount.
+Performance is COMPUTED, never typed, and it starts on launch day:
 
-Points before the listing's launch date are a BACKTEST and are flagged so the
-UI can label them; points after are the live track record.
+* On first approval the listing gets a `launch_price_date` — the date of the
+  last NSE close available at the moment of approval (weekends/holidays and
+  approvals before the 15:30 close roll back to the previous trading day).
+  Every constituent is "bought" at that close; NAV starts at 100 there.
+* Buy-and-hold from then on. A rebalance (new `versions` entry) sells and
+  re-buys at that day's close, so the track record stays continuous.
+* From the NAV series we derive: return since launch, CAGR (after 1 year),
+  window returns (1M…5Y, only once the listing is old enough), max drawdown,
+  annualised volatility (Low/Med/High after 20 trading days), the same for
+  the core-4 benchmark indices, and an auto minimum investment at today's
+  prices. There is NO backtest of pre-launch history.
+* Refresh is automatic: a cached doc is stale once a newer close exists, and
+  the public/analyst endpoints refresh it (background / inline). Nothing for
+  a partner to click.
 
 Collections:
   price_history         {_id:"NSE:RELIANCE", token, refreshed_at, candles:[[YYYY-MM-DD, close], ...]}
-  portfolio_performance {_id:<portfolio id>, as_of, launch_date, benchmark, series, benchmarks, metrics, ...}
+  portfolio_performance {_id:<portfolio id>, as_of, status, launch_date, launch_price_date, series, metrics, ...}
 """
 from __future__ import annotations
 
 import logging
 import math
 import os
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
+from types import SimpleNamespace
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -43,7 +52,12 @@ DEFAULT_BENCHMARK = "NIFTY 50"
 HISTORY_DAYS = 5 * 365 + 40          # a little over 5 years of daily candles (one Kite call)
 WINDOWS = {"1M": 30, "3M": 91, "6M": 182, "1Y": 365, "3Y": 1095, "5Y": 1825}
 PRICE_STALE_HOURS = 20
-PERF_STALE_HOURS = 20
+RETRY_MINUTES = 30                   # don't hammer Kite when a refresh keeps failing
+ENGINE_VERSION = 2                   # bump when the doc shape/rules change; older docs are recomputed on read
+IST = timezone(timedelta(hours=5, minutes=30))
+MARKET_CLOSE = time(15, 35)          # NSE closes 15:30; candles settle a few minutes later
+
+ENGINE: Optional[SimpleNamespace] = None   # set by build_router(); used by analyst.py hooks
 
 
 def _now() -> datetime:
@@ -62,18 +76,46 @@ def _parse_date(s) -> Optional[date]:
             return None
 
 
+def ist_today(now_utc: Optional[datetime] = None) -> date:
+    return (now_utc or _now()).astimezone(IST).date()
+
+
+def last_close_date(now_utc: Optional[datetime] = None) -> date:
+    """Date of the most recent NSE closing price available at `now`.
+    Before the 15:35 IST settle → previous day; weekends → Friday. Exchange
+    holidays are handled downstream by taking the last candle on/before this
+    date, so this never needs a holiday calendar."""
+    now = (now_utc or _now()).astimezone(IST)
+    d = now.date()
+    if now.time() < MARKET_CLOSE:
+        d -= timedelta(days=1)
+    while d.weekday() >= 5:
+        d -= timedelta(days=1)
+    return d
+
+
 # ----------------------------------------------------------------------------
 # Pure math (no I/O) — unit-testable
 # ----------------------------------------------------------------------------
 def build_nav(versions: List[dict], prices: Dict[str, Dict[str, float]], calendar: List[str]) -> List[dict]:
     """versions: [{effective: 'YYYY-MM-DD', weights: {sym: pct}}] sorted ascending.
-    prices: sym -> {date: close}. calendar: sorted trading dates (from the benchmark).
-    Buy-and-hold between versions; NAV starts at 100 on the first date where every
-    symbol of the first version has a price."""
+    prices: sym -> {date: close}. calendar: sorted trading dates to walk (from
+    the benchmark), the first of which is the purchase date.
+    Buy-and-hold between versions; NAV = 100 on the first calendar date on
+    which every symbol of the first version has a (forward-filled) price."""
     if not versions or not calendar:
         return []
-    # forward-fill helper
     last: Dict[str, float] = {}
+    # prime forward-fill with the latest close on/before the purchase date, so a
+    # stock whose exchange skipped that day (BSE vs NSE calendar) still has a price
+    first = calendar[0]
+    for v in versions:
+        for s in v["weights"]:
+            if s in last:
+                continue
+            prior = [d for d in prices.get(s, {}) if d <= first]
+            if prior:
+                last[s] = prices[s][max(prior)]
 
     def px(sym: str, d: str) -> Optional[float]:
         v = prices.get(sym, {}).get(d)
@@ -91,7 +133,7 @@ def build_nav(versions: List[dict], prices: Dict[str, Dict[str, float]], calenda
         while vi + 1 < len(versions) and versions[vi + 1]["effective"] <= d:
             vi += 1
             if started:
-                # rebalance: reallocate current NAV to new target weights at today's prices
+                # rebalance: sell everything and re-buy the new targets at today's close
                 nav = sum(units[s] * (px(s, d) or 0) for s in units) or nav
                 units = {}
                 for s, w in versions[vi]["weights"].items():
@@ -102,7 +144,7 @@ def build_nav(versions: List[dict], prices: Dict[str, Dict[str, float]], calenda
         current = {s: px(s, d) for s in weights}
         if not started:
             if any(current[s] is None for s in weights):
-                continue  # not all constituents have history yet
+                continue  # not all constituents have a price yet
             units = {s: (w / 100.0) * 100.0 / current[s] for s, w in weights.items()}
             nav = 100.0
             started = True
@@ -114,24 +156,26 @@ def build_nav(versions: List[dict], prices: Dict[str, Dict[str, float]], calenda
 
 
 def _metrics(points: List[dict]) -> dict:
-    """points: [{d, nav}] ascending. Returns window returns, cagr, drawdown, vol."""
+    """points: [{d, nav}] ascending. Returns window returns, cagr, drawdown, vol.
+    Windows/CAGR/volatility stay None until enough history exists."""
     out = {"start": None, "end": None, "days": 0, "return_pct": None, "cagr_pct": None,
-           "windows": {}, "max_drawdown_pct": None, "volatility_pct": None, "volatility_label": None}
+           "windows": {k: None for k in WINDOWS}, "max_drawdown_pct": None, "volatility_pct": None, "volatility_label": None}
+    if not points:
+        return out
+    out.update({"start": points[0]["d"], "end": points[-1]["d"]})
     if len(points) < 2:
         return out
     end_d = date.fromisoformat(points[-1]["d"])
     start_d = date.fromisoformat(points[0]["d"])
     end_nav, start_nav = points[-1]["nav"], points[0]["nav"]
     days = (end_d - start_d).days
-    out.update({"start": points[0]["d"], "end": points[-1]["d"], "days": days})
+    out["days"] = days
     out["return_pct"] = round((end_nav / start_nav - 1) * 100, 2)
     if days >= 365:
         out["cagr_pct"] = round(((end_nav / start_nav) ** (365.0 / days) - 1) * 100, 2)
-    # window returns
     for key, wd in WINDOWS.items():
         target = end_d - timedelta(days=wd)
         if target < start_d:
-            out["windows"][key] = None
             continue
         base = None
         for p in points:  # first point at/after target date
@@ -139,13 +183,11 @@ def _metrics(points: List[dict]) -> dict:
                 base = p["nav"]
                 break
         out["windows"][key] = round((end_nav / base - 1) * 100, 2) if base else None
-    # drawdown
     peak, mdd = points[0]["nav"], 0.0
     for p in points:
         peak = max(peak, p["nav"])
         mdd = min(mdd, p["nav"] / peak - 1)
     out["max_drawdown_pct"] = round(mdd * 100, 2)
-    # volatility (annualised std of daily log returns)
     rets = []
     for a, b in zip(points, points[1:]):
         if a["nav"] > 0 and b["nav"] > 0:
@@ -173,8 +215,29 @@ def min_investment(weights: Dict[str, float], latest: Dict[str, float]) -> Optio
     return {"amount": int(math.ceil(cost)), "holdings": holdings}
 
 
+def summary(perf: Optional[dict]) -> Optional[dict]:
+    """Card-sized view of a performance doc (no series) for list endpoints."""
+    if not perf:
+        return None
+    m = perf.get("metrics") or {}
+    bench = (perf.get("bench_metrics") or {}).get(perf.get("benchmark")) or {}
+    alpha = None
+    if m.get("cagr_pct") is not None and bench.get("cagr_pct") is not None:
+        alpha = round(m["cagr_pct"] - bench["cagr_pct"], 2)
+    elif m.get("return_pct") is not None and bench.get("return_pct") is not None:
+        alpha = round(m["return_pct"] - bench["return_pct"], 2)
+    return {
+        "status": perf.get("status"), "launch_date": perf.get("launch_date"), "launched_days_ago": perf.get("launched_days_ago"),
+        "days": m.get("days") or 0, "return_pct": m.get("return_pct"), "cagr_pct": m.get("cagr_pct"),
+        "volatility_label": m.get("volatility_label"), "max_drawdown_pct": m.get("max_drawdown_pct"),
+        "benchmark": perf.get("benchmark"), "alpha_pct": alpha,
+        "min_investment": (perf.get("min_investment") or {}).get("amount"), "price_date": perf.get("price_date"),
+    }
+
+
 # ----------------------------------------------------------------------------
 def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
+    global ENGINE
     router = APIRouter(tags=["performance"])
     require_admin = build_current_user_dep(db, ["admin"])
     require_analyst = build_current_user_dep(db, ["analyst"])
@@ -197,15 +260,23 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         return doc
 
     async def _candles(k, sym: str, exchange: str = "NSE") -> Optional[List[list]]:
+        """Daily closes up to the last settled close (today's running candle is dropped)."""
         key = f"{exchange}:{sym}"
+        cutoff = last_close_date().isoformat()
         cached = await prices_col.find_one({"_id": key})
-        if cached and cached.get("refreshed_at") and (_now() - cached["refreshed_at"].replace(tzinfo=timezone.utc)) < timedelta(hours=PRICE_STALE_HOURS):
-            return cached["candles"]
+
+        def _cut(doc):
+            return [c for c in doc["candles"] if c[0] <= cutoff] if doc and doc.get("candles") else None
+
+        fresh = bool(cached and cached.get("refreshed_at") and (_now() - cached["refreshed_at"].replace(tzinfo=timezone.utc)) < timedelta(hours=PRICE_STALE_HOURS))
+        has_latest = bool(cached and cached.get("candles") and cached["candles"][-1][0] >= cutoff)
+        if cached and (has_latest or (fresh and k is None)):
+            return _cut(cached)
         if k is None:
-            return cached["candles"] if cached else None
+            return _cut(cached)
         inst = await _instrument(sym, exchange)
         if not inst:
-            return cached["candles"] if cached else None
+            return _cut(cached)
         to_d, from_d = date.today(), date.today() - timedelta(days=HISTORY_DAYS)
         try:
             raw = await run_in_threadpool(k.historical_data, inst["instrument_token"], from_d.isoformat(), to_d.isoformat(), "day")
@@ -213,10 +284,10 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             if kite_exceptions is not None and isinstance(e, kite_exceptions.TokenException):
                 await sessions.update_one({"account": ACCOUNT}, {"$set": {"needs_reconnect": True}})
             logger.warning("historical fetch failed for %s: %s", key, e)
-            return cached["candles"] if cached else None
+            return _cut(cached)
         candles = [[str(c["date"])[:10], float(c["close"])] for c in raw if c.get("close")]
         await prices_col.update_one({"_id": key}, {"$set": {"_id": key, "token": inst["instrument_token"], "refreshed_at": _now(), "candles": candles}}, upsert=True)
-        return candles
+        return [c for c in candles if c[0] <= cutoff]
 
     def _versions_of(doc: dict) -> List[dict]:
         vs = doc.get("versions") or []
@@ -232,10 +303,19 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 eff = max(eff, str(doc.get("updated_at") or eff)[:10])
             out.append({"effective": eff, "weights": cur})
         out.sort(key=lambda v: v["effective"])
-        # the first version applies to all earlier (backtest) dates too
-        if out:
+        if out:  # the first version is what was bought on launch day
             out[0] = {**out[0], "effective": "0000-01-01"}
         return out
+
+    def _launch_price_date(doc: dict) -> Optional[date]:
+        d = _parse_date(doc.get("launch_price_date"))
+        if d:
+            return d
+        launch = _parse_date(doc.get("launch_date"))
+        if not launch:
+            return None
+        # legacy docs approved before launch_price_date existed: treat as end-of-day approval
+        return last_close_date(datetime.combine(launch, time(23, 0), tzinfo=IST))
 
     async def compute(pid: str) -> dict:
         doc = await portfolios.find_one({"id": pid}, {"_id": 0})
@@ -248,6 +328,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         errors: List[str] = []
         prices: Dict[str, Dict[str, float]] = {}
         latest: Dict[str, float] = {}
+        price_dates: List[str] = []
         for s in syms:
             c = await _candles(k, s, exch.get(s, "NSE"))
             if not c:
@@ -255,52 +336,73 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 continue
             prices[s] = {d: v for d, v in c}
             latest[s] = c[-1][1]
+            price_dates.append(c[-1][0])
+        current_w = versions[-1]["weights"] if versions else {}
+        launch = _parse_date(doc.get("launch_date"))
+        launch_s = launch.isoformat() if launch else None
+        lpd_date = _launch_price_date(doc) if launch else None
+        base = {"_id": pid, "id": pid, "engine": ENGINE_VERSION, "as_of": _now(), "launch_date": launch_s,
+                "launch_price_date": lpd_date.isoformat() if lpd_date else None,
+                "launched_days_ago": (ist_today() - launch).days if launch else None,
+                "benchmark": doc.get("benchmark") if doc.get("benchmark") in BENCHMARKS else DEFAULT_BENCHMARK,
+                "benchmark_labels": BENCH_LABELS, "min_investment": min_investment(current_w, latest),
+                "latest_prices": latest, "price_date": max(price_dates) if price_dates else None, "errors": errors}
+
+        if not prices:
+            perf = {**base, "status": "unavailable", "errors": errors or ["Market data not connected — ask the admin to connect Kite."]}
+            await perf_col.update_one({"_id": pid}, {"$set": perf}, upsert=True)
+            return perf
+        if not launch:
+            # Draft / pending: nothing to track yet — only today's prices and the auto minimum.
+            perf = {**base, "status": "not_launched", "versions": [{"effective": None, "count": len(v["weights"])} for v in versions]}
+            await perf_col.update_one({"_id": pid}, {"$set": perf}, upsert=True)
+            return perf
+
         bench_series: Dict[str, List[list]] = {}
         for b in BENCHMARKS:
             c = await _candles(k, b, "NSE")
             if c:
                 bench_series[b] = c
-        primary = doc.get("benchmark") if doc.get("benchmark") in BENCHMARKS else DEFAULT_BENCHMARK
-        calendar_src = bench_series.get(primary) or next(iter(bench_series.values()), None)
-        if not calendar_src or not prices:
-            perf = {"_id": pid, "id": pid, "as_of": _now(), "status": "unavailable", "errors": errors or ["Market data not connected — ask the admin to connect Kite."],
-                    "launch_date": doc.get("launch_date"), "benchmark": primary}
+        calendar_src = bench_series.get(base["benchmark"]) or next(iter(bench_series.values()), None)
+        if not calendar_src:
+            perf = {**base, "status": "unavailable", "errors": errors + ["Benchmark history unavailable"]}
             await perf_col.update_one({"_id": pid}, {"$set": perf}, upsert=True)
             return perf
+        lpd = base["launch_price_date"]
         calendar = [d for d, _ in calendar_src]
-        series = build_nav(versions, prices, calendar)
-        launch = _parse_date(doc.get("launch_date"))
-        launch_s = launch.isoformat() if launch else None
-        live = [p for p in series if launch_s and p["d"] >= launch_s]
-        # rebase live series to 100 at launch for the live metrics
-        live_pts = [{"d": p["d"], "nav": round(p["nav"] / live[0]["nav"] * 100, 4)} for p in live] if live else []
-        metrics = {"live": _metrics(live_pts), "all": _metrics(series)}
+        on_or_before = [d for d in calendar if d <= lpd]
+        start = on_or_before[-1] if on_or_before else calendar[0]   # purchase date = last close at approval
+        live_cal = [d for d in calendar if d >= start]
+        series = build_nav(versions, prices, live_cal)
+        metrics = _metrics(series)
         bench_out, bench_metrics = {}, {}
-        if series:
-            s0 = series[0]["d"]
-            for b, c in bench_series.items():
-                pts = [{"d": d, "nav": v} for d, v in c if d >= s0]
-                if not pts:
-                    continue
-                base = pts[0]["nav"]
-                norm = [{"d": p["d"], "nav": round(p["nav"] / base * 100, 4)} for p in pts]
-                bench_out[b] = norm
-                b_live = [p for p in norm if launch_s and p["d"] >= launch_s]
-                b_live_pts = [{"d": p["d"], "nav": round(p["nav"] / b_live[0]["nav"] * 100, 4)} for p in b_live] if b_live else []
-                bench_metrics[b] = {"live": _metrics(b_live_pts), "all": _metrics(norm)}
-        current_w = versions[-1]["weights"] if versions else {}
+        for b, c in bench_series.items():
+            pts = [{"d": d, "nav": v} for d, v in c if d >= start]
+            if not pts:
+                continue
+            b0 = pts[0]["nav"]
+            norm = [{"d": p["d"], "nav": round(p["nav"] / b0 * 100, 4)} for p in pts]
+            bench_out[b] = norm
+            bench_metrics[b] = _metrics(norm)
         perf = {
-            "_id": pid, "id": pid, "as_of": _now(), "status": "ok",
-            "launch_date": launch_s, "benchmark": primary, "benchmark_labels": BENCH_LABELS,
-            "series": series, "benchmarks": bench_out,
-            "metrics": metrics, "bench_metrics": bench_metrics,
-            "min_investment": min_investment(current_w, latest),
-            "latest_prices": latest, "price_date": series[-1]["d"] if series else None,
-            "versions": [{"effective": v["effective"] if v["effective"] != "0000-01-01" else (launch_s or (series[0]["d"] if series else None)), "count": len(v["weights"])} for v in versions],
-            "errors": errors,
+            **base, "status": "ok", "start_date": series[0]["d"] if series else start,
+            "series": series, "benchmarks": bench_out, "metrics": metrics, "bench_metrics": bench_metrics,
+            "price_date": series[-1]["d"] if series else base["price_date"],
+            "versions": [{"effective": v["effective"] if v["effective"] != "0000-01-01" else start, "count": len(v["weights"])} for v in versions],
         }
         await perf_col.update_one({"_id": pid}, {"$set": perf}, upsert=True)
         return perf
+
+    def _is_stale(perf: Optional[dict]) -> bool:
+        """Refresh when a newer close exists (or nothing was computed); back off on failures."""
+        if not perf or perf.get("engine") != ENGINE_VERSION:
+            return True
+        as_of = perf.get("as_of")
+        age = (_now() - as_of.replace(tzinfo=timezone.utc)) if isinstance(as_of, datetime) else timedelta(days=1)
+        if perf.get("status") not in ("ok", "not_launched"):
+            return age > timedelta(minutes=RETRY_MINUTES)
+        behind = (perf.get("price_date") or "") < last_close_date().isoformat()
+        return behind and age > timedelta(minutes=RETRY_MINUTES)
 
     def _public(perf: dict) -> dict:
         p = dict(perf)
@@ -320,6 +422,35 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         finally:
             _inflight.discard(pid)
 
+    async def _refresh_inline(pid: str) -> Optional[dict]:
+        if pid in _inflight:
+            return await perf_col.find_one({"_id": pid})
+        _inflight.add(pid)
+        try:
+            return await compute(pid)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("inline performance compute failed for %s: %s", pid, e)
+            return await perf_col.find_one({"_id": pid})
+        finally:
+            _inflight.discard(pid)
+
+    async def summaries(ids: List[str], background: Optional[BackgroundTasks] = None) -> Dict[str, dict]:
+        """Card summaries for many listings; schedules refreshes for stale ones."""
+        out: Dict[str, dict] = {}
+        docs = {d["_id"]: d async for d in perf_col.find({"_id": {"$in": ids}}, {"series": 0, "benchmarks": 0, "latest_prices": 0})}
+        scheduled = 0
+        for pid in ids:
+            perf = docs.get(pid)
+            if background is not None and _is_stale(perf) and pid not in _inflight and scheduled < 10:
+                background.add_task(_refresh_bg, pid)
+                scheduled += 1
+            s = summary(perf)
+            if s:
+                out[pid] = s
+        return out
+
+    ENGINE = SimpleNamespace(compute=compute, refresh_bg=_refresh_bg, is_stale=_is_stale, summaries=summaries)
+
     # ---------------- public ----------------
     @router.get("/performance/benchmarks")
     async def benchmarks():
@@ -331,31 +462,29 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if not doc:
             raise HTTPException(status_code=404, detail="Portfolio not found")
         perf = await perf_col.find_one({"_id": pid})
-        stale = (not perf) or (perf.get("as_of") and (_now() - perf["as_of"].replace(tzinfo=timezone.utc)) > timedelta(hours=PERF_STALE_HOURS))
-        if stale and pid not in _inflight:
-            background.add_task(_refresh_bg, pid)
+        if _is_stale(perf) and pid not in _inflight:
+            if perf:
+                background.add_task(_refresh_bg, pid)
+            else:  # first view after approval: compute inline so the page never shows a blank
+                perf = await _refresh_inline(pid)
         if not perf:
             return {"portfolio_id": pid, "status": "computing"}
         return _public(perf)
 
     # ---------------- analyst / admin ----------------
-    @router.post("/analyst/portfolios/{pid}/performance/recompute")
-    async def analyst_recompute(pid: str, user: dict = Depends(require_analyst)):
-        if not await portfolios.find_one({"id": pid, "owner_id": user["id"]}):
-            raise HTTPException(status_code=404, detail="Portfolio not found")
-        return _public(await compute(pid))
-
     @router.get("/analyst/portfolios/{pid}/performance")
     async def analyst_performance(pid: str, user: dict = Depends(require_analyst)):
+        """Partner view: auto-refreshes when stale (drafts get a min-investment preview)."""
         if not await portfolios.find_one({"id": pid, "owner_id": user["id"]}):
             raise HTTPException(status_code=404, detail="Portfolio not found")
         perf = await perf_col.find_one({"_id": pid})
-        return _public(perf) if perf else {"portfolio_id": pid, "status": "not_computed"}
+        if _is_stale(perf):
+            perf = await _refresh_inline(pid) or perf
+        return _public(perf) if perf else {"portfolio_id": pid, "status": "unavailable", "errors": ["Market data unavailable right now."]}
 
     @router.post("/admin/performance/recompute")
     async def admin_recompute(_: dict = Depends(require_admin)):
-        if await _client() is None:
-            raise HTTPException(status_code=503, detail="Kite market-data session not connected. Connect it in the Market data tab first.")
+        live = await _client() is not None
         ids = [d["id"] async for d in portfolios.find({"status": {"$in": ["approved", "pending"]}}, {"_id": 0, "id": 1})]
         done, failed = 0, []
         for pid in ids:
@@ -364,6 +493,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 done += 1
             except Exception as e:  # noqa: BLE001
                 failed.append({"id": pid, "error": str(e)[:200]})
-        return {"ok": True, "computed": done, "failed": failed}
+        return {"ok": True, "computed": done, "failed": failed, "market_data": "live" if live else "cached",
+                "note": None if live else "Kite market-data session not connected — recomputed from cached prices; connect it in the Market data tab for today's closes."}
 
     return router

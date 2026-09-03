@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { track } from '../lib/track';
 import { getManager } from '../mock';
-import { TrendingUp, Users, Search } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Search } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -17,9 +17,18 @@ const FILTERS = [
 
 const riskColor = (risk) => risk === 'Low' ? 'text-[#0E9F5E] bg-[#DCFCE7]' : risk === 'High' ? 'text-[#DC2626] bg-[#FEE2E2]' : 'text-[#B45309] bg-[#FEF3C7]';
 
+const pct = (v) => (v === null || v === undefined ? '—' : `${v > 0 ? '+' : ''}${Number(v).toFixed(1)}%`);
+const launchedLabel = (days) => (days === 0 ? 'Launched today' : days === 1 ? 'Launched yesterday' : days > 1 ? `Launched ${days} days ago` : 'Since launch');
+
 function PortfolioCard({ b }) {
   const mgr = b.managerId ? getManager(b.managerId) : null;
   const managerName = mgr?.name || b.managerName || b.owner_name || 'Research Analyst';
+  const c = b.computed && b.computed.status === 'ok' ? b.computed : null;
+  const useCagr = !!(c && c.cagr_pct !== null && c.cagr_pct !== undefined);
+  const headline = c ? (useCagr ? c.cagr_pct : c.return_pct) : null;
+  const risk = (c && c.volatility_label) || b.risk;
+  const minAmount = (c && c.min_investment) || b.minAmount;
+  const isNew = b._db && c && !useCagr;
   return (
     <Link to={`/model-portfolios/${b.id}`}
       className="group surface p-5 hover:shadow-[0_16px_40px_-24px_rgba(108,43,217,0.35)] hover:border-[#D8C7F1] transition-all block">
@@ -35,21 +44,34 @@ function PortfolioCard({ b }) {
       <p className="mt-3 text-sm text-[#64748B] line-clamp-2 min-h-[40px]">{b.subtitle}</p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${riskColor(b.risk)}`}>{b.risk} volatility</span>
+        {risk ? <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${riskColor(risk)}`}>{risk} volatility</span> : null}
+        {isNew ? <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-[#EDE9FE] text-[#6C2BD9]">New</span> : null}
         <span className="chip-brand">{b.strategy.replace('-', ' ')}</span>
         <span className="chip">{(b.constituents || []).length} stocks</span>
       </div>
 
       <div className="mt-4 pt-3 border-t border-[#EEF1F6] grid grid-cols-2 gap-3">
         <div>
-          <div className="text-[11px] text-[#64748B] font-medium uppercase tracking-wider">3Y Return</div>
-          <div className="num mt-0.5 text-[17px] font-semibold text-[#0E9F5E] flex items-center gap-1">
-            <TrendingUp className="h-4 w-4" /> {b.returns.y3.toFixed(1)}%
-          </div>
+          {b._db ? (
+            <>
+              <div className="text-[11px] text-[#64748B] font-medium uppercase tracking-wider">{useCagr ? 'CAGR' : 'Since launch'}</div>
+              <div className={`num mt-0.5 text-[17px] font-semibold flex items-center gap-1 ${headline === null ? (c ? 'text-[#6C2BD9]' : 'text-[#94A3B8]') : headline < 0 ? 'text-[#DC2626]' : 'text-[#0E9F5E]'}`}>
+                {headline !== null && headline < 0 ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />} {c ? (headline === null ? 'New' : pct(headline)) : '—'}
+              </div>
+              <div className="text-[10px] text-[#94A3B8]">{c ? launchedLabel(c.launched_days_ago) : (b.launch_date ? launchedLabel(Math.max(0, Math.round((Date.now() - new Date(`${b.launch_date}T00:00:00`)) / 86400000))) : 'computing…')}</div>
+            </>
+          ) : (
+            <>
+              <div className="text-[11px] text-[#64748B] font-medium uppercase tracking-wider">3Y Return</div>
+              <div className="num mt-0.5 text-[17px] font-semibold text-[#0E9F5E] flex items-center gap-1">
+                <TrendingUp className="h-4 w-4" /> {b.returns.y3.toFixed(1)}%
+              </div>
+            </>
+          )}
         </div>
         <div>
           <div className="text-[11px] text-[#64748B] font-medium uppercase tracking-wider">Min. amount</div>
-          <div className="num mt-0.5 text-[17px] font-semibold text-[#0F1729]">₹{b.minAmount.toLocaleString('en-IN')}</div>
+          <div className="num mt-0.5 text-[17px] font-semibold text-[#0F1729]">₹{Number(minAmount || 0).toLocaleString('en-IN')}</div>
         </div>
       </div>
     </Link>
