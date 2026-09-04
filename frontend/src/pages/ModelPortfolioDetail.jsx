@@ -127,7 +127,8 @@ export default function ModelPortfolioDetail() {
 
   const stats = [
     { label: useCagr ? 'CAGR' : 'Since launch', value: perfOk ? headlineText : '—', sub: perfOk ? (useCagr ? `${pm.days} days live` : (headline === null ? 'from next market close' : launchedLabel.toLowerCase())) : (perf?.status === 'unavailable' ? 'market data reconnecting' : 'computing from exchange data'), good: headline !== null && headline >= 0, bad: headline !== null && headline < 0 },
-    { label: `vs ${benchLabel}`, value: pct(alpha), sub: alpha === null ? 'from next market close' : (alpha >= 0 ? 'ahead of benchmark' : 'behind benchmark'), good: alpha !== null && alpha >= 0, bad: alpha !== null && alpha < 0 },
+    // the benchmark's own move is always shown, so a flat index day never looks like missing data
+    { label: `vs ${benchLabel}`, value: pct(alpha), sub: alpha === null ? 'from next market close' : `${benchLabel} ${pct(benchHead)} · ${alpha >= 0 ? 'ahead' : 'behind'}`, good: alpha !== null && alpha >= 0, bad: alpha !== null && alpha < 0 },
     { label: 'Volatility', value: vol || '—', sub: vol ? `${pm.volatility_pct}% annualised` : 'after 20 trading days', tone: vol === 'Low' ? 'good' : vol === 'High' ? 'bad' : vol === 'Medium' ? 'warn' : '' },
     { label: 'Min. investment', value: INR(minAmount), sub: perfOk && perf.min_investment ? "at today's prices" : 'to start' },
   ];
