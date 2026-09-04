@@ -6,10 +6,16 @@
 const { test, expect } = require('@playwright/test');
 const AxeBuilder = require('@axe-core/playwright').default;
 
+// A live listing page (dynamic route) is audited too when one exists: `backend/scripts/seed_demo.py seed`
+// writes its path to e2e/.listing-route (CI does this before Playwright runs).
+const fs = require('fs');
+const path = require('path');
+const LISTING = (() => { try { return fs.readFileSync(path.join(__dirname, '..', '.listing-route'), 'utf8').trim(); } catch { return ''; } })();
 const ROUTES = [
   '/', '/model-portfolios', '/aif', '/advisory', '/about', '/mutual-funds', '/fixed-deposits', '/collections',
   '/stocks', '/managers', '/calculators', '/calculators/sip', '/learn', '/business', '/faq', '/login', '/signup',
   '/partner', '/partner/apply', '/brokers/connect',
+  ...(LISTING ? [LISTING] : []),
 ];
 
 // Elements that are deliberately tiny or decorative (illustrations, mock phone screens)
@@ -71,6 +77,7 @@ for (const route of ROUTES) {
     const serious = axe.violations.filter((v) => ['serious', 'critical'].includes(v.impact)).map((v) => `${v.id}: ${v.nodes.length} node(s) e.g. ${v.nodes[0]?.target?.[0]}`);
     expect.soft(serious, `accessibility on ${route}`).toEqual([]);
     // visual snapshot (per project); first run records, later runs diff
+    if (route === LISTING) return;   // seeded listing: audited above, no pixel baseline (its chart moves daily)
     await expect(page).toHaveScreenshot(`${route === '/' ? 'home' : route.slice(1).replace(/\//g, '_')}.png`, { fullPage: true, animations: 'disabled', mask: [page.locator('[data-testid=mobile-bottom-nav]'), page.locator('[data-decorative]')] });
   });
 }

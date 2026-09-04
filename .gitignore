@@ -95,3 +95,5 @@ frontend/node_modules/.cache/default-development/7.pack
 
 # local file uploads (dev only; prod uses its own storage)
 backend/uploads/
+
+backend/scripts/seed_demo_state.json

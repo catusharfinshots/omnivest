@@ -94,7 +94,8 @@ export default function PerformanceSection({ perf, name }) {
       ) : (
         <>
           <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-4">
+            {/* wraps on phones: the two figures stay side by side, the benchmark picker drops to its own line */}
+            <div className="flex items-center gap-4 flex-wrap min-w-0 max-w-full">
               <div>
                 <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">{name}</div>
                 <div className={`text-xl font-bold flex items-center gap-1 ${up ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>{up ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />} {pct(ret)}</div>
@@ -105,8 +106,8 @@ export default function PerformanceSection({ perf, name }) {
                   <div className={`text-xl font-bold ${(bret ?? 0) >= 0 ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>{pct(bret)}</div>
                 </div>
               )}
-              <div className="text-xs text-[#526071]">
-                <select value={compare || ''} onChange={(e) => setCompare(e.target.value || null)} className="h-8 rounded-lg border border-[#E8E1F0] px-2 text-xs bg-white" data-testid="compare-select">
+              <div className="text-xs text-[#526071] basis-full sm:basis-auto min-w-0">
+                <select value={compare || ''} onChange={(e) => setCompare(e.target.value || null)} aria-label="Compare with a benchmark" className="h-10 sm:h-9 max-w-full rounded-lg border border-[#E8E1F0] px-2 text-[13px] bg-white" data-testid="compare-select">
                   <option value="">Compare with…</option>
                   {benchKeys.map((b) => <option key={b} value={b}>{labels[b] || b}</option>)}
                 </select>
@@ -131,8 +132,8 @@ export default function PerformanceSection({ perf, name }) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} stroke="#F1EBF9" />
-                <XAxis dataKey="d" tickFormatter={nice} tick={{ fontSize: 10, fill: '#94A3B8' }} minTickGap={40} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: '#94A3B8' }} axisLine={false} tickLine={false} width={48} domain={['auto', 'auto']} tickFormatter={(v) => (mode === 'sip' ? `${Math.round(v / 1000)}k` : v.toFixed(0))} />
+                <XAxis dataKey="d" tickFormatter={nice} tick={{ fontSize: 12, fill: '#667085' }} minTickGap={48} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: '#667085' }} axisLine={false} tickLine={false} width={52} domain={['auto', 'auto']} tickFormatter={(v) => (mode === 'sip' ? `${Math.round(v / 1000)}k` : (Number.isInteger(v) ? String(v) : v.toFixed(1)))} />
                 <Tooltip
                   contentStyle={{ borderRadius: 12, border: '1px solid #E8E1F0', fontSize: 12 }}
                   labelFormatter={(d) => nice(d)}

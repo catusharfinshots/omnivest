@@ -50,6 +50,9 @@ jobs:
           npx --yes serve -s build -l 3000 > ../frontend.log 2>&1 &
           for i in $(seq 1 30); do curl -fsS http://localhost:3000/ >/dev/null && break; sleep 1; done
 
+      - name: Seed a demo partner + listings (so listing pages are audited too)
+        run: cd backend && python scripts/seed_demo.py seed
+
       - name: Playwright
         run: |
           cd e2e && npm ci && npx playwright install --with-deps chromium webkit
