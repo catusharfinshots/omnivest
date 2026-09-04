@@ -1,3 +1,6 @@
 node_modules/
 report/
 test-results/
+*.json
+!package.json
+!package-lock.json
