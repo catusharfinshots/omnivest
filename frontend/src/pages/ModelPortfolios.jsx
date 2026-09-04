@@ -104,7 +104,7 @@ function RailGroup({ title, children }) {
 function Pill({ active, onClick, children, testid }) {
   return (
     <button type="button" onClick={onClick} data-testid={testid} aria-pressed={active}
-      className={`h-10 sm:h-9 rounded-full px-3.5 text-[13px] font-semibold transition-colors whitespace-nowrap ${active ? 'bg-[#6C2BD9] text-white' : 'bg-white border border-[#E6E8F0] text-[#334155] hover:border-[#6C2BD9] hover:text-[#6C2BD9]'}`}>
+      className={`shrink-0 h-10 sm:h-9 rounded-full px-3.5 text-[13px] font-semibold transition-colors whitespace-nowrap ${active ? 'bg-[#6C2BD9] text-white' : 'bg-white border border-[#E6E8F0] text-[#334155] hover:border-[#6C2BD9] hover:text-[#6C2BD9]'}`}>
       {children}
     </button>
   );
@@ -242,9 +242,13 @@ export default function ModelPortfolios() {
 
           <div className="min-w-0">
             {/* Mobile: category chips + a filter sheet */}
-            <div className="lg:hidden -mx-5 px-5 flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              {CATEGORIES.map((f) => <Pill key={f.key} active={category === f.key} onClick={() => setParam('filter', f.key)}>{f.label}</Pill>)}
-              <Pill active={moreOpen || access !== 'all' || vol !== 'all' || savedOnly} onClick={() => setMoreOpen((o) => !o)} testid="more-filters"><SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" /> Filters{activeCount ? ` · ${activeCount}` : ''}</Pill>
+            {/* Chips never shrink: the row scrolls sideways, and a soft fade on the right says so. */}
+            <div className="lg:hidden relative -mx-5">
+              <div className="flex gap-2 overflow-x-auto no-scrollbar px-5 pb-1 pr-10" data-testid="category-chips">
+                {CATEGORIES.map((f) => <Pill key={f.key} active={category === f.key} onClick={() => setParam('filter', f.key)}>{f.label}</Pill>)}
+                <Pill active={moreOpen || access !== 'all' || vol !== 'all' || savedOnly} onClick={() => setMoreOpen((o) => !o)} testid="more-filters"><SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" /> Filters{activeCount ? ` · ${activeCount}` : ''}</Pill>
+              </div>
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white to-transparent" aria-hidden="true" />
             </div>
             {moreOpen && (
               <div className="lg:hidden mt-3 surface p-4 relative" data-testid="filter-sheet">

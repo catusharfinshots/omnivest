@@ -19,22 +19,28 @@ async function audit(page) {
   return page.evaluate((decorative) => {
     const vw = document.documentElement.clientWidth;
     const isDecor = (el) => decorative.some((sel) => el.closest(sel));
+    // inside a deliberate sideways scroller (chip rows, tables) content may extend past the viewport
+    const inScroller = (el) => { for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) { if (/(auto|scroll)/.test(getComputedStyle(p).overflowX)) return true; } return false; };
     const overflow = [];
     const tinyText = [];
     const smallTaps = [];
     const brokenImgs = [];
+    const squeezed = [];   // text wider than the box it sits in (a chip shrunk by flex, a label overpainted by its neighbour)
     document.querySelectorAll('body *').forEach((el) => {
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) return;
       const cs = getComputedStyle(el);
       if (cs.visibility === 'hidden' || cs.display === 'none') return;
-      if (r.right > vw + 1 && cs.position !== 'fixed' && !isDecor(el)) overflow.push(`${el.tagName.toLowerCase()}.${String(el.className).split(' ').slice(0, 2).join('.')}→${Math.round(r.right)}`);
+      if (r.right > vw + 1 && cs.position !== 'fixed' && !isDecor(el) && !inScroller(el)) overflow.push(`${el.tagName.toLowerCase()}.${String(el.className).split(' ').slice(0, 2).join('.')}→${Math.round(r.right)}`);
       if (el.children.length === 0 && (el.textContent || '').trim().length > 1 && parseFloat(cs.fontSize) < 12 && !isDecor(el)) tinyText.push(`${Math.round(parseFloat(cs.fontSize))}px "${el.textContent.trim().slice(0, 24)}"`);
       if ((el.tagName === 'BUTTON' || (el.tagName === 'A' && /btn-|rounded-(xl|2xl|full)/.test(String(el.className)))) && r.height < 40 && !isDecor(el) && r.top < window.innerHeight * 3) smallTaps.push(`${el.tagName.toLowerCase()} "${(el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 20)}" ${Math.round(r.width)}x${Math.round(r.height)}`);
       if (el.tagName === 'IMG' && el.complete && el.naturalWidth === 0 && el.getAttribute('src')) brokenImgs.push(el.getAttribute('src').slice(0, 60));
+      if (/^(BUTTON|A|LABEL|H1|H2|H3|SPAN|TD|TH)$/.test(el.tagName) && (el.textContent || '').trim().length > 1 && !isDecor(el)
+          && !/(auto|scroll)/.test(cs.overflowX) && cs.textOverflow !== 'ellipsis' && !/(auto|scroll)/.test(getComputedStyle(el.parentElement).overflowX)
+          && el.scrollWidth > el.clientWidth + 2 && el.clientWidth > 8 /* sr-only boxes are 1px by design */) squeezed.push(`${el.tagName.toLowerCase()} "${el.textContent.trim().slice(0, 20)}" needs ${el.scrollWidth}px, has ${el.clientWidth}px`);
     });
     const leaked = (document.body.innerText.match(/\b(undefined|NaN|\[object Object\]|null)\b/g) || []).length;
-    return { vw, scrollW: document.documentElement.scrollWidth, overflow: [...new Set(overflow)].slice(0, 6), tinyText: [...new Set(tinyText)].slice(0, 6), smallTaps: [...new Set(smallTaps)].slice(0, 6), brokenImgs, leaked };
+    return { vw, scrollW: document.documentElement.scrollWidth, overflow: [...new Set(overflow)].slice(0, 6), tinyText: [...new Set(tinyText)].slice(0, 6), smallTaps: [...new Set(smallTaps)].slice(0, 6), brokenImgs, leaked, squeezed: [...new Set(squeezed)].slice(0, 6) };
   }, DECORATIVE);
 }
 
@@ -51,6 +57,7 @@ for (const route of ROUTES) {
     expect.soft(a.scrollW, `horizontal overflow on ${route}: ${a.overflow.join(' | ')}`).toBeLessThanOrEqual(a.vw + 1);
     expect.soft(a.overflow, `elements past the right edge on ${route}`).toEqual([]);
     expect.soft(a.brokenImgs, `broken images on ${route}`).toEqual([]);
+    expect.soft(a.squeezed, `text clipped inside its own box on ${route}`).toEqual([]);
     expect.soft(a.leaked, `undefined/NaN leaked into UI on ${route}`).toBe(0);
     expect.soft(errors, `console errors on ${route}`).toEqual([]);
     if (isPhone) {
