@@ -86,7 +86,7 @@ export default function Footer() {
               <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0F1729] mb-3">{col.title}</div>
               <ul className="space-y-2">
                 {col.links.map((l) => (
-                  <li key={l.name}><Link to={l.to} onClick={scrollTop} className="text-sm text-[#64748B] hover:text-[#0F1729]">{l.name}</Link></li>
+                  <li key={l.name}><Link to={l.to} onClick={scrollTop} className="inline-block py-1.5 sm:py-0.5 text-sm text-[#64748B] hover:text-[#0F1729]">{l.name}</Link></li>
                 ))}
               </ul>
             </div>

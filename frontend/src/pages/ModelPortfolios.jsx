@@ -62,7 +62,7 @@ function PortfolioCard({ b }) {
               <div className={`num mt-0.5 text-[17px] font-semibold flex items-center gap-1 ${headline === null ? (c ? 'text-[#6C2BD9]' : 'text-[#94A3B8]') : headline < 0 ? 'text-[#DC2626]' : 'text-[#0E9F5E]'}`}>
                 {headline !== null && headline < 0 ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />} {c ? (headline === null ? 'New' : pct(headline)) : '—'}
               </div>
-              <div className="text-[10px] text-[#94A3B8]">{c ? launchedLabel(c.launched_days_ago) : (b.launch_date ? launchedLabel(Math.max(0, Math.round((Date.now() - new Date(`${b.launch_date}T00:00:00`)) / 86400000))) : 'computing…')}</div>
+              <div className="text-[11px] text-[#94A3B8]">{c ? launchedLabel(c.launched_days_ago) : (b.launch_date ? launchedLabel(Math.max(0, Math.round((Date.now() - new Date(`${b.launch_date}T00:00:00`)) / 86400000))) : 'computing…')}</div>
             </>
           ) : (
             <>
