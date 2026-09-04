@@ -218,9 +218,9 @@ export default function ListingForm({ token, initial, options, rules, managerNam
       </div>
 
       {/* stepper */}
-      <ol className="mt-5 grid grid-cols-7 gap-1" data-testid="listing-steps">
+      <ol className="no-scrollbar mt-5 flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-7 sm:gap-1 sm:overflow-visible" data-testid="listing-steps">
         {STEPS.map((s, i) => (
-          <li key={s.key}>
+          <li key={s.key} className="shrink-0 min-w-[132px] sm:min-w-0">
             <button type="button" onClick={() => go(i)} className={`w-full text-left rounded-lg px-2 py-2 border transition-colors ${i === step ? 'border-[#6C2BD9] bg-[#F7F4FB]' : i < step ? 'border-[#DCFCE7] bg-[#F0FDF4]' : 'border-[#EEE8F7] bg-white hover:border-[#D8C7F1]'}`}>
               <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
                 <span className={`h-4 w-4 grid place-items-center rounded-full text-[9px] ${i < step ? 'bg-[#0E9F5E] text-white' : i === step ? 'bg-[#6C2BD9] text-white' : 'bg-[#EEE8F7] text-[#6B6480]'}`}>{i < step ? <Check className="h-2.5 w-2.5" /> : i + 1}</span>
@@ -232,9 +232,9 @@ export default function ListingForm({ token, initial, options, rules, managerNam
         ))}
       </ol>
 
-      <div className="mt-5 grid lg:grid-cols-[1fr_360px] gap-5 items-start">
+      <div className="mt-4 sm:mt-5 grid lg:grid-cols-[1fr_360px] gap-5 items-start">
         <div>
-          <section className="surface p-6">
+          <section className="surface p-4 sm:p-6">
             <div className="text-[10px] font-bold uppercase tracking-wider text-[#6C2BD9]">Step {step + 1} of {STEPS.length}</div>
             <h2 className="text-lg font-bold mt-0.5">{S.title}</h2>
             <p className="text-xs text-[#6B6480]">{S.hint}</p>
@@ -282,14 +282,16 @@ export default function ListingForm({ token, initial, options, rules, managerNam
                   {form.constituents.map((c, i) => {
                     const over = Number(c.weight) > maxW;
                     return (
-                      <div key={i} className="grid grid-cols-[1.2fr_1.4fr_0.6fr_0.6fr_0.6fr_auto] gap-2 items-center" data-testid="constituent-row">
+                      <div key={i} className="grid grid-cols-[1fr_1fr] sm:grid-cols-[1.2fr_1.4fr_0.6fr_0.6fr_0.6fr_auto] gap-2 items-center rounded-xl border border-[#F1EBF9] p-2 sm:border-0 sm:p-0" data-testid="constituent-row">
                         <InstrumentPicker token={token} value={c.symbol} onType={(v) => setC(i, 'symbol', v)}
                           onPick={(r) => { setC(i, 'symbol', r.tradingsymbol); setC(i, 'name', r.name || r.tradingsymbol); setC(i, 'exchange', r.exchange || 'NSE'); setC(i, 'type', r.instrument_type === 'ETF' ? 'ETF' : 'Stock'); }} />
                         <Input value={c.name} onChange={(e) => setC(i, 'name', e.target.value)} className="h-9" placeholder="Name" />
+                        <div className="contents sm:contents">
                         <select value={c.exchange || 'NSE'} onChange={(e) => setC(i, 'exchange', e.target.value)} className="h-9 rounded-lg border border-[#E8E1F0] px-2 text-sm bg-white"><option>NSE</option><option>BSE</option></select>
                         <select value={c.type} onChange={(e) => setC(i, 'type', e.target.value)} className="h-9 rounded-lg border border-[#E8E1F0] px-2 text-sm bg-white">{(options?.constituentType || ['Stock', 'ETF']).map((t) => <option key={t}>{t}</option>)}</select>
                         <Input type="number" min="0" max="100" step="0.5" value={c.weight} onChange={(e) => setC(i, 'weight', e.target.value)} className={`h-9 ${over ? 'border-[#DC2626]' : ''}`} placeholder="%" title={over ? `Above the ${maxW}% cap` : ''} />
-                        <button type="button" onClick={() => { dirty.current = true; setForm((f) => ({ ...f, constituents: f.constituents.filter((_, j) => j !== i) })); }} className="h-9 w-9 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
+                        <button type="button" onClick={() => { dirty.current = true; setForm((f) => ({ ...f, constituents: f.constituents.filter((_, j) => j !== i) })); }} className="h-9 w-9 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2] justify-self-end"><Trash2 className="h-4 w-4" /></button>
+                        </div>
                       </div>
                     );
                   })}
@@ -419,7 +421,7 @@ export default function ListingForm({ token, initial, options, rules, managerNam
           <div className="sticky bottom-0 bg-[#F7F4FB]/95 backdrop-blur py-4 mt-2 flex items-center justify-between gap-3">
             <button onClick={() => go(step - 1)} disabled={step === 0 || busy} className="btn-outline text-sm disabled:opacity-40"><ArrowLeft className="h-4 w-4" /> Back</button>
             {step < STEPS.length - 1 ? (
-              <button onClick={() => go(step + 1)} disabled={busy} className="btn-primary text-sm" data-testid="next-step-btn">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Next: {STEPS[step + 1].title} <ArrowRight className="h-4 w-4" /></button>
+              <button onClick={() => go(step + 1)} disabled={busy} className="btn-primary text-sm" data-testid="next-step-btn">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} <span className="hidden sm:inline">Next: {STEPS[step + 1].title}</span><span className="sm:hidden">Next</span> <ArrowRight className="h-4 w-4" /></button>
             ) : (
               <button onClick={submit} disabled={busy || (readiness?.missing?.length > 0)} className="btn-primary text-sm disabled:opacity-50" data-testid="save-submit-btn"><Send className="h-4 w-4" /> Submit for approval</button>
             )}

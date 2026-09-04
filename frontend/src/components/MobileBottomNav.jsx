@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, LayoutGrid, LayoutDashboard, User, Link2, LogOut, LogIn } from 'lucide-react';
+import { Home, LayoutGrid, LayoutDashboard, User, Link2, LogOut, LogIn, Handshake } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
@@ -39,10 +39,21 @@ export default function MobileBottomNav() {
           <LayoutGrid className="h-5 w-5" /> Portfolios
         </Link>
 
-        <Link to={dashTarget} onClick={goDashboard} data-testid="mobtab-dashboard" className={`${base} ${isDash ? active : idle}`}>
-          <LayoutDashboard className="h-5 w-5" /> {isAnalyst ? 'Console' : 'Dashboard'}
-        </Link>
+        {isAuthed ? (
+          <Link to={dashTarget} onClick={goDashboard} data-testid="mobtab-dashboard" className={`${base} ${isDash ? active : idle}`}>
+            <LayoutDashboard className="h-5 w-5" /> {isAnalyst ? 'Console' : 'Dashboard'}
+          </Link>
+        ) : (
+          <Link to="/partner" data-testid="mobtab-partners" className={`${base} ${pathname.startsWith('/partner') ? active : idle}`}>
+            <Handshake className="h-5 w-5" /> Partners
+          </Link>
+        )}
 
+        {!isAuthed ? (
+          <button type="button" onClick={() => openAuth(pathname.startsWith('/partner') ? { next: '/partner', flow: 'partner' } : { next: '/dashboard' })} data-testid="mobtab-login" className={`${base} ${idle}`}>
+            <LogIn className="h-5 w-5" /> Log in
+          </button>
+        ) : (
         <Popover>
           <PopoverTrigger asChild>
             <button data-testid="mobtab-account" className={`${base} ${idle}`}>
@@ -81,6 +92,7 @@ export default function MobileBottomNav() {
             )}
           </PopoverContent>
         </Popover>
+        )}
       </div>
     </nav>
   );

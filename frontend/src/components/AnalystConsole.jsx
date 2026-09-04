@@ -102,12 +102,12 @@ export default function AnalystConsole() {
   return (
     <div className="min-h-screen bg-[#F7F4FB]">
       <header className="sticky top-0 z-30 bg-white border-b border-[#E8E1F0]">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <span className="h-8 w-8 rounded-lg grad-card text-white grid place-items-center"><img src={omniMark} alt="" className="h-5 w-5" /></span>
-            <div><div className="font-[Inter] font-bold leading-none">Omnivest</div><div className="text-[10px] uppercase tracking-widest text-[#6B6480]">Analyst console</div></div>
+            <div className="hidden sm:block"><div className="font-[Inter] font-bold leading-none">Omnivest</div><div className="text-[10px] uppercase tracking-widest text-[#6B6480]">Analyst console</div></div>
           </div>
-          <div className="flex items-center gap-1 sm:gap-2 text-sm">
+          <div className="flex items-center gap-0.5 sm:gap-2 text-sm whitespace-nowrap overflow-x-auto">
             <span className="text-[#6B6480] hidden md:inline mr-2">{user?.name}</span>
             {dashboardOn && <button onClick={() => setView('overview')} data-testid="console-nav-overview" className={`btn-ghost text-xs ${view === 'overview' ? 'bg-[#F1E7FE] text-[#5320A8]' : ''}`}><LayoutDashboard className="h-3.5 w-3.5" /> Overview</button>}
             <button onClick={() => setView('list')} data-testid="console-nav-listings" className={`btn-ghost text-xs ${['list', 'form', 'posts'].includes(view) ? 'bg-[#F1E7FE] text-[#5320A8]' : ''}`}><ListChecks className="h-3.5 w-3.5" /> My listings</button>
@@ -117,7 +117,7 @@ export default function AnalystConsole() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {view === 'overview' && dashboardOn && (
           <PartnerOverview token={token} onNew={startNew}
             onEdit={(id) => { const p = portfolios.find((x) => x.id === id); if (p) startEdit(p); else setView('list'); }}
@@ -154,7 +154,7 @@ export default function AnalystConsole() {
                 const live = p.status === 'approved' || p.status === 'paused';
                 return (
                   <div key={p.id} data-testid="portfolio-row" className="surface p-4">
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                       <div className="min-w-0 flex items-start gap-3">
                         {p.cover && <CoverArt cover={p.cover} name={p.name} size={44} radius={12} className="mt-0.5" />}
                         <div className="min-w-0">
@@ -173,7 +173,7 @@ export default function AnalystConsole() {
                         {p.status === 'paused' && p.review_note && <div className="mt-2 flex items-start gap-1.5 text-xs rounded-lg bg-[#FEF2F2] border border-[#FECACA] px-2.5 py-1.5 text-[#991B1B]"><PauseCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" /><span><b>Paused by admin:</b> {p.review_note} — fix and resubmit, or contact support.</span></div>}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:justify-end">
                         {canSubmit && <button onClick={() => submitForReview(p.id)} disabled={missing && missing.length > 0} className="btn-outline text-xs disabled:opacity-50" title={missing?.length ? 'Complete the checklist first' : ''}><Send className="h-3.5 w-3.5" /> Submit</button>}
                         {p.status === 'approved' && <a href={`/model-portfolios/${p.id}`} target="_blank" rel="noreferrer" className="btn-ghost text-xs"><Eye className="h-3.5 w-3.5" /> View live</a>}
                         {live && <button onClick={() => { setPostsFor(p); setView('posts'); }} className="btn-ghost text-xs" data-testid="posts-btn"><MessageSquare className="h-3.5 w-3.5" /> Updates</button>}

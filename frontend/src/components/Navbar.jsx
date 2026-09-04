@@ -41,7 +41,7 @@ export default function Navbar() {
   const doLogout = () => { logout(); navigate('/'); };
   const primaryCta = onPartnerPage
     ? { label: 'Partner login', action: () => openAuth({ next: '/partner', flow: 'partner' }), testid: 'nav-partner-login' }
-    : { label: 'Get started', action: () => openAuth({ next: '/dashboard' }), testid: 'nav-get-started' };
+    : { label: 'Log in', action: () => openAuth({ next: '/dashboard' }), testid: 'nav-get-started' };
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#E6E8F0] bg-white/85 backdrop-blur-md">

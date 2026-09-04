@@ -84,7 +84,13 @@ export default function ModelPortfolioDetail() {
       </div>
     );
   }
-  if (!basket) return <div className="container-x py-24 text-center text-[#6B6480]">Loading portfolio…</div>;
+  if (!basket) return (
+    <div className="container-x py-8 animate-pulse" data-testid="listing-skeleton">
+      <div className="flex items-start gap-4"><div className="h-14 w-14 rounded-2xl bg-[#EEE8F7]" /><div className="flex-1 space-y-3"><div className="h-7 w-2/3 rounded bg-[#EEE8F7]" /><div className="h-4 w-1/3 rounded bg-[#F1EBF9]" /><div className="h-4 w-5/6 rounded bg-[#F1EBF9]" /></div></div>
+      <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">{[0, 1, 2, 3].map((i) => <div key={i} className="h-24 rounded-2xl bg-[#F5F2FA]" />)}</div>
+      <div className="mt-8 h-64 rounded-2xl bg-[#F5F2FA]" />
+    </div>
+  );
 
   const watched = isWatched(basket.id);
   const paid = basket.subscription === 'Paid';
@@ -137,9 +143,9 @@ export default function ModelPortfolioDetail() {
             <button onClick={() => navigate('/model-portfolios')} className="inline-flex items-center gap-1.5 text-sm text-[#64748B] hover:text-[#6C2BD9]"><ArrowLeft className="h-4 w-4" /> All model portfolios</button>
             <ShareButton path={`/model-portfolios/${basket.id}`} shortCode={isDb ? basket.id.replace(/-/g, '').slice(0, 8) : undefined} title={`${basket.name} | Omnivest`} text={`Check out ${basket.name} on Omnivest.`} onShare={() => track('share_click', { portfolio_id: basket.id })} />
           </div>
-          <div className="mt-5 flex items-start justify-between gap-6 flex-wrap">
-            <div className="flex items-start gap-4 min-w-0">
-              {basket.cover ? <CoverArt cover={basket.cover} name={basket.name} size={64} radius={18} /> : <span className="h-14 w-14 shrink-0 rounded-2xl grad-card text-white grid place-items-center text-lg font-bold">{basket.name.slice(0, 2).toUpperCase()}</span>}
+          <div className="mt-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
+            <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+              {basket.cover ? <CoverArt cover={basket.cover} name={basket.name} size={56} radius={16} className="sm:!h-16 sm:!w-16" /> : <span className="h-14 w-14 shrink-0 rounded-2xl grad-card text-white grid place-items-center text-lg font-bold">{basket.name.slice(0, 2).toUpperCase()}</span>}
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{basket.name}</h1>
@@ -155,12 +161,15 @@ export default function ModelPortfolioDetail() {
                 </div>
               </div>
             </div>
-            <div className="text-right shrink-0" data-testid="header-cagr">
-              <div className="text-xs text-[#64748B]">{perfOk ? (useCagr ? 'CAGR' : 'Since launch') : 'Performance'}</div>
-              <div className={`num text-3xl font-bold flex items-center gap-1 justify-end ${headline !== null && headline < 0 ? 'text-[#DC2626]' : headline !== null ? 'text-[#0E9F5E]' : perfOk ? 'text-[#6C2BD9]' : 'text-[#94A3B8]'}`}>
+            <div className="shrink-0 flex items-center justify-between gap-3 rounded-2xl bg-white/70 border border-[#EEE8F7] px-4 py-3 sm:block sm:bg-transparent sm:border-0 sm:p-0 sm:text-right" data-testid="header-cagr">
+              <div>
+                <div className="text-xs text-[#64748B]">{perfOk ? (useCagr ? 'CAGR' : 'Since launch') : 'Performance'}</div>
+                <div className="text-[11px] text-[#64748B] sm:hidden">{perfOk ? launchedLabel : ''}</div>
+              </div>
+              <div className={`num text-2xl sm:text-3xl font-bold flex items-center gap-1 sm:justify-end ${headline !== null && headline < 0 ? 'text-[#DC2626]' : headline !== null ? 'text-[#0E9F5E]' : perfOk ? 'text-[#6C2BD9]' : 'text-[#94A3B8]'}`}>
                 {headline !== null && headline < 0 ? <TrendingDown className="h-6 w-6" /> : <TrendingUp className="h-6 w-6" />} {perfOk ? headlineText : '—'}
               </div>
-              <div className="mt-1 text-[11px] text-[#64748B]">{perfOk ? `${launchedLabel} · computed from exchange data` : (perf?.status === 'unavailable' ? 'Market data reconnecting' : 'Computing from exchange data…')}</div>
+              <div className="hidden sm:block mt-1 text-[11px] text-[#64748B]">{perfOk ? `${launchedLabel} · computed from exchange data` : (perf?.status === 'unavailable' ? 'Market data reconnecting' : 'Computing from exchange data…')}</div>
             </div>
           </div>
         </div>

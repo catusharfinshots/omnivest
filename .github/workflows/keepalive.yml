@@ -1,0 +1,16 @@
+# Keeps the free-tier backend awake so pages don't show "Loading…" for 30-60s after idle.
+# Render free web services spin down after ~15 min without traffic; a ping every 10 min
+# prevents that. One always-on service (~720 h/month) fits inside Render's 750 free hours.
+name: keepalive
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health + one public page
+        run: |
+          curl -fsS -m 60 -o /dev/null -w "backend %{http_code} %{time_total}s\n" https://omnivest-backend.onrender.com/api/ || true
+          curl -fsS -m 60 -o /dev/null -w "site %{http_code} %{time_total}s\n" https://omnivest.in/api/portfolios || true

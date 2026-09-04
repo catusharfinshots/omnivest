@@ -1,3 +1,4 @@
+import CoverArt from '../components/CoverArt';
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
@@ -96,7 +97,7 @@ export default function Home() {
   const byBucket = (b) => portfolios.filter((p) => bucketOf(p) === b).slice(0, 3);
   const PRow = ({ p }) => (
     <Link to={`/model-portfolios/${p.id}`} className="prow">
-      <span className="ic grad">{(p.name || '?').slice(0, 1).toUpperCase()}</span>
+      {p.cover ? <CoverArt cover={p.cover} name={p.name} size={34} radius={9} /> : <span className="ic grad">{(p.name || '?').slice(0, 1).toUpperCase()}</span>}
       <span><div className="nm">{p.name}</div><div className="sub">{(p.constituents || []).length} {bucketOf(p) === 'etf' ? 'ETFs' : bucketOf(p) === 'mf' ? 'Funds' : 'Stocks'}</div></span>
     </Link>
   );

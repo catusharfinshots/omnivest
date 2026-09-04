@@ -163,3 +163,7 @@ code {
 .rich-text blockquote { border-left: 3px solid #D8C7F1; padding-left: 0.8em; color: #6B6480; margin: 0.6em 0; }
 .rich-text strong, .rich-text b { font-weight: 700; color: #1A1030; }
 .rich-text > :last-child { margin-bottom: 0; }
+
+/* Horizontal scrollers (steppers, chip rows) — scrollable but without a visible bar */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
