@@ -11,6 +11,7 @@ import RebalanceTimeline from '../components/listing/RebalanceTimeline';
 import HoldingsSection from '../components/listing/HoldingsSection';
 import UpdatesSection from '../components/listing/UpdatesSection';
 import CoverArt from '../components/CoverArt';
+import { Badge, VolatilityBadge, AccessBadge, Metric } from '../components/Tone';
 import { useAuth } from '../context/AuthContext';
 import { usePortfolio } from '../context/PortfolioContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -127,7 +128,7 @@ export default function ModelPortfolioDetail() {
   const stats = [
     { label: useCagr ? 'CAGR' : 'Since launch', value: perfOk ? headlineText : '—', sub: perfOk ? (useCagr ? `${pm.days} days live` : (headline === null ? 'from next market close' : launchedLabel.toLowerCase())) : (perf?.status === 'unavailable' ? 'market data reconnecting' : 'computing from exchange data'), good: headline !== null && headline >= 0, bad: headline !== null && headline < 0 },
     { label: `vs ${benchLabel}`, value: pct(alpha), sub: alpha === null ? 'from next market close' : (alpha >= 0 ? 'ahead of benchmark' : 'behind benchmark'), good: alpha !== null && alpha >= 0, bad: alpha !== null && alpha < 0 },
-    { label: 'Volatility', value: vol || '—', sub: vol ? `${pm.volatility_pct}% annualised` : 'after 20 trading days', tone: vol === 'Low' ? 'good' : vol === 'High' ? 'bad' : '' },
+    { label: 'Volatility', value: vol || '—', sub: vol ? `${pm.volatility_pct}% annualised` : 'after 20 trading days', tone: vol === 'Low' ? 'good' : vol === 'High' ? 'bad' : vol === 'Medium' ? 'warn' : '' },
     { label: 'Min. investment', value: INR(minAmount), sub: perfOk && perf.min_investment ? "at today's prices" : 'to start' },
   ];
 
@@ -155,10 +156,10 @@ export default function ModelPortfolioDetail() {
                 <button onClick={() => manager?.id && navigate(`/manager/${manager.id}`)} className="mt-1 text-sm text-[#526071] hover:text-[#6C2BD9]">by {manager?.name}{manager?.sebiReg && manager.sebiReg !== '—' ? ` · SEBI ${manager.sebiReg}` : ''}</button>
                 <p className="mt-2 text-[15px] text-[#475569] max-w-2xl">{basket.subtitle}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="chip"><Layers className="h-3.5 w-3.5" /> {(basket.strategy || 'thematic').replace('-', ' ')}</span>
-                  {(basket.tags || []).map((t) => <span key={t} className="chip-brand">{t}</span>)}
-                  {vol && <span className="chip"><ShieldCheck className="h-3.5 w-3.5" /> {vol} volatility</span>}
-                  <span className={paid ? 'chip-accent' : 'chip-brand'}>{paid ? (plan ? `₹${plan.price}/${DURATION[plan.months] || `${plan.months} mo`}` : 'Subscription') : 'Free access'}</span>
+                  <Badge tone="neutral" icon={<Layers className="h-3 w-3" aria-hidden="true" />}>{(basket.strategy || 'thematic').replace('-', ' ')}</Badge>
+                  {(basket.tags || []).map((t) => <Badge key={t} tone="info">{t}</Badge>)}
+                  <VolatilityBadge level={vol} />
+                  <AccessBadge paid={paid} perMonth={paid && plan ? plan.price / (plan.months || 1) : null} />
                 </div>
               </div>
             </div>
@@ -180,11 +181,9 @@ export default function ModelPortfolioDetail() {
         <div className="lg:col-span-8 min-w-0">
           {/* Stat tiles */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" data-testid="stat-tiles">
-            {stats.map((s) => (
-              <div key={s.label} className="surface p-4">
-                <div className="text-[12px] uppercase tracking-wider text-[#526071] font-semibold truncate">{s.label}</div>
-                <div className={`num mt-1 text-lg font-bold ${s.bad || s.tone === 'bad' ? 'text-[#B91C1C]' : s.good || s.tone === 'good' ? 'text-[#0B7F4A]' : 'text-[#0F1729]'}`}>{s.value}</div>
-                <div className="text-[12px] text-[#667085] mt-0.5">{s.sub}</div>
+            {stats.map((s, i) => (
+              <div key={s.label} className={`surface p-4 rise rise-${i + 1}`}>
+                <Metric label={s.label} value={s.value} sub={s.sub} tone={s.bad || s.tone === 'bad' ? 'neg' : s.good || s.tone === 'good' ? 'pos' : s.tone === 'warn' ? 'warn' : undefined} />
               </div>
             ))}
           </div>

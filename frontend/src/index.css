@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -77,9 +77,22 @@ code {
     font-feature-settings: 'liga' 1, 'calt' 1;
     font-optical-sizing: auto;
     }
+  /* Display face for headings: Plus Jakarta Sans (geometric, warm, reads as a product not a form).
+     Inter stays for body + data. The fallback stack keeps weights heavy if the font is slow. */
   h1, h2, h3, h4 {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    letter-spacing: -0.01em;
+    font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  :root {
+    /* Semantic colour language — purple is brand/actions only; data uses these. */
+    --pos: #0B7F4A; --pos-bg: #E3F4EB;
+    --neg: #B91C1C; --neg-bg: #FBE4E4;
+    --warn: #9A4A05; --warn-bg: #FEF3C7;
+    --info: #1D4ED8; --info-bg: #EFF6FF;
+    --ink: #0F1729; --ink-2: #526071; --ink-3: #667085;
+    --line: #E6E8F0;
+    --lift-shadow: 0 18px 40px -24px rgba(15, 23, 41, 0.28);
   }
 }
 
@@ -176,4 +189,29 @@ code {
   input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([class*=" h-7"]),
   select, textarea { min-height: 44px; }
   .chip, .chip-brand, .chip-accent { min-height: 28px; }
+}
+
+/* ---------- Design system utilities (Sept 2026) ---------- */
+@layer components {
+  .t-display { @apply text-4xl sm:text-5xl lg:text-[56px] font-extrabold tracking-[-0.03em] leading-[1.05]; }
+  .t-h1 { @apply text-3xl sm:text-4xl font-bold tracking-tight leading-tight; }
+  .t-h2 { @apply text-2xl sm:text-[28px] font-bold tracking-tight leading-snug; }
+  .t-h3 { @apply text-lg font-semibold leading-snug; }
+  .t-lead { @apply text-base sm:text-lg text-[#526071] leading-relaxed; }
+  .t-label { @apply text-[12px] font-semibold uppercase tracking-[0.08em] text-[#667085]; }
+  /* Cards that respond to the hand: lift on hover, settle on press. */
+  .lift { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+  .lift:hover { transform: translateY(-2px); box-shadow: var(--lift-shadow); }
+  .lift:active { transform: translateY(0); }
+  /* Content that rises in as it loads — visible at rest, never parked invisible. */
+  .rise { animation: rise .45s cubic-bezier(.2,.7,.2,1) both; }
+  .rise-1 { animation-delay: .05s } .rise-2 { animation-delay: .1s } .rise-3 { animation-delay: .15s } .rise-4 { animation-delay: .2s } .rise-5 { animation-delay: .25s } .rise-6 { animation-delay: .3s }
+  .skeleton { @apply bg-[#EEF0F6] rounded-md; background-image: linear-gradient(90deg, rgba(255,255,255,0) 0, rgba(255,255,255,.7) 50%, rgba(255,255,255,0) 100%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+}
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes shimmer { from { background-position: 200% 0 } to { background-position: -200% 0 } }
+@media (prefers-reduced-motion: reduce) {
+  .rise { animation: none; }
+  .lift, .lift:hover, .lift:active { transition: none; transform: none; }
+  .skeleton { animation: none; }
 }
