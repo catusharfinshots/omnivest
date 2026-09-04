@@ -23,8 +23,12 @@ import os
 import re
 from typing import Optional
 
-from fastapi import APIRouter, Request
+import requests as _requests
+from fastapi import APIRouter, Depends, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import HTMLResponse, Response
+
+from auth import build_current_user_dep
 
 SITE = "Omnivest"
 DEFAULT_TITLE = "Omnivest — All your investing, in one place"
@@ -297,6 +301,18 @@ def build_router(db) -> APIRouter:
         image = f"{origin}/api/og/image/{doc['id']}.png?v={_version(doc)}"
         return _page(_title(name), desc, f"{origin}/model-portfolios/{doc['id']}", image, kind="article")
 
+    async def _manager_page(request: Request, mid: str) -> Optional[HTMLResponse]:
+        mgr = await db.managers.find_one({"id": mid, "active": True}, {"_id": 0, "name": 1, "firm": 1, "philosophy": 1, "description": 1, "user_id": 1})
+        if not mgr:
+            return None
+        origin = _origin(request)
+        n = await col.count_documents({"owner_id": mgr.get("user_id"), "status": "approved"}) if mgr.get("user_id") else 0
+        name = mgr.get("name") or "Research analyst"
+        desc = (mgr.get("philosophy") or mgr.get("description") or f"SEBI-registered research analyst on {SITE}.").strip()
+        if n:
+            desc = f"{desc} Manages {n} model portfolio{'s' if n != 1 else ''} on Omnivest."
+        return _page(_title(f"{name}{' · ' + mgr['firm'] if mgr.get('firm') else ''}"), desc, f"{origin}/manager/{mid}", origin + OG_IMAGE_PATH, kind="profile")
+
     @router.get("/og", response_class=HTMLResponse)
     async def og_preview(request: Request, path: str = "/"):
         origin = _origin(request)
@@ -311,8 +327,92 @@ def build_router(db) -> APIRouter:
                 return await _listing_page(request, doc)
             title, desc = PAGE_META["/model-portfolios"]
             return _page(_title(title), desc, origin + "/model-portfolios", image)
+        mm = re.match(r"^/manager/([A-Za-z0-9\-]+)$", clean)
+        if mm:
+            page = await _manager_page(request, mm.group(1))
+            if page:
+                return page
+            title, desc = PAGE_META["/managers"]
+            return _page(_title(title), desc, origin + "/managers", image)
         title, desc = PAGE_META.get(clean, (None, DEFAULT_DESC))
         return _page(_title(title), desc, origin + clean, image)
+
+    # ---------------- admin: share-preview contract check ----------------
+    require_admin = build_current_user_dep(db, ["admin"])
+    TAG = re.compile(r'<meta (?:property|name)="(og:title|og:description|og:url|og:image)" content="([^"]*)"')
+
+    def _fetch(url: str, ua: str = "WhatsApp/2.23.20.0", timeout: int = 25):
+        return _requests.get(url, headers={"User-Agent": ua, "Accept": "*/*"}, timeout=timeout, allow_redirects=True)
+
+    def _check_one(origin: str, route: str) -> dict:
+        """Fetch a route the way WhatsApp does (through the public origin) and verify the contract."""
+        out = {"route": route, "ok": False, "title": None, "image": None, "issues": []}
+        try:
+            r = _fetch(f"{origin}/api/og{route}" if not route.startswith("/s/") else f"{origin}{route}")
+            if r.status_code != 200:
+                out["issues"].append(f"preview page HTTP {r.status_code}")
+                return out
+            tags = dict(TAG.findall(r.text))
+            out["title"] = tags.get("og:title")
+            out["image"] = tags.get("og:image")
+            for k in ("og:title", "og:description", "og:url", "og:image"):
+                if not tags.get(k):
+                    out["issues"].append(f"missing {k}")
+            for k in ("og:url", "og:image"):
+                v = tags.get(k) or ""
+                if v and not v.startswith(origin):
+                    out["issues"].append(f"{k} not on public origin ({v[:60]})")
+            if tags.get("og:image"):
+                ir = _fetch(tags["og:image"], ua="facebookexternalhit/1.1")
+                ctype = ir.headers.get("content-type", "")
+                if ir.status_code != 200 or not ctype.startswith("image/"):
+                    out["issues"].append(f"image HTTP {ir.status_code} {ctype or ''}".strip())
+                elif len(ir.content) < 5000:
+                    out["issues"].append("image suspiciously small")
+        except Exception as e:  # noqa: BLE001
+            out["issues"].append(f"error: {str(e)[:80]}")
+        out["ok"] = not out["issues"]
+        return out
+
+    def _check_direct(origin: str, route: str) -> dict:
+        """A URL copied from the address bar: crawlers must see the page's own tags, humans the app."""
+        out = {"route": route, "ok": False, "title": None, "image": None, "issues": [], "direct": True}
+        try:
+            r = _fetch(f"{origin}{route}")
+            tags = dict(TAG.findall(r.text)) if r.status_code == 200 else {}
+            out["title"], out["image"] = tags.get("og:title"), tags.get("og:image")
+            if r.status_code != 200:
+                out["issues"].append(f"HTTP {r.status_code}")
+            elif not tags.get("og:image") or not tags.get("og:image", "").startswith(origin):
+                out["issues"].append("crawler sees no page-specific preview")
+            h = _fetch(f"{origin}{route}", ua="Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128 Safari/537.36")
+            if h.status_code != 200 or '<div id="root"' not in h.text:
+                out["issues"].append("humans do not get the app shell")
+        except Exception as e:  # noqa: BLE001
+            out["issues"].append(f"error: {str(e)[:80]}")
+        out["ok"] = not out["issues"]
+        return out
+
+    @router.get("/admin/share-check")
+    async def share_check(request: Request, _: dict = Depends(require_admin)):
+        """Runs the share-preview contract for every public route: static pages, every live listing
+        (short link), every active manager. Same check the post-deploy test runs."""
+        origin = _origin(request)
+        routes = list(PAGE_META.keys())
+        listings = await col.find({"status": "approved"}, {"_id": 0, "id": 1, "name": 1}).to_list(500)
+        managers = await db.managers.find({"active": True}, {"_id": 0, "id": 1, "name": 1}).to_list(200)
+        items = [(r, r) for r in routes] + [(f"/s/{short_code(l['id'])}", f"Listing · {l.get('name')}") for l in listings] + [(f"/manager/{m['id']}", f"Manager · {m.get('name')}") for m in managers]
+        results = []
+        for route, label in items:
+            res = await run_in_threadpool(_check_one, origin, route)
+            res["label"] = label
+            results.append(res)
+        for l in listings[:25]:
+            res = await run_in_threadpool(_check_direct, origin, f"/model-portfolios/{l['id']}")
+            res["label"] = f"Address-bar URL · {l.get('name')}"
+            results.append(res)
+        bad = [r for r in results if not r["ok"]]
+        return {"origin": origin, "checked": len(results), "failing": len(bad), "results": results}
 
     @router.get("/og/s/{code}", response_class=HTMLResponse)
     async def og_short(request: Request, code: str):
@@ -340,6 +440,37 @@ def build_router(db) -> APIRouter:
             manager = usr["analyst_profile"]["displayName"]
         png = render_card(doc, manager, await _stats(doc), cover_bytes)
         return Response(content=png, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
+
+    # ---------------- direct URLs (/model-portfolios/<id>, /manager/<id>) ----------------
+    # render.yaml rewrites these paths here. Crawlers get the OG page; humans get the SPA
+    # shell (fetched once from the static site and cached) so React renders the route.
+    CRAWLERS = ("whatsapp", "facebookexternalhit", "facebot", "twitterbot", "linkedinbot", "slackbot", "telegrambot", "discordbot",
+                "pinterest", "skypeuripreview", "googlebot", "bingbot", "applebot", "duckduckbot", "embedly", "quora link preview", "outbrain", "vkshare", "w3c_validator", "redditbot")
+    _shell = {"html": None, "at": 0.0}
+
+    async def _spa_shell(origin: str) -> str:
+        import time as _t
+        if _shell["html"] and _t.time() - _shell["at"] < 600:
+            return _shell["html"]
+        try:
+            r = await run_in_threadpool(lambda: _requests.get(f"{origin}/index.html", headers={"User-Agent": "omnivest-og-shell"}, timeout=15))
+            if r.status_code == 200 and "<div id=\"root\"" in r.text:
+                _shell["html"], _shell["at"] = r.text, _t.time()
+                return r.text
+        except Exception:  # noqa: BLE001
+            pass
+        return _shell["html"] or ""
+
+    @router.get("/og/page/{rest:path}")
+    async def og_page(request: Request, rest: str = ""):
+        ua = (request.headers.get("user-agent") or "").lower()
+        if any(c in ua for c in CRAWLERS):
+            return await og_preview(request, path="/" + rest)
+        shell = await _spa_shell(_origin(request))
+        if shell:
+            return HTMLResponse(content=shell, headers={"Cache-Control": "no-store"})
+        # static site unreachable: fall back to the OG page, whose script redirects to the route
+        return await og_preview(request, path="/" + rest)
 
     # Path-style variant (/api/og/about) — hosting rewrites/CDNs can drop or
     # cache-collapse query strings, so shared links use this form instead.

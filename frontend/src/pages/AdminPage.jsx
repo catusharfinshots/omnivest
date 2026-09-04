@@ -13,6 +13,7 @@ import MarketDataAdmin from '../components/admin/MarketDataAdmin';
 import ListingSettingsAdmin from '../components/admin/ListingSettingsAdmin';
 import ListingReviewCard from '../components/admin/ListingReviewCard';
 import PostsModerationAdmin from '../components/admin/PostsModerationAdmin';
+import SharePreviewAdmin from '../components/admin/SharePreviewAdmin';
 import ApprovedPartnersAdmin from '../components/admin/ApprovedPartnersAdmin';
 import PartnerAppCard from '../components/admin/PartnerAppCard';
 import PartnerPageAdmin from '../components/admin/PartnerPageAdmin';
@@ -952,8 +953,9 @@ export default function AdminPage() {
               )}
 
               {tab === 'fds' && <EmptyState title="Manage fixed deposits" desc="Add providers, rates, and tenures shown on the FD page." onAdd={()=>{toast.success('New FD row added (mock)'); markDirty();}} />}
-              {tab === 'settings' && (
-                <section className="surface p-6 space-y-5" data-testid="settings-panel">
+              {tab === 'settings' && (<>
+                <SharePreviewAdmin token={token} />
+                <section className="surface p-6 space-y-5 mt-4" data-testid="settings-panel">
                   <div className="text-sm font-semibold">Footer & contact</div>
                   <div>
                     <Label>Contact email (shown in footer)</Label>
@@ -982,7 +984,7 @@ export default function AdminPage() {
                     <Textarea data-testid="settings-terms-body" value={content.partnerTerms?.body || ''} onChange={(e) => patchContent('partnerTerms', { ...content.partnerTerms, body: e.target.value })} className="mt-2 min-h-[160px]" placeholder="Write the partner terms & conditions here…" />
                   </div>
                 </section>
-              )}
+              </>)}
             </div>
 
             <div className="mt-8 text-xs text-[#6B6480]">Changes are staged until you publish.</div>

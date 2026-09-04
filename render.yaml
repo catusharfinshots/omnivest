@@ -55,6 +55,13 @@ services:
       - type: rewrite
         source: /s/*
         destination: https://omnivest-backend.onrender.com/api/og/s/*
+      # Direct listing / manager URLs: crawlers get the page's own preview, humans get the app
+      - type: rewrite
+        source: /model-portfolios/*
+        destination: https://omnivest-backend.onrender.com/api/og/page/model-portfolios/*
+      - type: rewrite
+        source: /manager/*
+        destination: https://omnivest-backend.onrender.com/api/og/page/manager/*
       # Prerendered share-preview pages (scripts/prerender-og.js): the bare
       # /route URL must serve build/<route>/index.html with baked OG meta,
       # or the SPA catch-all would hand crawlers the homepage meta instead.
