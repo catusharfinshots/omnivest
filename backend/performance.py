@@ -23,6 +23,8 @@ Collections:
 """
 from __future__ import annotations
 
+import asyncio
+
 import logging
 import math
 import os
@@ -445,6 +447,12 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
 
     async def _refresh_inline(pid: str) -> Optional[dict]:
         if pid in _inflight:
+            # Another request (e.g. the approval's background refresh) is already computing this
+            # listing — wait for it instead of serving the pre-approval "not_launched" doc.
+            for _ in range(150):
+                await asyncio.sleep(0.2)
+                if pid not in _inflight:
+                    break
             return await perf_col.find_one({"_id": pid})
         _inflight.add(pid)
         try:
