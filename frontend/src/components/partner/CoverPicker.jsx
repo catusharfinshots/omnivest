@@ -81,18 +81,18 @@ export default function CoverPicker({ form, cover, onChange, editingId, token, e
           <div className="mt-2 flex items-center gap-2 flex-wrap">
             {kind !== 'auto' && <button type="button" onClick={applyAuto} className="btn-ghost text-xs" data-testid="cover-auto"><Wand2 className="h-3.5 w-3.5" /> Use auto-pick</button>}
             <label className="btn-outline text-xs cursor-pointer"><Upload className="h-3.5 w-3.5" /> {busy ? 'Uploading…' : 'Upload your own'}<input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={onUpload} disabled={busy} data-testid="cover-upload" /></label>
-            {kind === 'upload' && <button type="button" onClick={removeUpload} disabled={busy} className="btn-ghost text-xs text-[#DC2626]"><Trash2 className="h-3.5 w-3.5" /> Remove</button>}
+            {kind === 'upload' && <button type="button" onClick={removeUpload} disabled={busy} className="btn-ghost text-xs text-[#B91C1C]"><Trash2 className="h-3.5 w-3.5" /> Remove</button>}
           </div>
           <div className="mt-2 flex items-center gap-1.5" data-testid="cover-palettes">
             {Object.entries(PALETTES).map(([p, [a, b]]) => (
               <button key={p} type="button" title={p} onClick={() => choosePalette(p)} className={`h-5 w-5 rounded-full border-2 ${palette === p ? 'border-[#1A1030]' : 'border-white'} shadow`} style={{ background: `linear-gradient(135deg, ${a}, ${b})` }} />
             ))}
-            <span className="text-[11px] text-[#94A3B8] ml-1">Colour</span>
+            <span className="text-[12px] text-[#667085] ml-1">Colour</span>
           </div>
         </div>
       </div>
       <div className="mt-4 flex items-center justify-between">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">{showAll ? 'All themes' : 'Suggested for this listing'}</div>
+        <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">{showAll ? 'All themes' : 'Suggested for this listing'}</div>
         <button type="button" onClick={() => setShowAll((v) => !v)} className="text-xs font-semibold text-[#6C2BD9]">{showAll ? 'Show suggestions' : `Browse all ${themes.length}`}</button>
       </div>
       <div className={`mt-2 grid gap-2 ${showAll ? 'grid-cols-5 sm:grid-cols-8' : 'grid-cols-3 sm:grid-cols-6'}`} data-testid="cover-themes">
@@ -104,7 +104,7 @@ export default function CoverPicker({ form, cover, onChange, editingId, token, e
                 <CoverArt cover={{ kind: 'theme', theme: t.id, palette, icon: t.icon }} name={t.label} size={showAll ? 44 : 56} radius={12} className="w-full" />
                 {active && <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-[#6C2BD9] text-white grid place-items-center"><Check className="h-3 w-3" /></span>}
               </div>
-              <div className="mt-1 text-[10px] leading-tight text-[#4B4560] truncate">{t.label}</div>
+              <div className="mt-1 text-[12px] leading-tight text-[#4B4560] truncate">{t.label}</div>
             </button>
           );
         })}

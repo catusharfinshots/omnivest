@@ -64,9 +64,9 @@ export default function MutualFunds() {
               <div className="col-span-1 text-xs text-[#6B6480] capitalize">{f.category}</div>
               <div className="col-span-2 num text-right font-semibold">₹{f.nav.toLocaleString('en-IN')}</div>
               <div className="col-span-1 num text-right text-[#6B6480]">{f.expenseRatio}%</div>
-              <div className="col-span-1 num text-right text-[#12B76A] font-semibold">+{f.returns.y1.toFixed(1)}%</div>
-              <div className="col-span-1 num text-right text-[#12B76A] font-semibold">+{f.returns.y3.toFixed(1)}%</div>
-              <div className="col-span-1 num text-right text-[#12B76A] font-semibold">+{f.returns.y5.toFixed(1)}%</div>
+              <div className="col-span-1 num text-right text-[#0B7F4A] font-semibold">+{f.returns.y1.toFixed(1)}%</div>
+              <div className="col-span-1 num text-right text-[#0B7F4A] font-semibold">+{f.returns.y3.toFixed(1)}%</div>
+              <div className="col-span-1 num text-right text-[#0B7F4A] font-semibold">+{f.returns.y5.toFixed(1)}%</div>
             </div>
           ))}
         </div>

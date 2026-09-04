@@ -61,7 +61,7 @@ export default function DropdownsAdmin({ token }) {
               {opts[field].map((v, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <Input value={v} onChange={(e) => setVal(field, i, e.target.value)} className="h-9" placeholder="Option label" />
-                  <button onClick={() => removeVal(field, i)} disabled={opts[field].length <= 1} className={`h-8 w-8 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2] ${opts[field].length <= 1 ? 'opacity-40 cursor-not-allowed' : ''}`}><Trash2 className="h-4 w-4" /></button>
+                  <button onClick={() => removeVal(field, i)} disabled={opts[field].length <= 1} className={`h-8 w-8 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2] ${opts[field].length <= 1 ? 'opacity-40 cursor-not-allowed' : ''}`}><Trash2 className="h-4 w-4" /></button>
                 </div>
               ))}
             </div>

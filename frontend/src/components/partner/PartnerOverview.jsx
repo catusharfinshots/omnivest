@@ -19,12 +19,12 @@ function Reveal({ children, delay = 0, className = '' }) {
 }
 
 function Delta({ cur, prev, suffix = '' }) {
-  if (!prev && !cur) return <span className="text-[11px] text-[#94A3B8]">no prior data</span>;
-  if (!prev) return <span className="text-[11px] font-semibold text-[#0E9F5E] inline-flex items-center gap-0.5"><ArrowUpRight className="h-3 w-3" /> new</span>;
+  if (!prev && !cur) return <span className="text-[12px] text-[#667085]">no prior data</span>;
+  if (!prev) return <span className="text-[12px] font-semibold text-[#0B7F4A] inline-flex items-center gap-0.5"><ArrowUpRight className="h-3 w-3" /> new</span>;
   const pct = Math.round(((cur - prev) / prev) * 100);
   const up = pct >= 0;
   return (
-    <span className={`text-[11px] font-semibold inline-flex items-center gap-0.5 ${up ? 'text-[#0E9F5E]' : 'text-[#DC2626]'}`}>
+    <span className={`text-[12px] font-semibold inline-flex items-center gap-0.5 ${up ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>
       {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />} {Math.abs(pct)}%{suffix} vs prior
     </span>
   );
@@ -35,7 +35,7 @@ function Tile({ icon: Icon, label, value, prev, delay, isPct }) {
     <Reveal delay={delay}>
       <div className="surface p-5 h-full" data-testid={`tile-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`}>
         <div className="flex items-center justify-between">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-[#94A3B8]">{label}</div>
+          <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">{label}</div>
           <span className="h-8 w-8 rounded-lg bg-[#EDE9FE] text-[#5320A8] grid place-items-center"><Icon className="h-4 w-4" /></span>
         </div>
         <div className="mt-3 text-3xl font-bold text-[#1A1030] tabular-nums"><CountUpStat value={isPct ? `${value}%` : String(value)} /></div>
@@ -55,7 +55,7 @@ function Skeleton() {
   );
 }
 
-const STATUS_CLS = { approved: 'bg-[#DCFCE7] text-[#0E9F5E]', pending: 'bg-[#FEF3C7] text-[#B45309]', rejected: 'bg-[#FEE2E2] text-[#DC2626]', draft: 'bg-[#F1F5F9] text-[#64748B]' };
+const STATUS_CLS = { approved: 'bg-[#DCFCE7] text-[#0B7F4A]', pending: 'bg-[#FEF3C7] text-[#9A4A05]', rejected: 'bg-[#FEE2E2] text-[#B91C1C]', draft: 'bg-[#F1F5F9] text-[#526071]' };
 
 export default function PartnerOverview({ token, onNew, onEdit, onProfile }) {
   const [days, setDays] = useState(null);
@@ -76,7 +76,7 @@ export default function PartnerOverview({ token, onNew, onEdit, onProfile }) {
       .catch((e) => setError(e?.response?.data?.detail || 'Could not load your stats right now.'));
   }, [days, auth]);
 
-  if (error) return <div className="surface p-6 text-sm text-[#DC2626]">{error}</div>;
+  if (error) return <div className="surface p-6 text-sm text-[#B91C1C]">{error}</div>;
   if (!data) return <Skeleton />;
 
   const { totals, previous, series, portfolios, nudges, settings } = data;
@@ -94,7 +94,7 @@ export default function PartnerOverview({ token, onNew, onEdit, onProfile }) {
         <div className="flex items-center gap-1 rounded-full bg-[#F1F5F9] p-1" data-testid="range-picker">
           {RANGES.map((r) => (
             <button key={r} type="button" onClick={() => setDays(r)}
-              className={`h-8 rounded-full px-3 text-xs font-semibold transition-colors ${days === r ? 'bg-white text-[#1A1030] shadow-sm' : 'text-[#64748B] hover:text-[#1A1030]'}`}>
+              className={`h-8 rounded-full px-3 text-xs font-semibold transition-colors ${days === r ? 'bg-white text-[#1A1030] shadow-sm' : 'text-[#526071] hover:text-[#1A1030]'}`}>
               {r}d
             </button>
           ))}
@@ -120,9 +120,9 @@ export default function PartnerOverview({ token, onNew, onEdit, onProfile }) {
         <div className="surface p-5" data-testid="overview-chart">
           <div className="flex items-center justify-between">
             <div className="text-sm font-semibold text-[#1A1030]">Daily views & invest clicks</div>
-            <div className="flex items-center gap-3 text-[11px] text-[#64748B]">
+            <div className="flex items-center gap-3 text-[12px] text-[#526071]">
               <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#6C2BD9]" /> Views</span>
-              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#12B76A]" /> Invest clicks</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#0A7D48]" /> Invest clicks</span>
             </div>
           </div>
           {hasAnyTraffic ? (
@@ -146,7 +146,7 @@ export default function PartnerOverview({ token, onNew, onEdit, onProfile }) {
             <div className="mt-4 rounded-xl border-2 border-dashed border-[#E8E1F0] p-8 text-center" data-testid="overview-empty">
               <span className="h-12 w-12 mx-auto rounded-2xl bg-[#F1E7FE] text-[#6C2BD9] grid place-items-center"><Sparkles className="h-5 w-5" /></span>
               <div className="mt-3 text-sm font-semibold text-[#1A1030]">{portfolios.length ? 'Your listings are live — traffic will show up here' : 'No traffic yet'}</div>
-              <div className="mt-1 text-xs text-[#64748B] max-w-md mx-auto">
+              <div className="mt-1 text-xs text-[#526071] max-w-md mx-auto">
                 {portfolios.length
                   ? 'Every time an investor sees or opens one of your portfolios, it lands on this chart. Share your listing link to get the first views rolling.'
                   : 'Publish your first model portfolio and this dashboard starts filling with views, opens and invest clicks.'}
@@ -162,12 +162,12 @@ export default function PartnerOverview({ token, onNew, onEdit, onProfile }) {
           <div className="surface p-5 h-full" data-testid="overview-portfolios">
             <div className="text-sm font-semibold text-[#1A1030]">By portfolio</div>
             {portfolios.length === 0 ? (
-              <div className="mt-3 text-xs text-[#94A3B8]">No portfolios yet.</div>
+              <div className="mt-3 text-xs text-[#667085]">No portfolios yet.</div>
             ) : (
               <div className="mt-3 overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="text-left text-[10px] uppercase tracking-wider text-[#94A3B8]">
+                    <tr className="text-left text-[12px] uppercase tracking-wider text-[#667085]">
                       <th className="py-2 pr-2 font-bold">Portfolio</th>
                       <th className="py-2 px-2 font-bold text-right">Impr.</th>
                       <th className="py-2 px-2 font-bold text-right">Views</th>
@@ -180,7 +180,7 @@ export default function PartnerOverview({ token, onNew, onEdit, onProfile }) {
                       <tr key={p.id} className="border-t border-[#F1EBF9]">
                         <td className="py-2.5 pr-2">
                           <button type="button" onClick={() => onEdit && onEdit(p.id)} className="font-semibold text-[#1A1030] hover:text-[#6C2BD9] text-left">{p.name}</button>
-                          <span className={`ml-2 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full ${STATUS_CLS[p.status] || STATUS_CLS.draft}`}>{p.status}</span>
+                          <span className={`ml-2 text-[12px] font-bold uppercase px-1.5 py-0.5 rounded-full ${STATUS_CLS[p.status] || STATUS_CLS.draft}`}>{p.status}</span>
                         </td>
                         <td className="py-2.5 px-2 text-right tabular-nums text-[#475569]">{p.impressions}</td>
                         <td className="py-2.5 px-2 text-right tabular-nums text-[#475569]">{p.views}</td>
@@ -195,7 +195,7 @@ export default function PartnerOverview({ token, onNew, onEdit, onProfile }) {
                     ))}
                   </tbody>
                 </table>
-                <div className="mt-3 flex items-center gap-4 text-[11px] text-[#94A3B8]">
+                <div className="mt-3 flex items-center gap-4 text-[12px] text-[#667085]">
                   <span className="inline-flex items-center gap-1"><FileDown className="h-3 w-3" /> {totals.factsheetDownloads} factsheet downloads</span>
                   <span className="inline-flex items-center gap-1"><Share2 className="h-3 w-3" /> {totals.shares} shares</span>
                 </div>
@@ -208,13 +208,13 @@ export default function PartnerOverview({ token, onNew, onEdit, onProfile }) {
           <div className="surface p-5 h-full" data-testid="overview-nudges">
             <div className="flex items-center gap-2 text-sm font-semibold text-[#1A1030]"><Sparkles className="h-4 w-4 text-[#6C2BD9]" /> Ways to grow</div>
             {(!nudges || nudges.length === 0) ? (
-              <div className="mt-3 rounded-xl bg-[#F0FDF4] border border-[#BBF7D0] px-3 py-2.5 text-xs text-[#0E9F5E] font-medium">Everything looks great — your listings are complete and fresh. 🎉</div>
+              <div className="mt-3 rounded-xl bg-[#F0FDF4] border border-[#BBF7D0] px-3 py-2.5 text-xs text-[#0B7F4A] font-medium">Everything looks great — your listings are complete and fresh. 🎉</div>
             ) : (
               <div className="mt-3 space-y-2.5">
                 {nudges.map((n, i) => (
                   <div key={i} className="rounded-xl border border-[#E8E1F0] bg-white p-3" data-testid={`nudge-${n.kind}`}>
                     <div className="text-xs text-[#475569] leading-relaxed">{n.text}</div>
-                    <button type="button" className="mt-2 text-[11px] font-semibold text-[#6C2BD9] hover:underline"
+                    <button type="button" className="mt-2 text-[12px] font-semibold text-[#6C2BD9] hover:underline"
                       onClick={() => { if (n.action === 'new') onNew && onNew(); else if (n.action === 'profile') onProfile && onProfile(); else if (n.portfolio_id) onEdit && onEdit(n.portfolio_id); }}>
                       {n.action === 'new' ? 'Create a portfolio →' : n.action === 'profile' ? 'Edit profile →' : 'Open listing →'}
                     </button>

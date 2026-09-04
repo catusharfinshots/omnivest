@@ -54,7 +54,7 @@ code {
         --secondary: 273 43% 97%;
         --secondary-foreground: 268 40% 12%;
         --muted: 273 43% 97%;
-        --muted-foreground: 262 15% 46%;    /* #6B6480 */
+        --muted-foreground: 262 15% 40%;    /* #5E5873 — AA on white and lavender */
         --accent: 278 100% 68%;
         --accent-foreground: 0 0% 100%;
         --destructive: 4 87% 60%;
@@ -63,7 +63,7 @@ code {
         --input: 275 40% 91%;
         --ring: 268 70% 51%;
         --radius: 0.9rem;
-        --success: 152 82% 39%;             /* #12B76A */
+        --success: 152 85% 26%;             /* #0A7D48 — AA with white text */
         --danger: 4 87% 60%;                /* #F04438 */
     }
 }
@@ -91,7 +91,7 @@ code {
     @apply inline-flex items-center justify-center gap-2 rounded-full bg-[#6C2BD9] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#5320A8] transition-colors;
   }
   .btn-invest {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-[#12B76A] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#0E9F5E] transition-colors;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-[#0A7D48] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#086B3D] transition-colors;
   }
   .btn-outline {
     @apply inline-flex items-center justify-center gap-2 rounded-full border border-[#E8E1F0] bg-white px-5 py-2.5 text-sm font-semibold text-[#1A1030] hover:border-[#6C2BD9] hover:text-[#6C2BD9] transition-colors;
@@ -167,3 +167,13 @@ code {
 /* Horizontal scrollers (steppers, chip rows) — scrollable but without a visible bar */
 .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+
+/* Phones: every real control is thumb-sized. Explicit small heights (icon buttons, h-7/h-8/h-9 chips) stay as designed. */
+@media (max-width: 767px) {
+  button:not([class*=" h-"]):not([class^="h-"]):not([data-decorative]),
+  a.btn-primary, a.btn-outline, a.btn-ghost, a.btn-invest,
+  input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([class*=" h-7"]),
+  select, textarea { min-height: 44px; }
+  .chip, .chip-brand, .chip-accent { min-height: 28px; }
+}

@@ -10,16 +10,16 @@ import { Label } from '../ui/label';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const pct = (v) => (v === null || v === undefined ? '—' : `${v > 0 ? '+' : ''}${Number(v).toFixed(2)}%`);
 const nice = (iso) => (iso ? new Date(iso.length === 10 ? `${iso}T00:00:00` : iso).toLocaleString('en-IN', iso.length === 10 ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
-const STATUS_CLS = { approved: 'bg-[#DCFCE7] text-[#0E9F5E]', pending: 'bg-[#FEF3C7] text-[#B45309]', draft: 'bg-[#F1F1F4] text-[#6B6480]' };
+const STATUS_CLS = { approved: 'bg-[#DCFCE7] text-[#0B7F4A]', pending: 'bg-[#FEF3C7] text-[#9A4A05]', draft: 'bg-[#F1F1F4] text-[#6B6480]' };
 
 function Tile({ icon: Icon, label, value, sub, tone = 'ok' }) {
   const tones = { ok: 'border-[#DCFCE7] bg-[#F0FDF4]', warn: 'border-[#FDE68A] bg-[#FFFBEB]', bad: 'border-[#FECACA] bg-[#FEF2F2]', neutral: 'border-[#E8E1F0] bg-white' };
-  const iconTone = { ok: 'text-[#0E9F5E]', warn: 'text-[#B45309]', bad: 'text-[#DC2626]', neutral: 'text-[#6C2BD9]' };
+  const iconTone = { ok: 'text-[#0B7F4A]', warn: 'text-[#9A4A05]', bad: 'text-[#B91C1C]', neutral: 'text-[#6C2BD9]' };
   return (
     <div className={`rounded-xl border p-4 ${tones[tone]}`}>
-      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-[#6B6480]"><Icon className={`h-3.5 w-3.5 ${iconTone[tone]}`} /> {label}</div>
+      <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-[#6B6480]"><Icon className={`h-3.5 w-3.5 ${iconTone[tone]}`} /> {label}</div>
       <div className="mt-1 text-xl font-bold text-[#1A1030]">{value}</div>
-      {sub && <div className="text-[11px] text-[#6B6480] mt-0.5">{sub}</div>}
+      {sub && <div className="text-[12px] text-[#6B6480] mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -121,7 +121,7 @@ export default function PerformanceEngineAdmin({ token, disclaimer, onDisclaimer
             <div><b>Windows:</b> {Object.keys(ov.policy.windows).join(', ')} — unlock as the listing ages</div>
             <div><b>Returns basis:</b> {ov.policy.returns_basis}</div>
             <div><b>Refresh:</b> {ov.policy.refresh}</div>
-            <div className="sm:col-span-2 text-[#94A3B8]">These are policy, kept in code so every listing stays comparable. Engine v{ov.policy.engine_version}.</div>
+            <div className="sm:col-span-2 text-[#667085]">These are policy, kept in code so every listing stays comparable. Engine v{ov.policy.engine_version}.</div>
           </div>
         )}
       </section>
@@ -143,7 +143,7 @@ export default function PerformanceEngineAdmin({ token, disclaimer, onDisclaimer
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-xs" data-testid="engine-table">
               <thead>
-                <tr className="text-left text-[10px] uppercase tracking-wider text-[#94A3B8] border-b border-[#E8E1F0]">
+                <tr className="text-left text-[12px] uppercase tracking-wider text-[#667085] border-b border-[#E8E1F0]">
                   <th className="py-2 pr-3">Listing</th><th className="py-2 pr-3">Launch</th><th className="py-2 pr-3">Bought at</th><th className="py-2 pr-3">Prices as of</th>
                   <th className="py-2 pr-3">Live</th><th className="py-2 pr-3">Perf.</th><th className="py-2 pr-3">vs bench</th><th className="py-2 pr-3">Vol.</th><th className="py-2 pr-3">Min ₹</th><th className="py-2 pr-3">Ver.</th><th className="py-2 pr-3">State</th><th className="py-2"></th>
                 </tr>
@@ -152,32 +152,32 @@ export default function PerformanceEngineAdmin({ token, disclaimer, onDisclaimer
                 {ov.listings.map((r) => {
                   const head = r.cagr_pct !== null && r.cagr_pct !== undefined ? `${pct(r.cagr_pct)} CAGR` : r.return_pct !== null && r.return_pct !== undefined ? `${pct(r.return_pct)} since launch` : (r.launch_date ? 'New' : '—');
                   const state = r.status !== 'approved' ? { t: r.status === 'pending' ? 'awaiting approval' : 'draft', c: 'text-[#6B6480]' }
-                    : r.perf_status !== 'ok' ? { t: r.perf_status === 'unavailable' ? 'market data unavailable' : 'not computed yet', c: 'text-[#DC2626]' }
-                      : r.behind ? { t: 'behind latest close', c: 'text-[#B45309]' } : { t: 'up to date', c: 'text-[#0E9F5E]' };
+                    : r.perf_status !== 'ok' ? { t: r.perf_status === 'unavailable' ? 'market data unavailable' : 'not computed yet', c: 'text-[#B91C1C]' }
+                      : r.behind ? { t: 'behind latest close', c: 'text-[#9A4A05]' } : { t: 'up to date', c: 'text-[#0B7F4A]' };
                   return (
                     <tr key={r.id} className="border-b border-[#F1EBF9] align-top" data-testid={`engine-row-${r.id}`}>
                       <td className="py-2.5 pr-3 min-w-[160px]">
                         <div className="font-semibold text-[#1A1030]">{r.name}</div>
-                        <div className="text-[#94A3B8]">by {r.owner_name || '—'} · <span className={`inline-block px-1.5 rounded-full text-[9px] font-bold uppercase ${STATUS_CLS[r.status] || ''}`}>{r.status}</span></div>
-                        {r.errors?.length > 0 && <div className="text-[#DC2626] mt-0.5">{r.errors[0]}</div>}
+                        <div className="text-[#667085]">by {r.owner_name || '—'} · <span className={`inline-block px-1.5 rounded-full text-[12px] font-bold uppercase ${STATUS_CLS[r.status] || ''}`}>{r.status}</span></div>
+                        {r.errors?.length > 0 && <div className="text-[#B91C1C] mt-0.5">{r.errors[0]}</div>}
                       </td>
-                      <td className="py-2.5 pr-3 whitespace-nowrap">{r.launch_date ? nice(r.launch_date) : <span className="text-[#94A3B8]">on approval</span>}</td>
+                      <td className="py-2.5 pr-3 whitespace-nowrap">{r.launch_date ? nice(r.launch_date) : <span className="text-[#667085]">on approval</span>}</td>
                       <td className="py-2.5 pr-3 whitespace-nowrap">{r.launch_price_date ? `${nice(r.launch_price_date)} close` : '—'}</td>
                       <td className="py-2.5 pr-3 whitespace-nowrap">{r.price_date ? nice(r.price_date) : '—'}</td>
                       <td className="py-2.5 pr-3 whitespace-nowrap">{r.launch_date ? `${r.days} d` : '—'}</td>
-                      <td className={`py-2.5 pr-3 whitespace-nowrap font-semibold ${(r.cagr_pct ?? r.return_pct ?? 0) < 0 ? 'text-[#DC2626]' : 'text-[#0E9F5E]'}`}>{r.perf_status === 'ok' ? head : '—'}</td>
-                      <td className={`py-2.5 pr-3 whitespace-nowrap ${(r.alpha_pct ?? 0) < 0 ? 'text-[#DC2626]' : 'text-[#0E9F5E]'}`}>{r.perf_status === 'ok' && r.alpha_pct !== null ? pct(r.alpha_pct) : '—'}<div className="text-[#94A3B8] font-normal">{r.benchmark}</div></td>
+                      <td className={`py-2.5 pr-3 whitespace-nowrap font-semibold ${(r.cagr_pct ?? r.return_pct ?? 0) < 0 ? 'text-[#B91C1C]' : 'text-[#0B7F4A]'}`}>{r.perf_status === 'ok' ? head : '—'}</td>
+                      <td className={`py-2.5 pr-3 whitespace-nowrap ${(r.alpha_pct ?? 0) < 0 ? 'text-[#B91C1C]' : 'text-[#0B7F4A]'}`}>{r.perf_status === 'ok' && r.alpha_pct !== null ? pct(r.alpha_pct) : '—'}<div className="text-[#667085] font-normal">{r.benchmark}</div></td>
                       <td className="py-2.5 pr-3">{r.volatility_label || '—'}</td>
                       <td className="py-2.5 pr-3 whitespace-nowrap">{r.min_investment ? r.min_investment.toLocaleString('en-IN') : '—'}</td>
                       <td className="py-2.5 pr-3">{r.versions || '—'}</td>
-                      <td className={`py-2.5 pr-3 whitespace-nowrap ${state.c}`}>{state.t}<div className="text-[#94A3B8]">{r.as_of ? `computed ${nice(r.as_of)}` : ''}</div></td>
+                      <td className={`py-2.5 pr-3 whitespace-nowrap ${state.c}`}>{state.t}<div className="text-[#667085]">{r.as_of ? `computed ${nice(r.as_of)}` : ''}</div></td>
                       <td className="py-2.5 whitespace-nowrap">
                         <div className="flex flex-col gap-1 items-end">
-                          <button onClick={() => recomputeOne(r.id)} disabled={busy[r.id]} className="btn-outline text-[11px] py-1 px-2" data-testid={`engine-recompute-${r.id}`}>
+                          <button onClick={() => recomputeOne(r.id)} disabled={busy[r.id]} className="btn-outline text-[12px] py-1 px-2" data-testid={`engine-recompute-${r.id}`}>
                             {busy[r.id] ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />} Recompute
                           </button>
                           {r.status === 'approved' && (
-                            <button onClick={() => setFix({ row: r, launch_date: r.launch_date || '', launch_price_date: r.launch_price_date || '', reason: '' })} className="btn-ghost text-[11px] py-1 px-2 inline-flex items-center gap-1" data-testid={`engine-fix-${r.id}`}>
+                            <button onClick={() => setFix({ row: r, launch_date: r.launch_date || '', launch_price_date: r.launch_price_date || '', reason: '' })} className="btn-ghost text-[12px] py-1 px-2 inline-flex items-center gap-1" data-testid={`engine-fix-${r.id}`}>
                               <CalendarClock className="h-3 w-3" /> Correct launch date
                             </button>
                           )}
@@ -228,7 +228,7 @@ export default function PerformanceEngineAdmin({ token, disclaimer, onDisclaimer
                 <Input type="date" value={fix.launch_date} onChange={(e) => setFix({ ...fix, launch_date: e.target.value })} className="mt-1 h-10" data-testid="fix-launch-date" />
               </div>
               <div>
-                <Label>Purchase (price) date <span className="text-[#94A3B8] font-normal">— leave blank to use the last close on/before the launch date</span></Label>
+                <Label>Purchase (price) date <span className="text-[#667085] font-normal">— leave blank to use the last close on/before the launch date</span></Label>
                 <Input type="date" value={fix.launch_price_date} onChange={(e) => setFix({ ...fix, launch_price_date: e.target.value })} className="mt-1 h-10" data-testid="fix-price-date" />
               </div>
               <div>

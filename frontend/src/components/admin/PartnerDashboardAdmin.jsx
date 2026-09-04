@@ -61,7 +61,7 @@ export default function PartnerDashboardAdmin({ token }) {
       </div>
 
       <div>
-        <div className="text-xs font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Metric tiles</div>
+        <div className="text-xs font-bold uppercase tracking-wider text-[#667085] mb-1">Metric tiles</div>
         <Toggle label="Portfolio views" checked={s.tiles.views} onChange={(v) => setS({ ...s, tiles: { ...s.tiles, views: v } })} />
         <Toggle label="Listing impressions" checked={s.tiles.impressions} onChange={(v) => setS({ ...s, tiles: { ...s.tiles, impressions: v } })} />
         <Toggle label="Invest clicks" checked={s.tiles.investClicks} onChange={(v) => setS({ ...s, tiles: { ...s.tiles, investClicks: v } })} />
@@ -69,7 +69,7 @@ export default function PartnerDashboardAdmin({ token }) {
       </div>
 
       <div>
-        <div className="text-xs font-bold uppercase tracking-wider text-[#94A3B8] mb-1">Growth nudges</div>
+        <div className="text-xs font-bold uppercase tracking-wider text-[#667085] mb-1">Growth nudges</div>
         <Toggle testid="pd-nudges" label="Show nudges" desc="Actionable suggestions computed from each partner's listings." checked={s.nudges.enabled} onChange={(v) => setS({ ...s, nudges: { ...s.nudges, enabled: v } })} />
         <div className="grid sm:grid-cols-2 gap-4 mt-3">
           <div>
@@ -84,7 +84,7 @@ export default function PartnerDashboardAdmin({ token }) {
       </div>
 
       <div>
-        <Label>Announcement to all partners <span className="font-normal text-[#94A3B8]">(optional — shown at the top of their dashboard)</span></Label>
+        <Label>Announcement to all partners <span className="font-normal text-[#667085]">(optional — shown at the top of their dashboard)</span></Label>
         <Textarea rows={2} value={s.announcement || ''} onChange={(e) => setS({ ...s, announcement: e.target.value })} className="mt-1.5" placeholder="e.g. Rebalance window closes Friday — update your listings by then." data-testid="pd-announcement" />
       </div>
 

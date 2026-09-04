@@ -81,18 +81,18 @@ export default function PhoneAuthModal() {
           {authInvite && (
             <div data-testid="modal-invite-banner" className="mb-4 rounded-xl border border-[#D8C7F1] bg-[#F7F4FB] px-3 py-2.5 text-sm">
               <span className="font-semibold text-[#5320A8]">Research analyst invitation</span>
-              <span className="block text-xs text-[#64748B]">You'll be onboarded as a research analyst after verification.</span>
+              <span className="block text-xs text-[#526071]">You'll be onboarded as a research analyst after verification.</span>
             </div>
           )}
 
           {step === 'phone' ? (
             <form onSubmit={sendCode} className="space-y-4">
               <div>
-                <label className="text-xs uppercase tracking-wider text-[#64748B]">Mobile number</label>
+                <label className="text-xs uppercase tracking-wider text-[#526071]">Mobile number</label>
                 <PhoneField testid="phone-input" value={phone} onChange={setPhone} autoFocus />
-                <p className="mt-1.5 text-xs text-[#94A3B8]">Pick your country and enter your mobile number.</p>
+                <p className="mt-1.5 text-xs text-[#667085]">Pick your country and enter your mobile number.</p>
               </div>
-              {error && <div data-testid="phone-auth-error" className="text-sm text-[#DC2626]">{error}</div>}
+              {error && <div data-testid="phone-auth-error" className="text-sm text-[#B91C1C]">{error}</div>}
               <button data-testid="send-otp-btn" disabled={busy || !phone} className="btn-primary w-full py-3 disabled:opacity-60">
                 {busy && <Loader2 className="h-4 w-4 animate-spin" />} Send OTP
               </button>
@@ -100,23 +100,23 @@ export default function PhoneAuthModal() {
           ) : (
             <form onSubmit={verify} className="space-y-4">
               <div>
-                <label className="text-xs uppercase tracking-wider text-[#64748B]">Enter OTP</label>
+                <label className="text-xs uppercase tracking-wider text-[#526071]">Enter OTP</label>
                 <Input data-testid="otp-input" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} required
                   placeholder="6-digit code" className="h-11 mt-1.5 tracking-[0.4em] text-center text-lg" inputMode="numeric" autoFocus />
                 {demo && <p data-testid="demo-otp-hint" className="mt-1.5 text-xs font-medium text-[#5320A8]">Demo mode — enter <b>123456</b> to continue.</p>}
               </div>
               <div>
-                <label className="text-xs uppercase tracking-wider text-[#64748B]">Your name (optional)</label>
+                <label className="text-xs uppercase tracking-wider text-[#526071]">Your name (optional)</label>
                 <Input data-testid="otp-name-input" value={name} onChange={(e) => setName(e.target.value)}
                   placeholder="Full name" className="h-11 mt-1.5" />
               </div>
-              {error && <div data-testid="phone-auth-error" className="text-sm text-[#DC2626]">{error}</div>}
+              {error && <div data-testid="phone-auth-error" className="text-sm text-[#B91C1C]">{error}</div>}
               <button data-testid="verify-otp-btn" disabled={busy || code.length < 4} className="btn-primary w-full py-3 disabled:opacity-60">
                 {busy && <Loader2 className="h-4 w-4 animate-spin" />} Verify & continue
               </button>
               <div className="flex items-center justify-between text-xs">
                 <button type="button" onClick={() => { setStep('phone'); setError(''); }} className="inline-flex items-center gap-1 text-[#6C2BD9] font-semibold"><ArrowLeft className="h-3.5 w-3.5" /> Change number</button>
-                <button type="button" disabled={cooldown > 0 || busy} onClick={sendCode} className={`font-semibold ${cooldown > 0 ? 'text-[#94A3B8]' : 'text-[#6C2BD9]'}`}>
+                <button type="button" disabled={cooldown > 0 || busy} onClick={sendCode} className={`font-semibold ${cooldown > 0 ? 'text-[#667085]' : 'text-[#6C2BD9]'}`}>
                   {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend OTP'}
                 </button>
               </div>

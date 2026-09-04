@@ -60,7 +60,7 @@ function PhotoUpload({ value, onChange, token, label = 'photo', round = false })
         <button type="button" onClick={() => inputRef.current?.click()} disabled={busy} className="btn-outline text-xs inline-flex items-center gap-1">
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />} Upload {label}
         </button>
-        {value && <button type="button" onClick={() => onChange('')} className="text-xs text-[#DC2626] hover:underline">Remove</button>}
+        {value && <button type="button" onClick={() => onChange('')} className="text-xs text-[#B91C1C] hover:underline">Remove</button>}
       </div>
     </div>
   );
@@ -72,7 +72,7 @@ function ParagraphList({ list, onChange }) {
       {list.map((para, i) => (
         <div key={i} className="flex items-start gap-2">
           <Textarea value={para} onChange={(e) => { const a = [...list]; a[i] = e.target.value; onChange(a); }} rows={2} />
-          <button onClick={() => onChange(list.filter((_, j) => j !== i))} className="h-8 w-8 mt-1 shrink-0 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
+          <button onClick={() => onChange(list.filter((_, j) => j !== i))} className="h-8 w-8 mt-1 shrink-0 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
         </div>
       ))}
       <button onClick={() => onChange([...list, ''])} className="btn-outline inline-flex items-center gap-1"><Plus className="h-4 w-4" /> Add paragraph</button>
@@ -87,7 +87,7 @@ function StatsEditor({ list, onChange }) {
         <div key={i} className="flex items-center gap-2">
           <Input value={s.label} onChange={(e) => patchIn(list, onChange, i, { label: e.target.value })} className="h-9" placeholder="Label (e.g. Launched in)" />
           <Input value={s.value} onChange={(e) => patchIn(list, onChange, i, { value: e.target.value })} className="h-9 w-40" placeholder="Value (e.g. 2024)" />
-          <button onClick={() => removeIn(list, onChange, i)} className="h-8 w-8 shrink-0 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
+          <button onClick={() => removeIn(list, onChange, i)} className="h-8 w-8 shrink-0 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
         </div>
       ))}
       <button onClick={() => onChange([...list, { label: '', value: '' }])} className="btn-outline inline-flex items-center gap-1"><Plus className="h-4 w-4" /> Add stat</button>
@@ -105,7 +105,7 @@ function PersonEditor({ list, onChange, kind, token }) {
             <div className="flex items-center gap-1">
               <button onClick={() => moveIn(list, onChange, i, -1)} disabled={i === 0} className="h-7 w-7 grid place-items-center rounded-lg text-[#6B6480] hover:bg-[#F7F4FB] disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
               <button onClick={() => moveIn(list, onChange, i, 1)} disabled={i === list.length - 1} className="h-7 w-7 grid place-items-center rounded-lg text-[#6B6480] hover:bg-[#F7F4FB] disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
-              <button onClick={() => removeIn(list, onChange, i)} className="h-7 w-7 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
+              <button onClick={() => removeIn(list, onChange, i)} className="h-7 w-7 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
             </div>
           </div>
           <PhotoUpload value={p.photoUrl} onChange={(url) => patchIn(list, onChange, i, { photoUrl: url })} token={token} />
@@ -235,7 +235,7 @@ export default function AboutAdmin({ token }) {
                 <div key={i} className="flex items-center gap-3 rounded-xl border border-[#E8E1F0] p-3">
                   <PhotoUpload value={l.url || ''} onChange={(url) => patchIn(investors.logos || [], (v) => setNested('investors', 'logos', v), i, { url })} token={token} label="logo" />
                   <Input value={l.name || ''} onChange={(e) => patchIn(investors.logos || [], (v) => setNested('investors', 'logos', v), i, { name: e.target.value })} className="h-9 flex-1" placeholder="Investor name (alt text)" />
-                  <button onClick={() => removeIn(investors.logos || [], (v) => setNested('investors', 'logos', v), i)} className="h-8 w-8 shrink-0 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
+                  <button onClick={() => removeIn(investors.logos || [], (v) => setNested('investors', 'logos', v), i)} className="h-8 w-8 shrink-0 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
                 </div>
               ))}
               <button onClick={() => setNested('investors', 'logos', [...(investors.logos || []), { url: '', name: '' }])} className="btn-outline inline-flex items-center gap-1"><Plus className="h-4 w-4" /> Add logo</button>
@@ -249,7 +249,7 @@ export default function AboutAdmin({ token }) {
                   <PhotoUpload value={p.photoUrl || ''} onChange={(url) => patchIn(investors.people || [], (v) => setNested('investors', 'people', v), i, { photoUrl: url })} token={token} round />
                   <Input value={p.name || ''} onChange={(e) => patchIn(investors.people || [], (v) => setNested('investors', 'people', v), i, { name: e.target.value })} className="h-9 flex-1" placeholder="Name" />
                   <Input value={p.org || ''} onChange={(e) => patchIn(investors.people || [], (v) => setNested('investors', 'people', v), i, { org: e.target.value })} className="h-9 flex-1" placeholder="Organisation" />
-                  <button onClick={() => removeIn(investors.people || [], (v) => setNested('investors', 'people', v), i)} className="h-8 w-8 shrink-0 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
+                  <button onClick={() => removeIn(investors.people || [], (v) => setNested('investors', 'people', v), i)} className="h-8 w-8 shrink-0 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
                 </div>
               ))}
               <button onClick={() => setNested('investors', 'people', [...(investors.people || []), { photoUrl: '', name: '', org: '' }])} className="btn-outline inline-flex items-center gap-1"><Plus className="h-4 w-4" /> Add person</button>
@@ -267,7 +267,7 @@ export default function AboutAdmin({ token }) {
               <div className="sm:col-span-2"><Label>Text</Label><Textarea value={c.text || ''} onChange={(e) => patchIn(contacts, setContacts, i, { text: e.target.value })} rows={2} className="mt-1.5" /></div>
               <div className="sm:col-span-2 flex items-center justify-between gap-3">
                 <Input value={c.link || ''} onChange={(e) => patchIn(contacts, setContacts, i, { link: e.target.value })} className="h-9 flex-1" placeholder="Optional link (used if no email)" />
-                <button onClick={() => removeIn(contacts, setContacts, i)} className="h-8 w-8 shrink-0 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
+                <button onClick={() => removeIn(contacts, setContacts, i)} className="h-8 w-8 shrink-0 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
               </div>
             </div>
           ))}

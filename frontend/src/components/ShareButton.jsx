@@ -36,7 +36,7 @@ export default function ShareButton({ path, title, text, label = 'Share', classN
       type="button"
       data-testid="share-button"
       onClick={onShare}
-      className={className || 'inline-flex items-center gap-1.5 text-sm font-semibold text-[#64748B] hover:text-[#6C2BD9] transition-colors'}
+      className={className || 'inline-flex items-center gap-1.5 text-sm font-semibold text-[#526071] hover:text-[#6C2BD9] transition-colors'}
     >
       <Share2 className="h-4 w-4" /> {label}
     </button>

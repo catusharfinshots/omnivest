@@ -43,7 +43,7 @@ export default function BasketCard({ basket, compact = false }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <span className={`chip ${basket.risk === 'Low' ? 'text-[#12B76A]' : basket.risk === 'High' ? 'text-[#B15CFF]' : 'text-[#5320A8]'}`}>
+            <span className={`chip ${basket.risk === 'Low' ? 'text-[#0B7F4A]' : basket.risk === 'High' ? 'text-[#B15CFF]' : 'text-[#5320A8]'}`}>
               {basket.risk} risk
             </span>
             <span className="chip">{basket.strategy.replace('-', ' ')}</span>
@@ -70,14 +70,14 @@ export default function BasketCard({ basket, compact = false }) {
 
       <div className="mt-3 grid grid-cols-2 gap-3">
         <div>
-          <div className="text-[11px] text-[#6B6480] font-medium uppercase tracking-wider">3Y CAGR</div>
-          <div className={`num mt-0.5 text-[18px] font-semibold ${positive ? 'text-[#12B76A]' : 'text-[#F04438]'} flex items-center gap-1`}>
+          <div className="text-[12px] text-[#6B6480] font-medium uppercase tracking-wider">3Y CAGR</div>
+          <div className={`num mt-0.5 text-[18px] font-semibold ${positive ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'} flex items-center gap-1`}>
             {positive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
             {positive ? '+' : ''}{basket.returns.y3.toFixed(1)}%
           </div>
         </div>
         <div>
-          <div className="text-[11px] text-[#6B6480] font-medium uppercase tracking-wider">Min. amount</div>
+          <div className="text-[12px] text-[#6B6480] font-medium uppercase tracking-wider">Min. amount</div>
           <div className="num mt-0.5 text-[18px] font-semibold text-[#1A1030]">₹{basket.minAmount.toLocaleString('en-IN')}</div>
         </div>
       </div>
@@ -85,7 +85,7 @@ export default function BasketCard({ basket, compact = false }) {
       {!compact && (
         <div className="mt-4 pt-3 border-t border-[#F1E7FE] flex items-center justify-between text-xs text-[#6B6480]">
           <span className="font-medium">{mgr?.name}</span>
-          <span className={basket.subscription === 'Free' ? 'text-[#12B76A] font-semibold' : 'text-[#6C2BD9] font-semibold'}>
+          <span className={basket.subscription === 'Free' ? 'text-[#0B7F4A] font-semibold' : 'text-[#6C2BD9] font-semibold'}>
             {basket.subscription === 'Free' ? 'Free' : `₹${basket.fee.amount}/${basket.fee.cycle === 'monthly' ? 'mo' : basket.fee.cycle === 'quarterly' ? 'qtr' : 'yr'}`}
           </span>
         </div>

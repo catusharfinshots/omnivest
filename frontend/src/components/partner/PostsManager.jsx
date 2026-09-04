@@ -77,13 +77,13 @@ export default function PostsManager({ token, portfolio, onBack }) {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2"><span className="font-semibold text-[#1A1030] truncate">{p.title}</span>
-                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${p.subscribers_only && paid ? 'bg-[#EDE9FE] text-[#6C2BD9]' : 'bg-[#F1F1F4] text-[#6B6480]'}`}>{p.subscribers_only && paid ? <><Lock className="h-3 w-3" /> subscribers</> : <><Globe className="h-3 w-3" /> public</>}</span>
+                  <span className={`inline-flex items-center gap-1 text-[12px] font-bold uppercase px-2 py-0.5 rounded-full ${p.subscribers_only && paid ? 'bg-[#EDE9FE] text-[#6C2BD9]' : 'bg-[#F1F1F4] text-[#6B6480]'}`}>{p.subscribers_only && paid ? <><Lock className="h-3 w-3" /> subscribers</> : <><Globe className="h-3 w-3" /> public</>}</span>
                 </div>
-                <div className="text-xs text-[#94A3B8] mt-0.5">{nice(p.created_at)}</div>
+                <div className="text-xs text-[#667085] mt-0.5">{nice(p.created_at)}</div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <button onClick={() => { setEditingId(p.id); setDraft({ title: p.title, body: p.body, subscribers_only: !!p.subscribers_only }); window.scrollTo({ top: 0 }); }} className="btn-ghost text-xs"><Pencil className="h-3.5 w-3.5" /> Edit</button>
-                <button onClick={() => remove(p.id)} className="h-8 w-8 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
+                <button onClick={() => remove(p.id)} className="h-8 w-8 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
               </div>
             </div>
             <div className="rich-text mt-2 text-sm text-[#4B4560]" dangerouslySetInnerHTML={{ __html: p.body }} />

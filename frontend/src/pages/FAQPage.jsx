@@ -38,7 +38,7 @@ export default function FAQPage() {
           <h1 className="mt-4 text-4xl sm:text-5xl font-bold">Frequently asked questions</h1>
           <p className="mt-3 text-white/85 max-w-xl">Everything you need to know about investing in model portfolios on Omnivest.</p>
           <div className="mt-6 max-w-xl relative">
-            <Search className="h-4 w-4 absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+            <Search className="h-4 w-4 absolute left-4 top-1/2 -translate-y-1/2 text-[#667085]" />
             <Input data-testid="faq-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search questions…" className="h-12 pl-11 bg-white text-[#1A1030]" />
           </div>
         </div>
@@ -46,7 +46,7 @@ export default function FAQPage() {
 
       <div className="container-x py-12 grid lg:grid-cols-[240px_1fr] gap-8 items-start">
         <aside className="surface p-4 lg:sticky lg:top-24">
-          <div className="text-xs font-semibold uppercase tracking-wider text-[#94A3B8] px-2 mb-2">Categories</div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-[#667085] px-2 mb-2">Categories</div>
           <div className="flex flex-col gap-1">
             {categories.map((ct) => (
               <button key={ct.name} data-testid={`faq-cat-${ct.name}`} onClick={() => setCat(ct.name)}
@@ -57,15 +57,15 @@ export default function FAQPage() {
           </div>
           <div className="mt-5 rounded-xl bg-[#F7F4FB] border border-[#E8E1F0] p-4">
             <div className="text-sm font-semibold text-[#1A1030]">Still need help?</div>
-            <p className="mt-1 text-xs text-[#64748B]">Can't find your answer? Reach our team.</p>
+            <p className="mt-1 text-xs text-[#526071]">Can't find your answer? Reach our team.</p>
             <a href={`mailto:${contactEmail}`} data-testid="faq-contact" className="btn-primary mt-3 w-full text-xs inline-flex justify-center"><Mail className="h-3.5 w-3.5" /> Contact us</a>
           </div>
         </aside>
 
         <div>
-          <div className="text-sm text-[#64748B] mb-3">{filtered.length} question{filtered.length !== 1 ? 's' : ''}{cat !== 'All' ? ` in ${cat}` : ''}</div>
+          <div className="text-sm text-[#526071] mb-3">{filtered.length} question{filtered.length !== 1 ? 's' : ''}{cat !== 'All' ? ` in ${cat}` : ''}</div>
           {filtered.length === 0 ? (
-            <div className="surface p-10 text-center text-[#64748B]">No questions match your search.</div>
+            <div className="surface p-10 text-center text-[#526071]">No questions match your search.</div>
           ) : (
             <div className="space-y-3">
               {filtered.map((f) => (

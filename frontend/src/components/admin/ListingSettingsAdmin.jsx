@@ -18,7 +18,7 @@ function Num({ label, value, onChange, hint, suffix, min = 0, max }) {
         <Input type="number" min={min} max={max} value={value} onChange={(e) => onChange(e.target.value)} className="h-10" />
         {suffix && <span className="text-xs text-[#6B6480] whitespace-nowrap">{suffix}</span>}
       </div>
-      {hint && <div className="mt-1 text-[11px] text-[#94A3B8]">{hint}</div>}
+      {hint && <div className="mt-1 text-[12px] text-[#667085]">{hint}</div>}
     </div>
   );
 }
@@ -112,14 +112,14 @@ export default function ListingSettingsAdmin({ token }) {
             <div>
               <Label>Plan durations offered</Label>
               <Input value={Array.isArray(rules.plan_durations) ? rules.plan_durations.join(', ') : rules.plan_durations} onChange={(e) => set('plan_durations', e.target.value)} className="mt-1.5 h-10" placeholder="1, 3, 6, 12" />
-              <div className="mt-1 text-[11px] text-[#94A3B8]">Months, comma-separated.</div>
+              <div className="mt-1 text-[12px] text-[#667085]">Months, comma-separated.</div>
             </div>
             <Num label="Minimum plan price" value={rules.min_plan_price} onChange={(v) => set('min_plan_price', v)} suffix="₹" min={0} />
             <Num label="Omnivest platform share" value={rules.platform_fee_pct} onChange={(v) => set('platform_fee_pct', v)} suffix="% of subscription revenue" min={0} max={100} hint="0% = Founding Partner offer (partners keep 100%)." />
             <div>
               <Label>Founding-partner window ends</Label>
               <Input type="date" value={rules.founding_partner_until || ''} onChange={(e) => set('founding_partner_until', e.target.value)} className="mt-1.5 h-10" />
-              <div className="mt-1 text-[11px] text-[#94A3B8]">Leave blank for open-ended. Shown as a badge to partners.</div>
+              <div className="mt-1 text-[12px] text-[#667085]">Leave blank for open-ended. Shown as a badge to partners.</div>
             </div>
           </div>
           <div className="mt-4 rounded-xl bg-[#F0FDF4] border border-[#DCFCE7] p-3 text-xs text-[#166534] flex gap-2"><Sparkles className="h-4 w-4 shrink-0 mt-0.5" /> Partners currently see: “Omnivest's platform share is {rules.platform_fee_pct}% — you keep {100 - Number(rules.platform_fee_pct || 0)}% of subscription revenue{rules.founding_partner_until ? ` for listings launched before ${rules.founding_partner_until}` : ''}.”</div>
@@ -136,9 +136,9 @@ export default function ListingSettingsAdmin({ token }) {
           <button onClick={refreshCls} disabled={clsBusy} className="btn-outline text-xs" data-testid="classification-refresh">{clsBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />} Fetch from NSE</button>
         </div>
         <div className="mt-4 grid sm:grid-cols-3 gap-3">
-          <div className="rounded-xl bg-[#F8FAFC] p-4"><div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Status</div><div className={`mt-1 text-lg font-bold ${cls?.loaded ? 'text-[#0E9F5E]' : 'text-[#DC2626]'}`}>{cls?.loaded ? 'Loaded' : 'Not loaded'}</div><div className="text-[11px] text-[#94A3B8]">{cls?.loaded ? `${cls.symbols} symbols · ${cls.source === 'nse' ? 'fetched from NSE' : 'uploaded CSVs'}` : 'Listings show "Other" until loaded'}</div></div>
-          <div className="rounded-xl bg-[#F8FAFC] p-4"><div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Last updated</div><div className="mt-1 text-lg font-bold text-[#1A1030]">{nice(cls?.fetched_at)}</div></div>
-          <div className="rounded-xl bg-[#F8FAFC] p-4"><div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Lists</div><div className="mt-1 text-[11px] text-[#4B4560] space-y-0.5">{LIST_KINDS.map(([k, l]) => <div key={k} className="flex justify-between"><span>{l.split(' →')[0]}</span><b>{cls?.lists?.[k] ?? '—'}</b></div>)}</div></div>
+          <div className="rounded-xl bg-[#F8FAFC] p-4"><div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">Status</div><div className={`mt-1 text-lg font-bold ${cls?.loaded ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>{cls?.loaded ? 'Loaded' : 'Not loaded'}</div><div className="text-[12px] text-[#667085]">{cls?.loaded ? `${cls.symbols} symbols · ${cls.source === 'nse' ? 'fetched from NSE' : 'uploaded CSVs'}` : 'Listings show "Other" until loaded'}</div></div>
+          <div className="rounded-xl bg-[#F8FAFC] p-4"><div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">Last updated</div><div className="mt-1 text-lg font-bold text-[#1A1030]">{nice(cls?.fetched_at)}</div></div>
+          <div className="rounded-xl bg-[#F8FAFC] p-4"><div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">Lists</div><div className="mt-1 text-[12px] text-[#4B4560] space-y-0.5">{LIST_KINDS.map(([k, l]) => <div key={k} className="flex justify-between"><span>{l.split(' →')[0]}</span><b>{cls?.lists?.[k] ?? '—'}</b></div>)}</div></div>
         </div>
         <div className="mt-4 flex items-center gap-2 flex-wrap text-xs">
           <span className="text-[#6B6480]">If NSE blocks the server, upload the CSV from nseindia.com → Indices → constituent lists:</span>

@@ -28,7 +28,7 @@ export default function InstrumentPicker({ value, onType, onPick, token }) {
   return (
     <div className="relative">
       <div className="relative">
-        <Search className="h-3.5 w-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-[#9A93AD]" />
+        <Search className="h-3.5 w-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-[#6E6787]" />
         <Input
           data-testid="constituent-symbol-input"
           value={q}
@@ -36,7 +36,7 @@ export default function InstrumentPicker({ value, onType, onPick, token }) {
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           className="h-9 pl-7" placeholder="Search symbol" />
-        {busy && <Loader2 className="h-3.5 w-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-[#9A93AD] animate-spin" />}
+        {busy && <Loader2 className="h-3.5 w-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-[#6E6787] animate-spin" />}
       </div>
       {open && results.length > 0 && (
         <div data-testid="instrument-results" className="absolute z-40 mt-1 w-[300px] max-h-60 overflow-auto rounded-xl border border-[#E8E1F0] bg-white shadow-lg">
@@ -46,7 +46,7 @@ export default function InstrumentPicker({ value, onType, onPick, token }) {
               type="button"
               onMouseDown={(e) => { e.preventDefault(); onPick(r); setOpen(false); }}
               className="w-full text-left px-3 py-2 hover:bg-[#F7F4FB] border-b border-[#F1E7FE] last:border-0">
-              <div className="text-sm font-semibold text-[#1A1030]">{r.tradingsymbol} <span className="text-[10px] font-bold text-[#6C2BD9]">{r.exchange}</span></div>
+              <div className="text-sm font-semibold text-[#1A1030]">{r.tradingsymbol} <span className="text-[12px] font-bold text-[#6C2BD9]">{r.exchange}</span></div>
               <div className="text-xs text-[#6B6480] truncate">{r.name || r.instrument_type}</div>
             </button>
           ))}

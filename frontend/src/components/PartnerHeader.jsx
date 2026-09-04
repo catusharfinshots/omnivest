@@ -23,7 +23,7 @@ export default function PartnerHeader({ minimal = false, onTrack }) {
             </span>
             <span className="font-[Inter] text-lg font-bold tracking-tight">Omnivest</span>
           </Link>
-          <span data-testid="partners-badge" className="hidden sm:inline-flex rounded-full bg-[#EDE9FE] text-[#5320A8] text-[11px] font-bold px-2.5 py-1 tracking-wide">Partners</span>
+          <span data-testid="partners-badge" className="hidden sm:inline-flex rounded-full bg-[#EDE9FE] text-[#5320A8] text-[12px] font-bold px-2.5 py-1 tracking-wide">Partners</span>
           {!minimal && (
             <nav className="hidden md:flex items-center gap-1 ml-2">
               {[['why-partner', 'Why partner'], ['requirements', 'Requirements'], ['partner-faq', 'FAQ']].map(([id, label]) => (

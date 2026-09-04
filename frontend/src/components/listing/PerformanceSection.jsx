@@ -74,13 +74,13 @@ export default function PerformanceSection({ perf, name }) {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">Performance
-            <button type="button" onClick={() => setHowOpen(true)} className="text-[#94A3B8] hover:text-[#6C2BD9]" title="How is this calculated?" data-testid="how-calculated"><HelpCircle className="h-4 w-4" /></button>
+            <button type="button" onClick={() => setHowOpen(true)} className="text-[#667085] hover:text-[#6C2BD9]" title="How is this calculated?" data-testid="how-calculated"><HelpCircle className="h-4 w-4" /></button>
           </h3>
-          <div className="text-xs text-[#64748B]">{ok ? `Live track record since ${nice(perf.start_date)} · prices as of ${nice(perf.price_date)}` : 'Live track record starts on the day of approval.'}</div>
+          <div className="text-xs text-[#526071]">{ok ? `Live track record since ${nice(perf.start_date)} · prices as of ${nice(perf.price_date)}` : 'Live track record starts on the day of approval.'}</div>
         </div>
         <div className="flex items-center gap-1 rounded-full bg-[#F1F1F4] p-0.5 text-xs">
           {[['growth', 'Growth of ₹100'], ['sip', `SIP ${INR(SIP_AMOUNT)}/mo`]].map(([k, l]) => (
-            <button key={k} type="button" onClick={() => setMode(k)} className={`rounded-full px-3 py-1 font-semibold ${mode === k ? 'bg-white shadow text-[#5320A8]' : 'text-[#64748B]'}`}>{l}</button>
+            <button key={k} type="button" onClick={() => setMode(k)} className={`rounded-full px-3 py-1 font-semibold ${mode === k ? 'bg-white shadow text-[#5320A8]' : 'text-[#526071]'}`}>{l}</button>
           ))}
         </div>
       </div>
@@ -89,23 +89,23 @@ export default function PerformanceSection({ perf, name }) {
         <div className="mt-5 rounded-xl border border-dashed border-[#E8E1F0] p-6 text-center">
           <CalendarCheck className="h-6 w-6 mx-auto text-[#6C2BD9]" />
           <div className="mt-2 text-sm font-semibold text-[#1A1030]">{perf?.launched_days_ago === 0 ? 'Launched today' : 'Track record building'}</div>
-          <div className="text-xs text-[#64748B] mt-1">The chart appears after the first market close following approval. No backtests — only what actually happened.</div>
+          <div className="text-xs text-[#526071] mt-1">The chart appears after the first market close following approval. No backtests — only what actually happened.</div>
         </div>
       ) : (
         <>
           <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-4">
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">{name}</div>
-                <div className={`text-xl font-bold flex items-center gap-1 ${up ? 'text-[#0E9F5E]' : 'text-[#DC2626]'}`}>{up ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />} {pct(ret)}</div>
+                <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">{name}</div>
+                <div className={`text-xl font-bold flex items-center gap-1 ${up ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>{up ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />} {pct(ret)}</div>
               </div>
               {compare && (
                 <div>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">{labels[compare] || compare}</div>
-                  <div className={`text-xl font-bold ${(bret ?? 0) >= 0 ? 'text-[#0E9F5E]' : 'text-[#DC2626]'}`}>{pct(bret)}</div>
+                  <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">{labels[compare] || compare}</div>
+                  <div className={`text-xl font-bold ${(bret ?? 0) >= 0 ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>{pct(bret)}</div>
                 </div>
               )}
-              <div className="text-xs text-[#64748B]">
+              <div className="text-xs text-[#526071]">
                 <select value={compare || ''} onChange={(e) => setCompare(e.target.value || null)} className="h-8 rounded-lg border border-[#E8E1F0] px-2 text-xs bg-white" data-testid="compare-select">
                   <option value="">Compare with…</option>
                   {benchKeys.map((b) => <option key={b} value={b}>{labels[b] || b}</option>)}
@@ -115,7 +115,7 @@ export default function PerformanceSection({ perf, name }) {
             <div className="flex items-center gap-1" data-testid="range-buttons">
               {RANGES.map((r) => (
                 <button key={r.k} type="button" disabled={!available.has(r.k)} onClick={() => setRange(r.k)}
-                  className={`rounded-md px-2.5 py-1 text-xs font-semibold ${effRange === r.k ? 'bg-[#6C2BD9] text-white' : 'text-[#64748B] hover:bg-[#F1E7FE]'} disabled:opacity-30 disabled:hover:bg-transparent`}
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold ${effRange === r.k ? 'bg-[#6C2BD9] text-white' : 'text-[#526071] hover:bg-[#F1E7FE]'} disabled:opacity-30 disabled:hover:bg-transparent`}
                   title={available.has(r.k) ? '' : 'Not enough live history yet'}>{r.k}</button>
               ))}
             </div>
@@ -144,7 +144,7 @@ export default function PerformanceSection({ perf, name }) {
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#64748B]">
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#526071]">
             <span className="inline-flex items-center gap-1"><span className="h-2 w-4 rounded bg-[#6C2BD9]" /> {name}</span>
             {compare && <span className="inline-flex items-center gap-1"><span className="h-0.5 w-4 bg-[#F59E0B]" /> {labels[compare] || compare}</span>}
             {mode === 'sip' && <span className="inline-flex items-center gap-1"><span className="h-0.5 w-4 bg-[#94A3B8]" /> Amount invested ({INR(last?.invested)})</span>}

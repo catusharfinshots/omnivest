@@ -38,7 +38,7 @@ export function ManagersPage() {
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-xl grad-card text-white grid place-items-center font-bold">{m.logo}</div>
                 <div>
-                  <div className="flex items-center gap-1 text-sm font-semibold">{m.name} <BadgeCheck className="h-4 w-4 text-[#12B76A]" /></div>
+                  <div className="flex items-center gap-1 text-sm font-semibold">{m.name} <BadgeCheck className="h-4 w-4 text-[#0B7F4A]" /></div>
                   <div className="text-xs text-[#6B6480]">{m.sebiReg || 'SEBI-registered'}</div>
                 </div>
               </div>
@@ -77,7 +77,7 @@ export function ManagerDetail() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-3xl md:text-4xl font-bold">{m.name}</h1>
-              <BadgeCheck className="h-6 w-6 text-[#12B76A]" />
+              <BadgeCheck className="h-6 w-6 text-[#0B7F4A]" />
             </div>
             <div className="text-sm text-[#6B6480] mt-1">{m.sebiReg ? `SEBI Reg: ${m.sebiReg}` : 'SEBI-registered'}{m.firm ? ` · ${m.firm}` : ''}</div>
             {m.description && <p className="text-[#6B6480] mt-2 max-w-2xl">{m.description}</p>}

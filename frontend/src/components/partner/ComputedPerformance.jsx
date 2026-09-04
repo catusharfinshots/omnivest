@@ -5,16 +5,16 @@ import { Activity, ArrowDownRight, CalendarCheck, IndianRupee, Info, Lock, Trend
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const fmt = (v, suffix = '%') => (v === null || v === undefined ? '—' : `${v > 0 ? '+' : ''}${v}${suffix}`);
-const VOL_CLS = { Low: 'bg-[#DCFCE7] text-[#0E9F5E]', Medium: 'bg-[#FEF3C7] text-[#B45309]', High: 'bg-[#FEE2E2] text-[#DC2626]' };
+const VOL_CLS = { Low: 'bg-[#DCFCE7] text-[#0B7F4A]', Medium: 'bg-[#FEF3C7] text-[#9A4A05]', High: 'bg-[#FEE2E2] text-[#B91C1C]' };
 const WINDOW_NEEDS = { '1M': '1 month', '3M': '3 months', '6M': '6 months', '1Y': '1 year', '3Y': '3 years', '5Y': '5 years' };
 const nice = (iso) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 
 function Tile({ label, children, sub }) {
   return (
     <div className="rounded-xl bg-[#F8FAFC] p-4">
-      <div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">{label}</div>
+      <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">{label}</div>
       <div className="mt-1">{children}</div>
-      {sub && <div className="mt-0.5 text-[10px] text-[#94A3B8]">{sub}</div>}
+      {sub && <div className="mt-0.5 text-[12px] text-[#667085]">{sub}</div>}
     </div>
   );
 }
@@ -55,10 +55,10 @@ export default function ComputedPerformance({ pid, token }) {
         </div>
       </div>
 
-      {perf === undefined && <div className="mt-4 text-xs text-[#94A3B8]">Loading market data…</div>}
+      {perf === undefined && <div className="mt-4 text-xs text-[#667085]">Loading market data…</div>}
 
       {(perf === null || (perf && perf.status === 'unavailable')) && (
-        <div className="mt-4 rounded-xl border border-dashed border-[#E8E1F0] p-4 text-xs text-[#64748B]">
+        <div className="mt-4 rounded-xl border border-dashed border-[#E8E1F0] p-4 text-xs text-[#526071]">
           {perf?.errors?.[0] || 'Market data unavailable right now — figures will appear automatically once it reconnects.'}
         </div>
       )}
@@ -84,20 +84,20 @@ export default function ComputedPerformance({ pid, token }) {
           <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
             <Tile label={useCagr ? 'CAGR (live)' : 'Since launch'}
               sub={useCagr ? `${m.days} days live` : (m.days > 0 ? `${m.days} days live · CAGR appears after 1 year` : 'first close after launch pending')}>
-              <div className={`text-2xl font-bold flex items-center gap-1 ${headline === null ? 'text-[#6C2BD9]' : headline < 0 ? 'text-[#DC2626]' : 'text-[#0E9F5E]'}`}>
+              <div className={`text-2xl font-bold flex items-center gap-1 ${headline === null ? 'text-[#6C2BD9]' : headline < 0 ? 'text-[#B91C1C]' : 'text-[#0B7F4A]'}`}>
                 {headline !== null && headline < 0 ? <TrendingDown className="h-5 w-5" /> : <TrendingUp className="h-5 w-5" />} {headline === null ? 'New' : fmt(headline)}
               </div>
             </Tile>
             <Tile label={`vs ${benchLabel}`} sub={`${benchLabel} ${useCagr ? 'CAGR' : 'since launch'} ${fmt(benchHeadline)}`}>
-              <div className={`text-2xl font-bold ${alpha === null ? 'text-[#94A3B8]' : alpha >= 0 ? 'text-[#0E9F5E]' : 'text-[#DC2626]'}`}>{alpha === null ? '—' : fmt(alpha)}</div>
+              <div className={`text-2xl font-bold ${alpha === null ? 'text-[#667085]' : alpha >= 0 ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>{alpha === null ? '—' : fmt(alpha)}</div>
             </Tile>
             <Tile label="Volatility" sub={m.max_drawdown_pct !== null ? <span className="inline-flex items-center gap-1"><ArrowDownRight className="h-3 w-3" /> max drawdown {fmt(m.max_drawdown_pct)}</span> : null}>
               {m.volatility_label ? (
                 <div className="flex items-center gap-2">
                   <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${VOL_CLS[m.volatility_label]}`}>{m.volatility_label}</span>
-                  <span className="text-xs text-[#64748B]">{m.volatility_pct}% ann.</span>
+                  <span className="text-xs text-[#526071]">{m.volatility_pct}% ann.</span>
                 </div>
-              ) : <div className="text-xs text-[#94A3B8] pt-1">after 20 trading days</div>}
+              ) : <div className="text-xs text-[#667085] pt-1">after 20 trading days</div>}
             </Tile>
             <Tile label="Auto min. investment" sub="1+ share of every constituent">
               <div className="text-2xl font-bold text-[#1A1030] flex items-center gap-0.5"><IndianRupee className="h-5 w-5" />{minInv ? minInv.amount.toLocaleString('en-IN') : '—'}</div>
@@ -110,16 +110,16 @@ export default function ComputedPerformance({ pid, token }) {
               const has = v !== null && v !== undefined;
               return (
                 <div key={w} className={`rounded-lg border py-2 ${has ? 'border-[#F1EBF9]' : 'border-dashed border-[#EEF1F6]'}`} title={has ? '' : `Available once the listing is ${WINDOW_NEEDS[w]} old`}>
-                  <div className="text-[10px] font-bold text-[#94A3B8]">{w}</div>
+                  <div className="text-[12px] font-bold text-[#667085]">{w}</div>
                   {has
-                    ? <div className={`text-sm font-semibold ${v >= 0 ? 'text-[#0E9F5E]' : 'text-[#DC2626]'}`}>{fmt(v)}</div>
+                    ? <div className={`text-sm font-semibold ${v >= 0 ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>{fmt(v)}</div>
                     : <div className="text-[#CBD5E1] flex justify-center pt-0.5"><Lock className="h-3.5 w-3.5" /></div>}
                 </div>
               );
             })}
           </div>
 
-          <div className="mt-3 flex items-start gap-1.5 text-[11px] text-[#94A3B8]">
+          <div className="mt-3 flex items-start gap-1.5 text-[12px] text-[#667085]">
             <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
             <span>
               Launched {nice(perf.launch_date)} · bought at {nice(perf.start_date)} close · prices as of {nice(perf.price_date)} ·{' '}

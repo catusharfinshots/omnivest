@@ -19,7 +19,7 @@ export default function HoldingsSection({ basket, perf }) {
           {capEntries.length > 0 && (
             <div className="surface p-5">
               <h3 className="text-base font-semibold">Holdings distribution</h3>
-              <div className="text-xs text-[#64748B]">By market cap, from NSE index membership</div>
+              <div className="text-xs text-[#526071]">By market cap, from NSE index membership</div>
               <div className="mt-3 h-3 rounded-full overflow-hidden flex bg-[#F1F1F4]">
                 {capEntries.map(([k, v]) => <div key={k} style={{ width: `${Math.min(100, v)}%`, background: CAP_COLORS[k] || '#CBD5E1' }} title={`${k} ${v}%`} />)}
               </div>
@@ -36,7 +36,7 @@ export default function HoldingsSection({ basket, perf }) {
           {sectorEntries.length > 0 && (
             <div className="surface p-5">
               <h3 className="text-base font-semibold">Sector exposure</h3>
-              <div className="text-xs text-[#64748B]">Top sectors by weight</div>
+              <div className="text-xs text-[#526071]">Top sectors by weight</div>
               <div className="mt-3 space-y-2">
                 {sectorEntries.map(([k, v]) => (
                   <div key={k} className="flex items-center gap-3 text-sm">
@@ -53,7 +53,7 @@ export default function HoldingsSection({ basket, perf }) {
 
       <div className="surface overflow-x-auto">
         <table className="w-full text-sm" data-testid="weights-table">
-          <thead className="bg-[#F5F7FB] text-[#64748B]">
+          <thead className="bg-[#F5F7FB] text-[#526071]">
             <tr className="text-left">
               <th className="px-4 py-3 font-medium">Constituent</th>
               <th className="px-4 py-3 font-medium">Type</th>
@@ -68,9 +68,9 @@ export default function HoldingsSection({ basket, perf }) {
                 <tr key={sym} className="border-t border-[#EEF1F6]">
                   <td className="px-4 py-3">
                     <div className="font-medium text-[#0F1729]">{c.name}</div>
-                    <div className="text-xs text-[#94A3B8]">{sym} · {c.exchange || 'NSE'}</div>
+                    <div className="text-xs text-[#667085]">{sym} · {c.exchange || 'NSE'}</div>
                   </td>
-                  <td className="px-4 py-3 text-[#64748B]">{c.type}</td>
+                  <td className="px-4 py-3 text-[#526071]">{c.type}</td>
                   <td className="px-4 py-3 text-right num">{INR(prices[sym])}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 justify-end">
@@ -83,7 +83,7 @@ export default function HoldingsSection({ basket, perf }) {
             })}
           </tbody>
         </table>
-        {perf?.price_date && <div className="px-4 py-2 text-[11px] text-[#94A3B8] border-t border-[#EEF1F6]">Closing prices as of {perf.price_date}. Weights are the partner's targets; your actual quantities depend on the amount you invest.</div>}
+        {perf?.price_date && <div className="px-4 py-2 text-[12px] text-[#667085] border-t border-[#EEF1F6]">Closing prices as of {perf.price_date}. Weights are the partner's targets; your actual quantities depend on the amount you invest.</div>}
       </div>
     </div>
   );

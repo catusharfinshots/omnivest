@@ -35,11 +35,11 @@ export default function PostsModerationAdmin({ token }) {
           {posts.slice(0, 30).map((p) => (
             <div key={p.id} className="flex items-start justify-between gap-3 rounded-lg border border-[#EEE8F7] px-3 py-2" data-testid="mod-post">
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-[#1A1030] truncate">{p.title} <span className="text-[#94A3B8] font-normal">· {p.portfolio_name}</span></div>
-                <div className="text-[11px] text-[#94A3B8] flex items-center gap-2">{nice(p.created_at)} {p.subscribers_only ? <span className="inline-flex items-center gap-0.5"><Lock className="h-3 w-3" /> subscribers</span> : <span className="inline-flex items-center gap-0.5"><Globe className="h-3 w-3" /> public</span>}</div>
+                <div className="text-sm font-semibold text-[#1A1030] truncate">{p.title} <span className="text-[#667085] font-normal">· {p.portfolio_name}</span></div>
+                <div className="text-[12px] text-[#667085] flex items-center gap-2">{nice(p.created_at)} {p.subscribers_only ? <span className="inline-flex items-center gap-0.5"><Lock className="h-3 w-3" /> subscribers</span> : <span className="inline-flex items-center gap-0.5"><Globe className="h-3 w-3" /> public</span>}</div>
                 <div className="text-xs text-[#6B6480] mt-0.5 line-clamp-2">{plain(p.body)}</div>
               </div>
-              <button onClick={() => remove(p)} className="h-8 w-8 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2] shrink-0" title="Remove"><Trash2 className="h-4 w-4" /></button>
+              <button onClick={() => remove(p)} className="h-8 w-8 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2] shrink-0" title="Remove"><Trash2 className="h-4 w-4" /></button>
             </div>
           ))}
         </div>

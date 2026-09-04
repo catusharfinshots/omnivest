@@ -36,7 +36,15 @@ export default function PhoneField({ value, onChange, testid = 'phone-input', au
         countryCallingCodeEditable={false}
         limitMaxLength
         value={value}
-        onChange={(v) => onChange(v || '')}
+        onChange={(v) => {
+          // The field already shows +91. If someone also types or pastes "+91…" / "91…" / "0…",
+          // strip the duplicate so the stored number is exactly their 10 digits.
+          let out = v || '';
+          const digits = out.replace(/\D/g, '');
+          if (digits.startsWith('91') && digits.length > 12) out = `+91${digits.slice(2).replace(/^91/, '').replace(/^0/, '').slice(0, 10)}`;
+          else if (digits.startsWith('910') && digits.length === 13) out = `+91${digits.slice(3)}`;
+          onChange(out);
+        }}
         autoFocus={autoFocus}
         placeholder="Enter mobile number"
       />

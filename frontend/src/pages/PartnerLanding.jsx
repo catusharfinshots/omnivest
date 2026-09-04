@@ -43,9 +43,9 @@ function TrackApplication({ openSignal = 0 }) {
   };
 
   const STATUS_UI = {
-    pending: { icon: Clock3, cls: 'bg-[#FEF3C7] text-[#B45309]', label: 'Under review', copy: 'We are verifying your details and documents — typically 2–3 working days.' },
-    approved: { icon: CheckCircle2, cls: 'bg-[#DCFCE7] text-[#0E9F5E]', label: 'Approved 🎉', copy: 'Use “Partner login” above with your registered mobile to open your analyst console.' },
-    rejected: { icon: XCircle, cls: 'bg-[#FEE2E2] text-[#DC2626]', label: 'Not approved', copy: 'You can correct the issue and submit a fresh application any time.' },
+    pending: { icon: Clock3, cls: 'bg-[#FEF3C7] text-[#9A4A05]', label: 'Under review', copy: 'We are verifying your details and documents — typically 2–3 working days.' },
+    approved: { icon: CheckCircle2, cls: 'bg-[#DCFCE7] text-[#0B7F4A]', label: 'Approved 🎉', copy: 'Use “Partner login” above with your registered mobile to open your analyst console.' },
+    rejected: { icon: XCircle, cls: 'bg-[#FEE2E2] text-[#B91C1C]', label: 'Not approved', copy: 'You can correct the issue and submit a fresh application any time.' },
   };
   const ui = result ? STATUS_UI[result.status] : null;
 
@@ -54,7 +54,7 @@ function TrackApplication({ openSignal = 0 }) {
       <button type="button" data-testid="track-toggle" onClick={() => setOpen(!open)} className="w-full flex items-center justify-between gap-3 text-left">
         <div>
           <div className="text-sm font-semibold text-[#1A1030] flex items-center gap-2"><SearchCheck className="h-4 w-4 text-[#6C2BD9]" /> Track an existing application</div>
-          <div className="text-xs text-[#64748B]">Check your status with your reference number (OMN-RA-…) and registered mobile.</div>
+          <div className="text-xs text-[#526071]">Check your status with your reference number (OMN-RA-…) and registered mobile.</div>
         </div>
         <span className="text-xs font-semibold text-[#6C2BD9]">{open ? 'Hide' : 'Check status'}</span>
       </button>
@@ -73,19 +73,19 @@ function TrackApplication({ openSignal = 0 }) {
           </button>
         </form>
       )}
-      {open && error && <p data-testid="track-error" className="mt-3 text-sm text-[#DC2626]">{error}</p>}
+      {open && error && <p data-testid="track-error" className="mt-3 text-sm text-[#B91C1C]">{error}</p>}
       {open && result && ui && (
         <div data-testid="track-result" className="mt-4 rounded-xl border border-[#E8E1F0] bg-white p-4">
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${ui.cls}`}><ui.icon className="h-3.5 w-3.5" /> {ui.label}</span>
-            <span className="text-xs text-[#94A3B8]">{result.ref_no} · applied {new Date(result.created_at).toLocaleDateString('en-IN')}</span>
+            <span className="text-xs text-[#667085]">{result.ref_no} · applied {new Date(result.created_at).toLocaleDateString('en-IN')}</span>
           </div>
           {result.review_note && (
             <div data-testid="track-review-note" className="mt-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] px-3 py-2 text-sm text-[#475569]">
               <b className="text-[#1A1030]">Message from our review team:</b> {result.review_note}
             </div>
           )}
-          <p className="mt-2 text-xs text-[#64748B]">{ui.copy}</p>
+          <p className="mt-2 text-xs text-[#526071]">{ui.copy}</p>
         </div>
       )}
     </div>
@@ -113,7 +113,7 @@ function Floating({ children, className = '' }) {
   const reduce = useReducedMotion();
   if (reduce) return <div className={className}>{children}</div>;
   return (
-    <motion.div className={className} animate={{ y: [0, -9, 0] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}>
+    <motion.div className={className} animate={reduce ? { y: 0 } : { y: [0, -9, 0] }} transition={reduce ? { duration: 0 } : { duration: 5, repeat: Infinity, ease: 'easeInOut' }}>
       {children}
     </motion.div>
   );
@@ -129,7 +129,7 @@ function FloatChip({ children, className = '', delay = 0 }) {
   if (reduce) return <div className={className}>{inner}</div>;
   return (
     <motion.div className={className}
-      initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1, y: [0, -7, 0] }}
+      initial={reduce ? false : { opacity: 0, scale: 0.6 }} animate={reduce ? { opacity: 1, scale: 1, y: 0 } : { opacity: 1, scale: 1, y: [0, -7, 0] }}
       transition={{ opacity: { duration: 0.4, delay }, scale: { duration: 0.4, delay, type: 'spring', bounce: 0.4 }, y: { duration: 4, repeat: Infinity, ease: 'easeInOut', delay: delay + 0.4 } }}>
       {inner}
     </motion.div>
@@ -146,7 +146,7 @@ function MockCreate() {
     <div className="relative rounded-2xl bg-white shadow-xl border border-[#EDE9FE] p-5 text-left">
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Create model portfolio</div>
+          <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">Create model portfolio</div>
           <div className="text-sm font-bold text-[#1A1030]">Momentum Picks</div>
         </div>
         <span className="h-8 w-8 rounded-lg grad-card grid place-items-center text-white"><TrendingUp className="h-4 w-4" /></span>
@@ -154,7 +154,7 @@ function MockCreate() {
       <div className="mt-4 space-y-2.5">
         {rows.map((r, i) => (
           <div key={r.s} className="flex items-center gap-3">
-            <span className="w-20 text-[11px] font-semibold text-[#475569]">{r.s}</span>
+            <span className="w-20 text-[12px] font-semibold text-[#475569]">{r.s}</span>
             <div className="flex-1 h-2 rounded-full bg-[#F1F5F9] overflow-hidden">
               {reduce ? (
                 <div className="h-full rounded-full bg-[#8B5CF6]" style={{ width: `${r.w * 3}%` }} />
@@ -164,13 +164,13 @@ function MockCreate() {
                   viewport={{ once: true }} transition={{ duration: 0.9, delay: 0.3 + i * 0.12, ease: 'easeOut' }} />
               )}
             </div>
-            <span className="w-8 text-right text-[11px] font-bold text-[#1A1030]">{r.w}%</span>
+            <span className="w-8 text-right text-[12px] font-bold text-[#1A1030]">{r.w}%</span>
           </div>
         ))}
       </div>
       <div className="mt-4 flex items-center justify-between border-t border-[#F1EBF9] pt-3">
-        <span className="text-[11px] font-semibold text-[#0E9F5E]">✓ Total weight 100%</span>
-        <span className="rounded-full bg-[#6C2BD9] text-white text-[11px] font-semibold px-3 py-1.5">Submit for review</span>
+        <span className="text-[12px] font-semibold text-[#0B7F4A]">✓ Total weight 100%</span>
+        <span className="rounded-full bg-[#6C2BD9] text-white text-[12px] font-semibold px-3 py-1.5">Submit for review</span>
       </div>
     </div>
   );
@@ -178,22 +178,22 @@ function MockCreate() {
 
 function MockManage() {
   const rows = [
-    { n: 'Momentum Picks', st: 'Approved', cls: 'bg-[#DCFCE7] text-[#0E9F5E]' },
-    { n: 'Quality Compounders', st: 'In review', cls: 'bg-[#FEF3C7] text-[#B45309]' },
-    { n: 'Dividend Shield', st: 'Draft', cls: 'bg-[#F1F5F9] text-[#64748B]' },
+    { n: 'Momentum Picks', st: 'Approved', cls: 'bg-[#DCFCE7] text-[#0B7F4A]' },
+    { n: 'Quality Compounders', st: 'In review', cls: 'bg-[#FEF3C7] text-[#9A4A05]' },
+    { n: 'Dividend Shield', st: 'Draft', cls: 'bg-[#F1F5F9] text-[#526071]' },
   ];
   return (
     <div className="rounded-2xl bg-white shadow-xl border border-[#EDE9FE] p-5">
-      <div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Analyst console · My listings</div>
+      <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">Analyst console · My listings</div>
       <div className="mt-3 space-y-2">
         {rows.map((r) => (
           <div key={r.n} className="flex items-center justify-between rounded-xl border border-[#F1EBF9] px-3.5 py-3">
             <div className="text-sm font-semibold text-[#1A1030]">{r.n}</div>
-            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${r.cls}`}>{r.st}</span>
+            <span className={`text-[12px] font-bold uppercase px-2 py-0.5 rounded-full ${r.cls}`}>{r.st}</span>
           </div>
         ))}
       </div>
-      <div className="mt-3 text-[11px] text-[#94A3B8]">Factsheets, rebalances and reviews — all in one place.</div>
+      <div className="mt-3 text-[12px] text-[#667085]">Factsheets, rebalances and reviews — all in one place.</div>
     </div>
   );
 }
@@ -208,10 +208,10 @@ function MockGrow() {
         <div key={c.n} className="rounded-2xl bg-white shadow-xl border border-[#EDE9FE] p-5">
           <div className="h-9 w-9 rounded-xl grad-card grid place-items-center text-white text-xs font-bold">{c.n[0]}</div>
           <div className="mt-3 text-sm font-bold text-[#1A1030]">{c.n}</div>
-          <div className="text-[11px] text-[#94A3B8]">by {c.by} · SEBI-registered</div>
+          <div className="text-[12px] text-[#667085]">by {c.by} · SEBI-registered</div>
           <div className="mt-3 flex items-center justify-between">
-            <div><div className="text-[10px] text-[#94A3B8]">3Y CAGR</div><div className="text-sm font-bold text-[#0E9F5E]">{c.r}</div></div>
-            <span className="rounded-full bg-[#F1E7FE] text-[#5320A8] text-[11px] font-semibold px-3 py-1.5">Subscribe</span>
+            <div><div className="text-[12px] text-[#667085]">3Y CAGR</div><div className="text-sm font-bold text-[#0B7F4A]">{c.r}</div></div>
+            <span className="rounded-full bg-[#F1E7FE] text-[#5320A8] text-[12px] font-semibold px-3 py-1.5">Subscribe</span>
           </div>
         </div>
       ))}
@@ -223,18 +223,18 @@ const FEATURE_MOCKS = [MockCreate, MockManage, MockGrow];
 
 // ---- "Old way vs Omnivest way" illustrated diagram ----
 const OLD_NODES = [
-  { icon: MessageCircle, x: 12, y: 6, bg: 'bg-[#FEF3C7]', fg: 'text-[#B45309]' },
+  { icon: MessageCircle, x: 12, y: 6, bg: 'bg-[#FEF3C7]', fg: 'text-[#9A4A05]' },
   { icon: FileText, x: 58, y: 2, bg: 'bg-[#DBEAFE]', fg: 'text-[#1D4ED8]' },
   { icon: PhoneCall, x: 30, y: 30, bg: 'bg-[#FCE7F3]', fg: 'text-[#BE185D]' },
-  { icon: ShoppingCart, x: 66, y: 42, bg: 'bg-[#DCFCE7]', fg: 'text-[#0E9F5E]' },
+  { icon: ShoppingCart, x: 66, y: 42, bg: 'bg-[#DCFCE7]', fg: 'text-[#0B7F4A]' },
   { icon: FileSpreadsheet, x: 14, y: 56, bg: 'bg-[#FFEDD5]', fg: 'text-[#C2410C]' },
   { icon: IndianRupee, x: 52, y: 72, bg: 'bg-[#EDE9FE]', fg: 'text-[#5320A8]' },
 ];
 const NEW_SPOKES = [
-  { icon: CheckCircle2, x: 50, y: 8, bg: 'bg-[#DCFCE7]', fg: 'text-[#0E9F5E]' },
+  { icon: CheckCircle2, x: 50, y: 8, bg: 'bg-[#DCFCE7]', fg: 'text-[#0B7F4A]' },
   { icon: FileText, x: 84, y: 28, bg: 'bg-[#DBEAFE]', fg: 'text-[#1D4ED8]' },
   { icon: RefreshCw, x: 84, y: 64, bg: 'bg-[#EDE9FE]', fg: 'text-[#5320A8]' },
-  { icon: BarChart3, x: 50, y: 84, bg: 'bg-[#FEF3C7]', fg: 'text-[#B45309]' },
+  { icon: BarChart3, x: 50, y: 84, bg: 'bg-[#FEF3C7]', fg: 'text-[#9A4A05]' },
   { icon: IndianRupee, x: 16, y: 64, bg: 'bg-[#FCE7F3]', fg: 'text-[#BE185D]' },
   { icon: ShieldCheck, x: 16, y: 28, bg: 'bg-[#FFEDD5]', fg: 'text-[#C2410C]' },
 ];
@@ -258,13 +258,13 @@ function OldNewWay({ data }) {
     <section className="mt-20" data-testid="old-new-way">
       <Reveal>
         <h2 className="text-2xl sm:text-3xl font-bold text-center">{data.heading}</h2>
-        <p className="mt-2 text-sm text-[#64748B] text-center max-w-2xl mx-auto">{data.sub}</p>
+        <p className="mt-2 text-sm text-[#526071] text-center max-w-2xl mx-auto">{data.sub}</p>
       </Reveal>
       <div className="relative mt-10 grid lg:grid-cols-2 gap-8 items-stretch">
         <div className="hidden lg:grid absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 h-12 w-12 place-items-center rounded-full bg-[#1A1030] text-white text-xs font-bold shadow-xl" aria-hidden="true">VS</div>
         <Reveal className="h-full">
           <div className="relative h-[430px] rounded-2xl border border-[#F3E2DD] bg-[#FFFBFA] p-5 overflow-hidden">
-            <div className="text-[11px] font-bold uppercase tracking-widest text-[#DC2626]">{data.oldTitle}</div>
+            <div className="text-[12px] font-bold uppercase tracking-widest text-[#B91C1C]">{data.oldTitle}</div>
             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
               <path d="M18 14 Q 45 2 62 10 Q 78 20 38 36 Q 20 44 70 50 Q 88 56 24 62 Q 8 70 56 80"
                 fill="none" stroke="#CBD5E1" strokeWidth="0.6" strokeDasharray="2 2.4" />
@@ -272,14 +272,14 @@ function OldNewWay({ data }) {
             {OLD_NODES.map((n, i) => (
               <Pop key={i} delay={0.15 + i * 0.13} className="absolute w-[110px] text-center" style={{ left: `${n.x}%`, top: `${n.y + 8}%` }}>
                 <span className={`mx-auto h-11 w-11 rounded-full ${n.bg} ${n.fg} grid place-items-center shadow-sm`}><n.icon className="h-5 w-5" /></span>
-                <div className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#94A3B8] leading-snug">{labels[i] || ''}</div>
+                <div className="mt-1.5 text-[12px] font-semibold uppercase tracking-wide text-[#667085] leading-snug">{labels[i] || ''}</div>
               </Pop>
             ))}
           </div>
         </Reveal>
         <Reveal delay={0.15} className="h-full">
           <div className="relative h-[430px] rounded-2xl border border-[#E4DAF6] bg-[#FCFBFE] p-5 overflow-hidden">
-            <div className="text-[11px] font-bold uppercase tracking-widest text-[#6C2BD9]">{data.newTitle}</div>
+            <div className="text-[12px] font-bold uppercase tracking-widest text-[#6C2BD9]">{data.newTitle}</div>
             <div className="absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2 w-[86%] max-w-[360px] aspect-square">
               <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" aria-hidden="true">
                 {NEW_SPOKES.map((s, i) => (
@@ -295,7 +295,7 @@ function OldNewWay({ data }) {
                 </Pop>
               ))}
             </div>
-            <p className="absolute bottom-5 left-5 right-5 text-center text-xs text-[#64748B] leading-relaxed">{data.newText}</p>
+            <p className="absolute bottom-5 left-5 right-5 text-center text-xs text-[#526071] leading-relaxed">{data.newText}</p>
           </div>
         </Reveal>
       </div>
@@ -337,13 +337,13 @@ export default function PartnerLanding() {
         <main className="flex-1 fade-in grid place-items-center bg-[#F7F4FB] p-6">
           <div className="surface p-8 sm:p-10 max-w-lg w-full" data-testid="my-application-status">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${rejected ? 'bg-[#FEE2E2] text-[#DC2626]' : 'bg-[#FEF3C7] text-[#B45309]'}`}>
+              <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${rejected ? 'bg-[#FEE2E2] text-[#B91C1C]' : 'bg-[#FEF3C7] text-[#9A4A05]'}`}>
                 {rejected ? <XCircle className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />} {rejected ? 'Not approved' : 'Under review'}
               </span>
               {myApp.ref_no && <span className="text-xs font-bold text-[#1A1030]">{myApp.ref_no}</span>}
             </div>
             <h1 className="mt-4 text-2xl font-bold">{rejected ? 'Your application was not approved' : 'Your partner application is under review'}</h1>
-            {!rejected && <p className="mt-2 text-sm text-[#64748B]">We're verifying your SEBI registration and documents — typically 2–3 working days. Once approved, this page becomes your analyst console the next time you log in.</p>}
+            {!rejected && <p className="mt-2 text-sm text-[#526071]">We're verifying your SEBI registration and documents — typically 2–3 working days. Once approved, this page becomes your analyst console the next time you log in.</p>}
             {myApp.review_note && (
               <div className="mt-4 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] px-3 py-2 text-sm text-[#475569]">
                 <b className="text-[#1A1030]">Message from our review team:</b> {myApp.review_note}
@@ -352,7 +352,7 @@ export default function PartnerLanding() {
             {rejected && (
               <Link to="/partner/apply" data-testid="reapply-btn" className="btn-primary inline-flex mt-5 px-5 py-2.5 text-sm">Correct &amp; submit a fresh application</Link>
             )}
-            <p className="mt-5 text-xs text-[#94A3B8]">Questions? Write to <a className="font-semibold text-[#6C2BD9]" href={`mailto:support@omnivest.in?subject=Partner application ${myApp.ref_no || ''}`}>support@omnivest.in</a>{myApp.ref_no ? ' with your reference number.' : '.'}</p>
+            <p className="mt-5 text-xs text-[#667085]">Questions? Write to <a className="font-semibold text-[#6C2BD9]" href={`mailto:support@omnivest.in?subject=Partner application ${myApp.ref_no || ''}`}>support@omnivest.in</a>{myApp.ref_no ? ' with your reference number.' : '.'}</p>
           </div>
         </main>
         <PartnerFooter />
@@ -389,14 +389,14 @@ export default function PartnerLanding() {
                 </div>
                 <div className="relative hidden sm:block" data-testid="hero-mockup">
                   <div className="absolute inset-0 translate-x-3 translate-y-3 rounded-2xl bg-white/10" />
-                  <Floating><MockCreate /></Floating>
+                  <Floating><div data-decorative><MockCreate /></div></Floating>
                   <FloatChip className="absolute -left-8 top-6" delay={0.8}>
-                    <span className="h-6 w-6 rounded-full bg-[#DCFCE7] text-[#0E9F5E] grid place-items-center text-[10px] font-bold">+1</span>
-                    <span className="text-[11px] font-semibold text-[#1A1030]">New subscriber · Momentum Picks</span>
+                    <span className="h-6 w-6 rounded-full bg-[#DCFCE7] text-[#0B7F4A] grid place-items-center text-[12px] font-bold">+1</span>
+                    <span className="text-[12px] font-semibold text-[#1A1030]">New subscriber · Momentum Picks</span>
                   </FloatChip>
                   <FloatChip className="absolute -right-4 bottom-10" delay={1.4}>
                     <span className="h-6 w-6 rounded-full bg-[#EDE9FE] text-[#5320A8] grid place-items-center"><IndianRupee className="h-3 w-3" /></span>
-                    <span className="text-[11px] font-semibold text-[#1A1030]">₹4,999 subscription received</span>
+                    <span className="text-[12px] font-semibold text-[#1A1030]">₹4,999 subscription received</span>
                   </FloatChip>
                 </div>
               </div>
@@ -410,7 +410,7 @@ export default function PartnerLanding() {
                   { icon: LineChart, t: 'Live market data from the exchange' },
                   { icon: TrendingUp, t: 'Investors trade via their own broker' },
                 ].map((b) => (
-                  <span key={b.t} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#64748B]">
+                  <span key={b.t} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#526071]">
                     <b.icon className="h-3.5 w-3.5 text-[#6C2BD9]" /> {b.t}
                   </span>
                 ))}
@@ -423,7 +423,7 @@ export default function PartnerLanding() {
                   {(pp.stats || []).map((s, i) => (
                     <div key={i} className="surface p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                       <div className="text-3xl font-bold text-[#5320A8] tracking-tight"><CountUpStat value={s.value} /></div>
-                      <div className="mt-1.5 text-xs text-[#64748B] leading-snug">{s.label}</div>
+                      <div className="mt-1.5 text-xs text-[#526071] leading-snug">{s.label}</div>
                     </div>
                   ))}
                 </div>
@@ -438,12 +438,12 @@ export default function PartnerLanding() {
                   return (
                     <section key={i} className="mt-14 grid lg:grid-cols-2 gap-10 items-center">
                       <Reveal className={flip ? 'lg:order-2' : ''}>
-                        <div className="text-[11px] font-bold uppercase tracking-widest text-[#6C2BD9]">{f.eyebrow}</div>
+                        <div className="text-[12px] font-bold uppercase tracking-widest text-[#6C2BD9]">{f.eyebrow}</div>
                         <h2 className="mt-2 text-2xl sm:text-3xl font-bold leading-snug">{f.title}</h2>
                         <ul className="mt-5 space-y-3">
                           {(f.bullets || []).filter((b) => b.trim()).map((b, j) => (
                             <li key={j} className="flex items-start gap-2.5 text-sm text-[#475569]">
-                              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-[#12B76A]" /> {b}
+                              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-[#0B7F4A]" /> {b}
                             </li>
                           ))}
                         </ul>
@@ -465,7 +465,7 @@ export default function PartnerLanding() {
                     <div className="surface p-5 h-full transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                       <div className="h-8 w-8 rounded-full grad-card text-white grid place-items-center text-sm font-bold">{i + 1}</div>
                       <div className="mt-3 text-sm font-semibold text-[#1A1030]">{s.title}</div>
-                      <div className="mt-1 text-xs text-[#64748B] leading-relaxed">{s.text}</div>
+                      <div className="mt-1 text-xs text-[#526071] leading-relaxed">{s.text}</div>
                     </div>
                   </Reveal>
                 ))}
@@ -478,7 +478,7 @@ export default function PartnerLanding() {
 
             <section id="requirements" className="mt-16 scroll-mt-24" data-testid="partner-requirements">
               <h2 className="text-2xl font-bold">What you need to apply</h2>
-              <p className="mt-1 text-sm text-[#64748B]">We verify every partner before listing — have these ready and the application takes about ten minutes.</p>
+              <p className="mt-1 text-sm text-[#526071]">We verify every partner before listing — have these ready and the application takes about ten minutes.</p>
               <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(pp.requirements || []).map((r, i) => (
                   <Reveal key={i} delay={(i % 3) * 0.1}>
@@ -487,14 +487,14 @@ export default function PartnerLanding() {
                         <span className="h-8 w-8 shrink-0 rounded-lg bg-[#EDE9FE] text-[#5320A8] grid place-items-center"><CheckCircle2 className="h-4 w-4" /></span>
                         <div>
                           <div className="text-sm font-semibold text-[#1A1030]">{r.title}</div>
-                          <div className="mt-1 text-xs text-[#64748B] leading-relaxed">{r.text}</div>
+                          <div className="mt-1 text-xs text-[#526071] leading-relaxed">{r.text}</div>
                         </div>
                       </div>
                     </div>
                   </Reveal>
                 ))}
               </div>
-              {pp.requirementsTip && <p className="mt-4 text-xs text-[#94A3B8]">{pp.requirementsTip}</p>}
+              {pp.requirementsTip && <p className="mt-4 text-xs text-[#667085]">{pp.requirementsTip}</p>}
             </section>
 
             <section id="partner-faq" className="mt-16 scroll-mt-24" data-testid="partner-faq-section">

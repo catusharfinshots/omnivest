@@ -26,13 +26,13 @@ export default function ListingPreview({ form, perf, classification, managerName
             <div className="text-lg font-bold text-[#1A1030] leading-tight truncate">{form.name || 'Your portfolio name'}</div>
             <div className="text-xs text-[#6B6480] mt-0.5">by {managerName || 'You'}</div>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {form.strategy && <span className="chip text-[10px]"><Layers className="h-3 w-3" /> {form.strategy.replace('-', ' ')}</span>}
-              {(form.tags || []).map((t) => <span key={t} className="chip-brand text-[10px]">{t}</span>)}
-              <span className={`text-[10px] ${paid ? 'chip-accent' : 'chip-brand'}`}>{paid ? (cheapest ? `₹${cheapest.price}/${cheapest.months}mo` : 'Paid') : 'Free access'}</span>
+              {form.strategy && <span className="chip text-[12px]"><Layers className="h-3 w-3" /> {form.strategy.replace('-', ' ')}</span>}
+              {(form.tags || []).map((t) => <span key={t} className="chip-brand text-[12px]">{t}</span>)}
+              <span className={`text-[12px] ${paid ? 'chip-accent' : 'chip-brand'}`}>{paid ? (cheapest ? `₹${cheapest.price}/${cheapest.months}mo` : 'Paid') : 'Free access'}</span>
             </div>
           </div>
           <div className="text-right shrink-0">
-            <div className="text-[10px] text-[#6B6480]">Since launch</div>
+            <div className="text-[12px] text-[#6B6480]">Since launch</div>
             <div className="text-xl font-bold text-[#6C2BD9] flex items-center gap-1 justify-end"><TrendingUp className="h-4 w-4" /> New</div>
           </div>
         </div>
@@ -41,16 +41,16 @@ export default function ListingPreview({ form, perf, classification, managerName
 
       <div className="px-5 py-4 grid grid-cols-3 gap-2 text-center">
         <div className="rounded-xl bg-[#F8FAFC] py-2.5">
-          <div className="text-[9px] font-bold uppercase tracking-wider text-[#94A3B8]">Min. invest</div>
+          <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">Min. invest</div>
           <div className="text-sm font-bold text-[#1A1030] flex items-center justify-center gap-0.5"><IndianRupee className="h-3 w-3" />{minInv ? minInv.toLocaleString('en-IN') : '—'}</div>
         </div>
         <div className="rounded-xl bg-[#F8FAFC] py-2.5">
-          <div className="text-[9px] font-bold uppercase tracking-wider text-[#94A3B8]">Holdings</div>
+          <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">Holdings</div>
           <div className="text-sm font-bold text-[#1A1030]">{cons.length}</div>
         </div>
         <div className="rounded-xl bg-[#F8FAFC] py-2.5">
-          <div className="text-[9px] font-bold uppercase tracking-wider text-[#94A3B8]">vs {form.benchmark || 'NIFTY 50'}</div>
-          <div className="text-sm font-bold text-[#94A3B8]">from launch</div>
+          <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">vs {form.benchmark || 'NIFTY 50'}</div>
+          <div className="text-sm font-bold text-[#667085]">from launch</div>
         </div>
       </div>
 
@@ -58,21 +58,21 @@ export default function ListingPreview({ form, perf, classification, managerName
         <div className="px-5 pb-5 space-y-4">
           {capEntries.length > 0 && (
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Market-cap mix</div>
+              <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">Market-cap mix</div>
               <div className="mt-1.5 h-2.5 rounded-full overflow-hidden flex bg-[#F1F1F4]">
                 {capEntries.map(([k, v]) => <div key={k} style={{ width: `${Math.min(100, v)}%`, background: CAP_COLORS[k] || '#CBD5E1' }} title={`${k} ${v}%`} />)}
               </div>
-              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#6B6480]">
+              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-[#6B6480]">
                 {capEntries.map(([k, v]) => <span key={k} className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: CAP_COLORS[k] }} /> {k} {v}%</span>)}
               </div>
             </div>
           )}
           {sectorEntries.length > 0 && (
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Top sectors</div>
+              <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">Top sectors</div>
               <div className="mt-1.5 space-y-1">
                 {sectorEntries.map(([k, v]) => (
-                  <div key={k} className="flex items-center gap-2 text-[11px]">
+                  <div key={k} className="flex items-center gap-2 text-[12px]">
                     <span className="w-28 truncate text-[#4B4560]">{k}</span>
                     <div className="flex-1 h-1.5 rounded-full bg-[#F1F1F4] overflow-hidden"><div className="h-full bg-[#6C2BD9]/70" style={{ width: `${Math.min(100, v)}%` }} /></div>
                     <span className="w-10 text-right text-[#6B6480]">{v}%</span>
@@ -83,29 +83,29 @@ export default function ListingPreview({ form, perf, classification, managerName
           )}
           {cons.length > 0 && (
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Stocks & weights {total !== 100 && <span className="text-[#DC2626] normal-case font-medium">· total {Math.round(total)}%</span>}</div>
+              <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">Stocks & weights {total !== 100 && <span className="text-[#B91C1C] normal-case font-medium">· total {Math.round(total)}%</span>}</div>
               <div className="mt-1.5 space-y-1">
                 {cons.slice(0, 6).map((c, i) => (
                   <div key={i} className="flex items-center justify-between text-[12px]">
-                    <span className="truncate text-[#1A1030]">{c.symbol} <span className="text-[#94A3B8]">{c.name}</span></span>
+                    <span className="truncate text-[#1A1030]">{c.symbol} <span className="text-[#667085]">{c.name}</span></span>
                     <span className="font-semibold text-[#1A1030]">{Number(c.weight) || 0}%</span>
                   </div>
                 ))}
-                {cons.length > 6 && <div className="text-[11px] text-[#94A3B8]">+{cons.length - 6} more</div>}
+                {cons.length > 6 && <div className="text-[12px] text-[#667085]">+{cons.length - 6} more</div>}
               </div>
             </div>
           )}
           {(rationale || form.videoUrl) && (
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Investment rationale</div>
+              <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">Investment rationale</div>
               <p className="mt-1 text-[12px] text-[#4B4560] line-clamp-3">{rationale || 'Your rationale appears here.'}</p>
-              {form.videoUrl && <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-[#6C2BD9]"><PlayCircle className="h-3.5 w-3.5" /> Intro video</div>}
+              {form.videoUrl && <div className="mt-1.5 inline-flex items-center gap-1 text-[12px] text-[#6C2BD9]"><PlayCircle className="h-3.5 w-3.5" /> Intro video</div>}
             </div>
           )}
-          <div className="flex items-center gap-1.5 text-[10px] text-[#94A3B8]"><ShieldCheck className="h-3 w-3" /> Returns, volatility and minimum are computed by Omnivest after approval.</div>
+          <div className="flex items-center gap-1.5 text-[12px] text-[#667085]"><ShieldCheck className="h-3 w-3" /> Returns, volatility and minimum are computed by Omnivest after approval.</div>
         </div>
       )}
-      {compact && <div className="px-5 pb-4 flex items-center gap-1.5 text-[10px] text-[#94A3B8]"><Sparkles className="h-3 w-3" /> Live preview — updates as you type.</div>}
+      {compact && <div className="px-5 pb-4 flex items-center gap-1.5 text-[12px] text-[#667085]"><Sparkles className="h-3 w-3" /> Live preview — updates as you type.</div>}
     </div>
   );
 }

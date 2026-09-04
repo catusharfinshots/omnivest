@@ -48,7 +48,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write h
         <Btn icon={RemoveFormatting} title="Plain paragraph" onClick={() => { cmd('removeFormat'); cmd('formatBlock', 'p'); }} />
       </div>
       <div className="relative">
-        {empty && !focused && <div className="absolute left-3 top-2.5 text-sm text-[#9A93AD] pointer-events-none">{placeholder}</div>}
+        {empty && !focused && <div className="absolute left-3 top-2.5 text-sm text-[#6E6787] pointer-events-none">{placeholder}</div>}
         <div
           ref={ref}
           contentEditable

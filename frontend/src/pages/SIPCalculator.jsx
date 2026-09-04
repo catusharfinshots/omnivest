@@ -56,32 +56,32 @@ export default function SIPCalculator() {
               <label className="text-sm font-semibold">Monthly investment</label>
               <div className="inline-flex items-center gap-1 rounded-lg bg-[#F7F4FB] px-3 py-1 num font-semibold">
                 <span className="text-[#6B6480]">₹</span>
-                <Input type="number" value={monthly} onChange={e => setMonthly(Number(e.target.value))} className="w-24 h-7 bg-transparent border-none p-0 focus-visible:ring-0 num text-right" />
+                <Input aria-label="Monthly investment amount" type="number" value={monthly} onChange={e => setMonthly(Number(e.target.value))} className="w-24 h-7 bg-transparent border-none p-0 focus-visible:ring-0 num text-right" />
               </div>
             </div>
-            <Slider className="mt-3" value={[monthly]} onValueChange={([v])=>setMonthly(v)} min={500} max={200000} step={500} />
+            <Slider aria-label="Monthly investment" className="mt-3" value={[monthly]} onValueChange={([v])=>setMonthly(v)} min={500} max={200000} step={500} />
           </div>
 
           <div>
             <div className="flex items-center justify-between">
               <label className="text-sm font-semibold">Expected return (p.a.)</label>
               <div className="inline-flex items-center gap-1 rounded-lg bg-[#F7F4FB] px-3 py-1 num font-semibold">
-                <Input type="number" value={rate} onChange={e => setRate(Number(e.target.value))} className="w-14 h-7 bg-transparent border-none p-0 focus-visible:ring-0 num text-right" />
+                <Input aria-label="Expected annual return percent" type="number" value={rate} onChange={e => setRate(Number(e.target.value))} className="w-14 h-7 bg-transparent border-none p-0 focus-visible:ring-0 num text-right" />
                 <span className="text-[#6B6480]">%</span>
               </div>
             </div>
-            <Slider className="mt-3" value={[rate]} onValueChange={([v])=>setRate(v)} min={1} max={30} step={0.5} />
+            <Slider aria-label="Expected annual return" className="mt-3" value={[rate]} onValueChange={([v])=>setRate(v)} min={1} max={30} step={0.5} />
           </div>
 
           <div>
             <div className="flex items-center justify-between">
               <label className="text-sm font-semibold">Time period</label>
               <div className="inline-flex items-center gap-1 rounded-lg bg-[#F7F4FB] px-3 py-1 num font-semibold">
-                <Input type="number" value={years} onChange={e => setYears(Number(e.target.value))} className="w-14 h-7 bg-transparent border-none p-0 focus-visible:ring-0 num text-right" />
+                <Input aria-label="Investment period years" type="number" value={years} onChange={e => setYears(Number(e.target.value))} className="w-14 h-7 bg-transparent border-none p-0 focus-visible:ring-0 num text-right" />
                 <span className="text-[#6B6480]">yrs</span>
               </div>
             </div>
-            <Slider className="mt-3" value={[years]} onValueChange={([v])=>setYears(v)} min={1} max={40} step={1} />
+            <Slider aria-label="Investment period in years" className="mt-3" value={[years]} onValueChange={([v])=>setYears(v)} min={1} max={40} step={1} />
           </div>
 
           <div className="pt-2 grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
@@ -91,7 +91,7 @@ export default function SIPCalculator() {
             </div>
             <div>
               <div className="text-xs text-[#6B6480] uppercase tracking-wider">Est. returns</div>
-              <div className="num mt-1 text-lg font-bold text-[#12B76A] truncate">₹{gains.toLocaleString('en-IN', {maximumFractionDigits: 0})}</div>
+              <div className="num mt-1 text-lg font-bold text-[#0B7F4A] truncate">₹{gains.toLocaleString('en-IN', {maximumFractionDigits: 0})}</div>
             </div>
             <div>
               <div className="text-xs text-[#6B6480] uppercase tracking-wider">Total value</div>
@@ -108,7 +108,7 @@ export default function SIPCalculator() {
               {chartData.map(d => (
                 <div key={d.year} className="flex flex-col items-center gap-1 h-full justify-end">
                   <div className="w-full rounded-t bg-gradient-to-t from-[#6C2BD9] to-[#B15CFF]" style={{ height: `${Math.max(2, (d.value / maxV) * 100)}%` }} title={`Yr ${d.year}: ₹${d.value.toFixed(0)}`} />
-                  <div className="text-[9px] text-[#6B6480] num leading-none">{d.year}</div>
+                  <div className="text-[12px] text-[#6B6480] num leading-none">{d.year}</div>
                 </div>
               ))}
             </div>

@@ -32,21 +32,21 @@ export default function RebalanceTimeline({ basket }) {
     <div className="surface p-5" data-testid="rebalance-timeline">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h3 className="text-base font-semibold">Rebalance timeline</h3>
-        <div className="text-xs text-[#64748B]">Reviewed <b>{(basket.rebalanceFreq || 'quarterly').toLowerCase()}</b> · {events.length - 1} rebalance{events.length - 1 === 1 ? '' : 's'} since launch</div>
+        <div className="text-xs text-[#526071]">Reviewed <b>{(basket.rebalanceFreq || 'quarterly').toLowerCase()}</b> · {events.length - 1} rebalance{events.length - 1 === 1 ? '' : 's'} since launch</div>
       </div>
       <div className="mt-4 overflow-x-auto">
         <ol className="flex items-start gap-6 min-w-max pb-1">
           {events.map((e, i) => (
             <li key={i} className="relative flex flex-col items-center text-center w-28">
               {i < events.length - 1 || next ? <span className="absolute top-4 left-1/2 w-[calc(100%+1.5rem)] h-px bg-[#E8E1F0]" /> : null}
-              <span className={`relative z-10 h-8 w-8 rounded-full grid place-items-center ${e.first ? 'grad-card text-white' : 'bg-[#DCFCE7] text-[#0E9F5E]'}`}>{e.first ? <Rocket className="h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}</span>
+              <span className={`relative z-10 h-8 w-8 rounded-full grid place-items-center ${e.first ? 'grad-card text-white' : 'bg-[#DCFCE7] text-[#0B7F4A]'}`}>{e.first ? <Rocket className="h-4 w-4" /> : <RefreshCw className="h-4 w-4" />}</span>
               <div className="mt-2 text-xs font-semibold text-[#1A1030]">{nice(e.date)}</div>
-              <div className="text-[11px] text-[#64748B]">{e.first ? 'Went live' : 'Constituents updated'}</div>
+              <div className="text-[12px] text-[#526071]">{e.first ? 'Went live' : 'Constituents updated'}</div>
               {e.change && (
-                <div className="mt-1 flex gap-1 text-[10px] font-bold">
-                  {e.change.added > 0 && <span className="rounded-full bg-[#DCFCE7] text-[#0E9F5E] px-1.5">+{e.change.added}</span>}
-                  {e.change.removed > 0 && <span className="rounded-full bg-[#FEE2E2] text-[#DC2626] px-1.5">−{e.change.removed}</span>}
-                  {e.change.changed > 0 && <span className="rounded-full bg-[#FEF3C7] text-[#B45309] px-1.5">~{e.change.changed}</span>}
+                <div className="mt-1 flex gap-1 text-[12px] font-bold">
+                  {e.change.added > 0 && <span className="rounded-full bg-[#DCFCE7] text-[#0B7F4A] px-1.5">+{e.change.added}</span>}
+                  {e.change.removed > 0 && <span className="rounded-full bg-[#FEE2E2] text-[#B91C1C] px-1.5">−{e.change.removed}</span>}
+                  {e.change.changed > 0 && <span className="rounded-full bg-[#FEF3C7] text-[#9A4A05] px-1.5">~{e.change.changed}</span>}
                 </div>
               )}
             </li>
@@ -55,12 +55,12 @@ export default function RebalanceTimeline({ basket }) {
             <li className="relative flex flex-col items-center text-center w-28">
               <span className="relative z-10 h-8 w-8 rounded-full grid place-items-center bg-[#F1F1F4] text-[#6B6480] border border-dashed border-[#CBD5E1]"><CalendarClock className="h-4 w-4" /></span>
               <div className="mt-2 text-xs font-semibold text-[#1A1030]">{nice(next)}</div>
-              <div className="text-[11px] text-[#64748B]">Next review</div>
+              <div className="text-[12px] text-[#526071]">Next review</div>
             </li>
           )}
         </ol>
       </div>
-      <div className="mt-2 text-[11px] text-[#94A3B8]">Each rebalance is applied at that day's closing prices, so the track record stays continuous.</div>
+      <div className="mt-2 text-[12px] text-[#667085]">Each rebalance is applied at that day's closing prices, so the track record stays continuous.</div>
     </div>
   );
 }

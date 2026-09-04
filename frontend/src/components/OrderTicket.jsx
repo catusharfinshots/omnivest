@@ -135,7 +135,7 @@ export default function OrderTicket({ open, onOpenChange, initialSymbol, initial
         <div className={`${txn === 'BUY' ? 'bg-gradient-to-r from-[#12B76A] to-[#059669]' : 'bg-gradient-to-r from-[#F04438] to-[#DC2626]'} text-white p-5`}>
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-[10px] uppercase tracking-widest font-bold opacity-90">{txn === 'BUY' ? 'BUY' : 'SELL'} \u00b7 {product} \u00b7 {exchange}</div>
+              <div className="text-[12px] uppercase tracking-widest font-bold opacity-90">{txn === 'BUY' ? 'BUY' : 'SELL'} \u00b7 {product} \u00b7 {exchange}</div>
               <div className="font-[Inter] text-2xl font-bold mt-1">{symbol ? symbol.toUpperCase() : 'Place order'}</div>
               <div className="text-xs mt-1 opacity-90">Zerodha \u00b7 Kite \u00b7 {kite.profile?.user_id_kite}</div>
             </div>
@@ -147,7 +147,7 @@ export default function OrderTicket({ open, onOpenChange, initialSymbol, initial
 
         {placed ? (
           <div className="p-6 text-center">
-            <CheckCircle2 className="h-12 w-12 text-[#12B76A] mx-auto" />
+            <CheckCircle2 className="h-12 w-12 text-[#0B7F4A] mx-auto" />
             <div className="mt-3 text-xl font-bold">Order placed</div>
             <div className="text-sm text-[#6B6480]">Order ID <span className="num font-semibold">{placed.order_id}</span></div>
             <div className="mt-4 text-xs text-[#6B6480]">Track live status in the Orders section of the dashboard.</div>
@@ -172,7 +172,7 @@ export default function OrderTicket({ open, onOpenChange, initialSymbol, initial
               </div>
               <div className="mt-1.5 flex flex-wrap gap-1">
                 {POPULAR.map(s => (
-                  <button key={s} onClick={() => { setSymbol(s); }} className="px-2 py-0.5 rounded-full border border-[#E8E1F0] text-[11px] hover:border-[#6C2BD9] hover:text-[#6C2BD9]">{s}</button>
+                  <button key={s} onClick={() => { setSymbol(s); }} className="px-2 py-0.5 rounded-full border border-[#E8E1F0] text-[12px] hover:border-[#6C2BD9] hover:text-[#6C2BD9]">{s}</button>
                 ))}
               </div>
               {ltp && (
@@ -189,8 +189,8 @@ export default function OrderTicket({ open, onOpenChange, initialSymbol, initial
               <div>
                 <Label className="text-xs uppercase tracking-wider text-[#6B6480]">Side</Label>
                 <div className="mt-1.5 grid grid-cols-2 gap-2">
-                  <button onClick={() => setTxn('BUY')} className={`h-10 rounded-md text-sm font-semibold flex items-center justify-center gap-1 ${txn==='BUY' ? 'bg-[#DCFCE7] text-[#059669] border border-[#12B76A]' : 'bg-white border border-[#E8E1F0] text-[#6B6480] hover:text-[#12B76A]'}`}><TrendingUp className="h-4 w-4" /> BUY</button>
-                  <button onClick={() => setTxn('SELL')} className={`h-10 rounded-md text-sm font-semibold flex items-center justify-center gap-1 ${txn==='SELL' ? 'bg-[#FEE2E2] text-[#DC2626] border border-[#F04438]' : 'bg-white border border-[#E8E1F0] text-[#6B6480] hover:text-[#F04438]'}`}><TrendingDown className="h-4 w-4" /> SELL</button>
+                  <button onClick={() => setTxn('BUY')} className={`h-10 rounded-md text-sm font-semibold flex items-center justify-center gap-1 ${txn==='BUY' ? 'bg-[#DCFCE7] text-[#059669] border border-[#12B76A]' : 'bg-white border border-[#E8E1F0] text-[#6B6480] hover:text-[#0B7F4A]'}`}><TrendingUp className="h-4 w-4" /> BUY</button>
+                  <button onClick={() => setTxn('SELL')} className={`h-10 rounded-md text-sm font-semibold flex items-center justify-center gap-1 ${txn==='SELL' ? 'bg-[#FEE2E2] text-[#B91C1C] border border-[#F04438]' : 'bg-white border border-[#E8E1F0] text-[#6B6480] hover:text-[#B91C1C]'}`}><TrendingDown className="h-4 w-4" /> SELL</button>
                 </div>
               </div>
               <div>
@@ -213,7 +213,7 @@ export default function OrderTicket({ open, onOpenChange, initialSymbol, initial
                 <Label className="text-xs uppercase tracking-wider text-[#6B6480]">Order type</Label>
                 <div className="mt-1.5 grid grid-cols-4 gap-1">
                   {ORDER_TYPES.map(o => (
-                    <button key={o} onClick={() => setOrderType(o)} className={`h-10 rounded-md text-[11px] font-semibold border ${orderType===o ? 'border-[#6C2BD9] bg-[#F1E7FE] text-[#5320A8]' : 'border-[#E8E1F0]'}`}>{o}</button>
+                    <button key={o} onClick={() => setOrderType(o)} className={`h-10 rounded-md text-[12px] font-semibold border ${orderType===o ? 'border-[#6C2BD9] bg-[#F1E7FE] text-[#5320A8]' : 'border-[#E8E1F0]'}`}>{o}</button>
                   ))}
                 </div>
               </div>
@@ -278,7 +278,7 @@ export default function OrderTicket({ open, onOpenChange, initialSymbol, initial
           <DialogFooter className="px-5 pb-5">
             <button onClick={() => onOpenChange(false)} className="btn-outline">Cancel</button>
             <button disabled={!canPlace || placing} onClick={submit}
-              className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors disabled:opacity-50 ${txn === 'BUY' ? 'bg-[#12B76A] hover:bg-[#059669]' : 'bg-[#F04438] hover:bg-[#DC2626]'}`}>
+              className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors disabled:opacity-50 ${txn === 'BUY' ? 'bg-[#0A7D48] hover:bg-[#059669]' : 'bg-[#F04438] hover:bg-[#DC2626]'}`}>
               {placing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {txn === 'BUY' ? 'Place BUY order' : 'Place SELL order'}
             </button>

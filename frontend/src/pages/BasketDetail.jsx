@@ -79,7 +79,7 @@ export default function BasketDetail() {
                   <Link to={`/manager/${mgr?.id}`} className="font-semibold hover:text-[#6C2BD9]">{mgr?.name}</Link>
                   <div className="text-xs text-[#6B6480]">SEBI Reg: {mgr?.sebiReg}</div>
                 </div>
-                <BadgeCheck className="h-4 w-4 text-[#12B76A]" />
+                <BadgeCheck className="h-4 w-4 text-[#0B7F4A]" />
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -114,7 +114,7 @@ export default function BasketDetail() {
                 {basket.constituents.map(c => (
                   <div key={c.symbol} className="grid grid-cols-12 px-3 py-3 items-center text-sm">
                     <div className="col-span-6 flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-[#F1E7FE] text-[#5320A8] grid place-items-center text-[10px] font-bold">{c.symbol.slice(0,2)}</div>
+                      <div className="h-8 w-8 rounded-lg bg-[#F1E7FE] text-[#5320A8] grid place-items-center text-[12px] font-bold">{c.symbol.slice(0,2)}</div>
                       <div>
                         <div className="font-medium">{c.name}</div>
                         <div className="text-xs text-[#6B6480]">{c.symbol}</div>
@@ -184,29 +184,29 @@ export default function BasketDetail() {
           <div className="surface p-5">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-[11px] uppercase tracking-wider text-[#6B6480] font-semibold">3Y CAGR</div>
-                <div className={`num mt-1 text-xl font-bold ${basket.returns.y3 >= 0 ? 'text-[#12B76A]' : 'text-[#F04438]'}`}>
+                <div className="text-[12px] uppercase tracking-wider text-[#6B6480] font-semibold">3Y CAGR</div>
+                <div className={`num mt-1 text-xl font-bold ${basket.returns.y3 >= 0 ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>
                   {basket.returns.y3 >= 0 ? '+' : ''}{basket.returns.y3.toFixed(1)}%
                 </div>
               </div>
               <div>
-                <div className="text-[11px] uppercase tracking-wider text-[#6B6480] font-semibold">Min. amount</div>
+                <div className="text-[12px] uppercase tracking-wider text-[#6B6480] font-semibold">Min. amount</div>
                 <div className="num mt-1 text-xl font-bold">₹{basket.minAmount.toLocaleString('en-IN')}</div>
               </div>
               <div>
-                <div className="text-[11px] uppercase tracking-wider text-[#6B6480] font-semibold">Risk</div>
+                <div className="text-[12px] uppercase tracking-wider text-[#6B6480] font-semibold">Risk</div>
                 <div className="mt-1 text-sm font-semibold">{basket.risk}</div>
               </div>
               <div>
-                <div className="text-[11px] uppercase tracking-wider text-[#6B6480] font-semibold">Horizon</div>
+                <div className="text-[12px] uppercase tracking-wider text-[#6B6480] font-semibold">Horizon</div>
                 <div className="mt-1 text-sm font-semibold">{basket.horizon}</div>
               </div>
               <div>
-                <div className="text-[11px] uppercase tracking-wider text-[#6B6480] font-semibold">Rebalance</div>
+                <div className="text-[12px] uppercase tracking-wider text-[#6B6480] font-semibold">Rebalance</div>
                 <div className="mt-1 text-sm font-semibold">{basket.rebalanceFreq}</div>
               </div>
               <div>
-                <div className="text-[11px] uppercase tracking-wider text-[#6B6480] font-semibold">Fee</div>
+                <div className="text-[12px] uppercase tracking-wider text-[#6B6480] font-semibold">Fee</div>
                 <div className="mt-1 text-sm font-semibold">{basket.fee.type === 'free' ? 'Free' : `₹${basket.fee.amount}/${basket.fee.cycle}`}</div>
               </div>
             </div>
@@ -214,11 +214,11 @@ export default function BasketDetail() {
               <button onClick={openInvest} className="btn-primary w-full py-3">Invest now</button>
               <button onClick={openSip} className="btn-outline w-full py-3">Start SIP</button>
             </div>
-            <p className="mt-3 text-[11px] text-[#6B6480] text-center">Demo — no real order is placed.</p>
+            <p className="mt-3 text-[12px] text-[#6B6480] text-center">Demo — no real order is placed.</p>
           </div>
 
           <div className="surface p-5 space-y-3">
-            <div className="flex items-start gap-3 text-sm"><ShieldCheck className="h-4 w-4 mt-0.5 text-[#12B76A]" /> <div><span className="font-semibold">Own it</span><div className="text-[#6B6480]">Shares sit in your demat.</div></div></div>
+            <div className="flex items-start gap-3 text-sm"><ShieldCheck className="h-4 w-4 mt-0.5 text-[#0B7F4A]" /> <div><span className="font-semibold">Own it</span><div className="text-[#6B6480]">Shares sit in your demat.</div></div></div>
             <div className="flex items-start gap-3 text-sm"><Clock className="h-4 w-4 mt-0.5 text-[#6C2BD9]" /> <div><span className="font-semibold">Last rebalanced</span><div className="text-[#6B6480]">{new Date(basket.lastRebalancedAt).toDateString()}</div></div></div>
           </div>
         </aside>

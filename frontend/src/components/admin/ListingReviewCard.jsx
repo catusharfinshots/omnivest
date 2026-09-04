@@ -5,7 +5,7 @@ import { Textarea } from '../ui/textarea';
 import VersionDiff from './VersionDiff';
 import CoverArt from '../CoverArt';
 
-const STATUS = { approved: 'bg-[#DCFCE7] text-[#0E9F5E]', pending: 'bg-[#FEF3C7] text-[#B45309]', rejected: 'bg-[#FEE2E2] text-[#DC2626]', paused: 'bg-[#FEE2E2] text-[#DC2626]' };
+const STATUS = { approved: 'bg-[#DCFCE7] text-[#0B7F4A]', pending: 'bg-[#FEF3C7] text-[#9A4A05]', rejected: 'bg-[#FEE2E2] text-[#B91C1C]', paused: 'bg-[#FEE2E2] text-[#B91C1C]' };
 const plain = (html) => (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 const nice = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 
@@ -42,20 +42,20 @@ export default function ListingReviewCard({ p, onReview, onAction }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-[#1A1030] truncate">{p.name}</span>
-            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${STATUS[p.status] || 'bg-[#F1F1F4] text-[#6B6480]'}`}>{p.status}</span>
-            {p.featured && <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#6C2BD9]"><Sparkles className="h-3 w-3" /> Featured</span>}
-            {p.was_live && pending && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#B45309]">Re-submission of a live listing</span>}
-            {paid && <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#B45309]"><Lock className="h-3 w-3" /> {cheapest ? `from ₹${Math.round(cheapest.price / cheapest.months)}/mo` : 'Paid'}</span>}
+            <span className={`text-[12px] font-bold uppercase px-2 py-0.5 rounded-full ${STATUS[p.status] || 'bg-[#F1F1F4] text-[#6B6480]'}`}>{p.status}</span>
+            {p.featured && <span className="inline-flex items-center gap-1 text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#6C2BD9]"><Sparkles className="h-3 w-3" /> Featured</span>}
+            {p.was_live && pending && <span className="text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#9A4A05]">Re-submission of a live listing</span>}
+            {paid && <span className="inline-flex items-center gap-1 text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#9A4A05]"><Lock className="h-3 w-3" /> {cheapest ? `from ₹${Math.round(cheapest.price / cheapest.months)}/mo` : 'Paid'}</span>}
           </div>
           <div className="text-xs text-[#6B6480] mt-0.5">by {p.owner_name || '—'} · {p.subtitle || 'No pitch'} · {p.constituents?.length || 0} holdings · {p.benchmark || 'NIFTY 50'} · {p.strategy} · {p.rebalanceFreq || 'Quarterly'}</div>
-          {(p.tags || []).length > 0 && <div className="mt-1 flex items-center gap-1 text-[11px] text-[#6B6480]"><Tag className="h-3 w-3" /> {p.tags.join(' · ')}</div>}
+          {(p.tags || []).length > 0 && <div className="mt-1 flex items-center gap-1 text-[12px] text-[#6B6480]"><Tag className="h-3 w-3" /> {p.tags.join(' · ')}</div>}
           <div className="text-xs text-[#6B6480] mt-1 line-clamp-2"><b className="text-[#1A1030]">Rationale:</b> {plain(p.rationale) || 'none'}</div>
           <div className="text-xs text-[#6B6480] mt-0.5 line-clamp-2"><b className="text-[#1A1030]">Methodology:</b> {plain(p.methodology) || 'none'}</div>
-          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[#94A3B8]">
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-[#667085]">
             <span>{p.factsheet_pdf ? '✓ Factsheet PDF' : '– No factsheet PDF'}</span>
             <span>{p.videoUrl ? '✓ Intro video' : '– No video'}</span>
             <span>{p.factsheet?.riskFactors ? '✓ Key risks' : '– No key risks'}</span>
-            {p.cover?.kind === 'upload' && <button type="button" onClick={() => onAction(p.id, 'cover/reset')} className="text-[#DC2626] hover:underline" data-testid="cover-reset">Uploaded cover — reset to generated</button>}
+            {p.cover?.kind === 'upload' && <button type="button" onClick={() => onAction(p.id, 'cover/reset')} className="text-[#B91C1C] hover:underline" data-testid="cover-reset">Uploaded cover — reset to generated</button>}
             {p.reviewed_at && <span>reviewed {nice(p.reviewed_at)}</span>}
           </div>
           {p.review_note && !pending && <div className="mt-2 text-xs rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] px-2.5 py-1.5 text-[#475569]"><b className="text-[#1A1030]">Your note to the partner:</b> {p.review_note}</div>}
@@ -65,18 +65,18 @@ export default function ListingReviewCard({ p, onReview, onAction }) {
           <a href={`/model-portfolios/${p.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-1 rounded-lg border border-[#E8E1F0] text-[#5320A8] text-xs font-semibold px-3 py-2 hover:bg-[#F7F4FB]" data-testid="preview-link"><Eye className="h-3.5 w-3.5" /> Preview as investor</a>
           {pending && (
             <>
-              <button type="button" onClick={() => onReview(p.id, 'approve')} className="inline-flex items-center justify-center gap-1 rounded-lg bg-[#12B76A] text-white text-xs font-semibold px-3 py-2 hover:bg-[#0E9F5E]" data-testid="approve-btn"><Check className="h-3.5 w-3.5" /> Approve</button>
+              <button type="button" onClick={() => onReview(p.id, 'approve')} className="inline-flex items-center justify-center gap-1 rounded-lg bg-[#0A7D48] text-white text-xs font-semibold px-3 py-2 hover:bg-[#086B3D]" data-testid="approve-btn"><Check className="h-3.5 w-3.5" /> Approve</button>
               <button type="button" onClick={() => { setPrompt('request_changes'); setNote(''); }} className="inline-flex items-center justify-center gap-1 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] text-[#92400E] text-xs font-semibold px-3 py-2 hover:bg-[#FEF3C7]" data-testid="request-changes-btn"><MessageSquareWarning className="h-3.5 w-3.5" /> Request changes</button>
-              <button type="button" onClick={() => { setPrompt('reject'); setNote(''); }} className="inline-flex items-center justify-center gap-1 rounded-lg border border-[#E8E1F0] text-[#DC2626] text-xs font-semibold px-3 py-2 hover:bg-[#FEF2F2]" data-testid="reject-btn"><X className="h-3.5 w-3.5" /> Reject</button>
+              <button type="button" onClick={() => { setPrompt('reject'); setNote(''); }} className="inline-flex items-center justify-center gap-1 rounded-lg border border-[#E8E1F0] text-[#B91C1C] text-xs font-semibold px-3 py-2 hover:bg-[#FEF2F2]" data-testid="reject-btn"><X className="h-3.5 w-3.5" /> Reject</button>
             </>
           )}
           {live && (
             <>
               <button type="button" onClick={() => onAction(p.id, 'feature', { featured: !p.featured })} className={`inline-flex items-center justify-center gap-1 rounded-lg border text-xs font-semibold px-3 py-2 ${p.featured ? 'border-[#D8C7F1] bg-[#F1E7FE] text-[#5320A8]' : 'border-[#E8E1F0] text-[#5320A8] hover:bg-[#F7F4FB]'}`} data-testid="feature-btn"><Sparkles className="h-3.5 w-3.5" /> {p.featured ? 'Un-feature' : 'Feature on explore'}</button>
-              <button type="button" onClick={() => { setPrompt('pause'); setNote(''); }} className="inline-flex items-center justify-center gap-1 rounded-lg border border-[#E8E1F0] text-[#DC2626] text-xs font-semibold px-3 py-2 hover:bg-[#FEF2F2]" data-testid="pause-btn"><PauseCircle className="h-3.5 w-3.5" /> Pause listing</button>
+              <button type="button" onClick={() => { setPrompt('pause'); setNote(''); }} className="inline-flex items-center justify-center gap-1 rounded-lg border border-[#E8E1F0] text-[#B91C1C] text-xs font-semibold px-3 py-2 hover:bg-[#FEF2F2]" data-testid="pause-btn"><PauseCircle className="h-3.5 w-3.5" /> Pause listing</button>
             </>
           )}
-          {paused && <button type="button" onClick={() => onAction(p.id, 'resume')} className="inline-flex items-center justify-center gap-1 rounded-lg bg-[#12B76A] text-white text-xs font-semibold px-3 py-2 hover:bg-[#0E9F5E]" data-testid="resume-btn"><PlayCircle className="h-3.5 w-3.5" /> Resume listing</button>}
+          {paused && <button type="button" onClick={() => onAction(p.id, 'resume')} className="inline-flex items-center justify-center gap-1 rounded-lg bg-[#0A7D48] text-white text-xs font-semibold px-3 py-2 hover:bg-[#086B3D]" data-testid="resume-btn"><PlayCircle className="h-3.5 w-3.5" /> Resume listing</button>}
         </div>
       </div>
 

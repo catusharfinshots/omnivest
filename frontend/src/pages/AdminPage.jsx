@@ -446,7 +446,7 @@ export default function AdminPage() {
             <span className="h-8 w-8 rounded-lg grad-card text-white grid place-items-center"><img src={omniMark} alt="" className="h-5 w-5" /></span>
             <div>
               <div className="font-[Inter] text-sm font-bold">Omnivest</div>
-              <div className="text-[10px] uppercase tracking-widest text-[#6C2BD9] font-bold">Owner console</div>
+              <div className="text-[12px] uppercase tracking-widest text-[#6C2BD9] font-bold">Owner console</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -465,7 +465,7 @@ export default function AdminPage() {
               return (
                 <div key={g.label} className={isSystem ? 'mt-3 pt-3 border-t border-[#E8E1F0]' : ''}>
                   <button data-testid={`admin-group-${g.label}`} onClick={() => toggleGroup(g.label)}
-                    className="w-full flex items-center justify-between px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] hover:text-[#5320A8] transition-colors">
+                    className="w-full flex items-center justify-between px-3 py-2 text-[12px] font-bold uppercase tracking-wider text-[#667085] hover:text-[#5320A8] transition-colors">
                     <span>{g.label}</span>
                     <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? '' : '-rotate-90'}`} />
                   </button>
@@ -480,7 +480,7 @@ export default function AdminPage() {
                             className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${tab === key ? 'bg-[#F1E7FE] text-[#5320A8]' : 'text-[#1A1030] hover:bg-[#F7F4FB]'}`}>
                             <n.icon className="h-4 w-4" /> <span className="flex-1 text-left">{n.label}</span>
                             {badge > 0 && (
-                              <span data-testid={`admin-badge-${key}`} className="ml-auto min-w-[18px] h-[18px] px-1 grid place-items-center rounded-full bg-[#DC2626] text-white text-[10px] font-bold leading-none">{badge}</span>
+                              <span data-testid={`admin-badge-${key}`} className="ml-auto min-w-[18px] h-[18px] px-1 grid place-items-center rounded-full bg-[#DC2626] text-white text-[12px] font-bold leading-none">{badge}</span>
                             )}
                           </button>
                         );
@@ -507,7 +507,7 @@ export default function AdminPage() {
                 </div>
               )}
             </div>
-            {CONTENT_TABS.includes(tab) && dirty && <div className="mt-3 text-xs text-[#B45309] bg-[#FFFAEB] border border-[#FDE68A] rounded-lg px-3 py-1.5 inline-block">You have unpublished changes.</div>}
+            {CONTENT_TABS.includes(tab) && dirty && <div className="mt-3 text-xs text-[#9A4A05] bg-[#FFFAEB] border border-[#FDE68A] rounded-lg px-3 py-1.5 inline-block">You have unpublished changes.</div>}
 
             <div className="mt-8 space-y-6">
               {tab === 'home' && (
@@ -560,7 +560,7 @@ export default function AdminPage() {
                             <Input value={t.tag} onChange={(e)=>{const a=[...content.testimonials]; a[i]={...a[i], tag:e.target.value}; patchContent('testimonials', a);}} className="h-9" placeholder="Source (e.g. Posted on X)" />
                             <Textarea value={t.quote} onChange={(e)=>{const a=[...content.testimonials]; a[i]={...a[i], quote:e.target.value}; patchContent('testimonials', a);}} className="md:col-span-2" placeholder="Quote" />
                           </div>
-                          <button onClick={()=>patchContent('testimonials', content.testimonials.filter((_,j)=>j!==i))} className="h-8 w-8 grid place-items-center rounded-lg text-[#F04438] hover:bg-[#FEF3F2]"><Trash2 className="h-4 w-4" /></button>
+                          <button onClick={()=>patchContent('testimonials', content.testimonials.filter((_,j)=>j!==i))} className="h-8 w-8 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF3F2]"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       ))}
                     </div>
@@ -626,10 +626,10 @@ export default function AdminPage() {
                     {[['pending', 'Awaiting approval'], ['approved', 'Live'], ['paused', 'Paused'], ['rejected', 'Rejected']].map(([k, label]) => (
                       <button key={k} type="button" onClick={() => setListingFilter(k)}
                         className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${listingFilter === k ? 'bg-[#F1E7FE] border-[#D8C7F1] text-[#5320A8]' : 'border-[#E8E1F0] text-[#6B6480] hover:border-[#D8C7F1]'}`}>
-                        {label} <span className={`min-w-[18px] px-1 rounded-full text-[10px] text-center ${k === 'pending' && listingCounts.pending ? 'bg-[#DC2626] text-white' : 'bg-[#F1F1F4] text-[#6B6480]'}`}>{listingCounts[k] || 0}</span>
+                        {label} <span className={`min-w-[18px] px-1 rounded-full text-[12px] text-center ${k === 'pending' && listingCounts.pending ? 'bg-[#DC2626] text-white' : 'bg-[#F1F1F4] text-[#6B6480]'}`}>{listingCounts[k] || 0}</span>
                       </button>
                     ))}
-                    <span className="text-[11px] text-[#94A3B8] ml-auto">Partners' drafts stay private until they submit — only submitted listings appear here.</span>
+                    <span className="text-[12px] text-[#667085] ml-auto">Partners' drafts stay private until they submit — only submitted listings appear here.</span>
                   </div>
                   {listingsLoading ? (
                     <div className="mt-6 text-sm text-[#6B6480]">Loading…</div>
@@ -705,7 +705,7 @@ export default function AdminPage() {
                         if (others.length) sections.push({ label: 'Other', cols: others });
                         return sections.filter((s) => s.cols.length).map((s) => (
                           <div key={s.label} data-testid={`db-group-${s.label}`}>
-                            <div className="text-[11px] uppercase tracking-wider text-[#94A3B8] font-semibold mb-1.5">{s.label}</div>
+                            <div className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold mb-1.5">{s.label}</div>
                             <div className="flex flex-wrap gap-2">
                               {s.cols.map((col) => (
                                 <button key={col.name} data-testid={`db-col-${col.name}`} onClick={() => selectCollection(col.name)}
@@ -730,7 +730,7 @@ export default function AdminPage() {
                       <div className="flex-1" />
                       <button data-testid="db-export-btn" onClick={() => exportCsv(dbActive)} className="btn-outline text-xs inline-flex items-center gap-1"><Download className="h-3.5 w-3.5" /> Export CSV</button>
                       {!DB_CLEAR_BLOCKED.includes(dbActive) && (
-                        <button data-testid="db-clear-btn" onClick={() => { setClearConfirmText(''); setClearOpen(true); }} disabled={dbTotal === 0} className={`inline-flex items-center gap-1 rounded-lg border border-[#FECACA] text-[#DC2626] text-xs font-semibold px-3 py-2 hover:bg-[#FEF2F2] ${dbTotal === 0 ? 'opacity-40 cursor-not-allowed' : ''}`}><Trash2 className="h-3.5 w-3.5" /> Clear collection</button>
+                        <button data-testid="db-clear-btn" onClick={() => { setClearConfirmText(''); setClearOpen(true); }} disabled={dbTotal === 0} className={`inline-flex items-center gap-1 rounded-lg border border-[#FECACA] text-[#B91C1C] text-xs font-semibold px-3 py-2 hover:bg-[#FEF2F2] ${dbTotal === 0 ? 'opacity-40 cursor-not-allowed' : ''}`}><Trash2 className="h-3.5 w-3.5" /> Clear collection</button>
                       )}
                     </div>
                   )}
@@ -754,11 +754,11 @@ export default function AdminPage() {
                                 {doc.id && (dbActive !== 'users' || doc.role !== 'admin') && (
                                   confirmDeleteId === doc.id ? (
                                     <span className="flex items-center gap-1" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                                      <button data-testid="db-record-confirm-delete" onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteRecord(dbActive, doc.id); }} className="rounded-md bg-[#DC2626] text-white text-[11px] font-semibold px-2 py-1">Delete</button>
-                                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setConfirmDeleteId(null); }} className="rounded-md border border-[#E8E1F0] text-[11px] font-semibold px-2 py-1">Cancel</button>
+                                      <button data-testid="db-record-confirm-delete" onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteRecord(dbActive, doc.id); }} className="rounded-md bg-[#DC2626] text-white text-[12px] font-semibold px-2 py-1">Delete</button>
+                                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setConfirmDeleteId(null); }} className="rounded-md border border-[#E8E1F0] text-[12px] font-semibold px-2 py-1">Cancel</button>
                                     </span>
                                   ) : (
-                                    <button data-testid="db-record-delete" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setConfirmDeleteId(doc.id); }} className="h-7 w-7 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2]"><Trash2 className="h-3.5 w-3.5" /></button>
+                                    <button data-testid="db-record-delete" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setConfirmDeleteId(doc.id); }} className="h-7 w-7 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2]"><Trash2 className="h-3.5 w-3.5" /></button>
                                   )
                                 )}
                               </span>
@@ -838,7 +838,7 @@ export default function AdminPage() {
                           <Input value={c.description} onChange={(e)=>{const x=[...collections]; x[i]={...x[i], description: e.target.value}; setCollections(x); markDirty();}} className="h-9" placeholder="Description" />
                           <Input value={c.type} onChange={(e)=>{const x=[...collections]; x[i]={...x[i], type: e.target.value}; setCollections(x); markDirty();}} className="h-9" placeholder="stock or mf" />
                         </div>
-                        <button onClick={()=>{setCollections(collections.filter((_,j)=>j!==i)); markDirty();}} className="h-8 w-8 grid place-items-center rounded-lg text-[#F04438] hover:bg-[#FEF3F2]"><Trash2 className="h-4 w-4" /></button>
+                        <button onClick={()=>{setCollections(collections.filter((_,j)=>j!==i)); markDirty();}} className="h-8 w-8 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF3F2]"><Trash2 className="h-4 w-4" /></button>
                       </Row>
                     ))}
                   </div>
@@ -865,7 +865,7 @@ export default function AdminPage() {
                             <Input value={f.expenseRatio} onChange={(e)=>{const x=[...funds]; x[i]={...x[i], expenseRatio: Number(e.target.value)}; setFunds(x); markDirty();}} className="h-9 num" placeholder="Expense" />
                           </div>
                         </div>
-                        <button onClick={()=>{setFunds(funds.filter((_,j)=>j!==i)); markDirty();}} className="h-8 w-8 grid place-items-center rounded-lg text-[#F04438] hover:bg-[#FEF3F2]"><Trash2 className="h-4 w-4" /></button>
+                        <button onClick={()=>{setFunds(funds.filter((_,j)=>j!==i)); markDirty();}} className="h-8 w-8 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF3F2]"><Trash2 className="h-4 w-4" /></button>
                       </Row>
                     ))}
                   </div>
@@ -887,7 +887,7 @@ export default function AdminPage() {
                         <Input value={t.tag} onChange={(e)=>{const x=[...testimonials]; x[i]={...x[i], tag: e.target.value}; setTestimonials(x); markDirty();}} className="h-9" placeholder="Tag" />
                         <div className="flex gap-2">
                           <Textarea value={t.quote} onChange={(e)=>{const x=[...testimonials]; x[i]={...x[i], quote: e.target.value}; setTestimonials(x); markDirty();}} className="min-h-[36px]" placeholder="Quote" />
-                          <button onClick={()=>{setTestimonials(testimonials.filter((_,j)=>j!==i)); markDirty();}} className="h-8 w-8 grid place-items-center rounded-lg text-[#F04438] hover:bg-[#FEF3F2] shrink-0"><Trash2 className="h-4 w-4" /></button>
+                          <button onClick={()=>{setTestimonials(testimonials.filter((_,j)=>j!==i)); markDirty();}} className="h-8 w-8 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF3F2] shrink-0"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </div>
                     ))}
@@ -935,15 +935,15 @@ export default function AdminPage() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-semibold text-[#1A1030]">{f.question}</span>
-                              <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-[#EEE9F6] text-[#5320A8]">{f.category}</span>
-                              {f.isTop && <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-[#DCFCE7] text-[#0E9F5E]">Home</span>}
-                              {!f.published && <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-[#FEE2E2] text-[#DC2626]">Hidden</span>}
+                              <span className="text-[12px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-[#EEE9F6] text-[#5320A8]">{f.category}</span>
+                              {f.isTop && <span className="text-[12px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-[#DCFCE7] text-[#0B7F4A]">Home</span>}
+                              {!f.published && <span className="text-[12px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-[#FEE2E2] text-[#B91C1C]">Hidden</span>}
                             </div>
-                            <div className="mt-1 text-xs text-[#64748B] line-clamp-2">{f.answer}</div>
+                            <div className="mt-1 text-xs text-[#526071] line-clamp-2">{f.answer}</div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             <button data-testid={`faq-edit-${f.id}`} onClick={() => setFaqEdit(f)} className="h-8 w-8 grid place-items-center rounded-lg text-[#6C2BD9] hover:bg-[#F1E7FE]"><Pencil className="h-4 w-4" /></button>
-                            <button data-testid={`faq-del-${f.id}`} onClick={() => deleteFaq(f.id)} className="h-8 w-8 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
+                            <button data-testid={`faq-del-${f.id}`} onClick={() => deleteFaq(f.id)} className="h-8 w-8 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
                           </div>
                         </div>
                       ))}
@@ -970,16 +970,16 @@ export default function AdminPage() {
                     <div className="mt-1.5 grid sm:grid-cols-2 gap-3">
                       {['facebook', 'x', 'youtube', 'linkedin', 'instagram'].map((k) => (
                         <div key={k} className="flex items-center gap-2">
-                          <span className="w-20 text-xs capitalize text-[#64748B]">{k}</span>
+                          <span className="w-20 text-xs capitalize text-[#526071]">{k}</span>
                           <Input data-testid={`settings-social-${k}`} value={content.footer?.socials?.[k] || ''} onChange={(e) => patchContent('footer', { ...content.footer, socials: { ...(content.footer?.socials || {}), [k]: e.target.value } })} className="h-9 flex-1" placeholder={`https://${k}.com/...`} />
                         </div>
                       ))}
                     </div>
-                    <p className="mt-2 text-xs text-[#94A3B8]">Leave blank to keep an icon as a placeholder. Click “Publish changes” to go live.</p>
+                    <p className="mt-2 text-xs text-[#667085]">Leave blank to keep an icon as a placeholder. Click “Publish changes” to go live.</p>
                   </div>
                   <div className="pt-4 border-t border-[#EEE8F6]">
                     <Label>Partner Terms &amp; Conditions</Label>
-                    <p className="text-xs text-[#94A3B8] mt-0.5">Shown to research analysts in a modal when they apply on the “Become a partner” page.</p>
+                    <p className="text-xs text-[#667085] mt-0.5">Shown to research analysts in a modal when they apply on the “Become a partner” page.</p>
                     <Input data-testid="settings-terms-title" value={content.partnerTerms?.title || ''} onChange={(e) => patchContent('partnerTerms', { ...content.partnerTerms, title: e.target.value })} className="mt-2 h-10" placeholder="Partner Terms & Conditions" />
                     <Textarea data-testid="settings-terms-body" value={content.partnerTerms?.body || ''} onChange={(e) => patchContent('partnerTerms', { ...content.partnerTerms, body: e.target.value })} className="mt-2 min-h-[160px]" placeholder="Write the partner terms & conditions here…" />
                   </div>

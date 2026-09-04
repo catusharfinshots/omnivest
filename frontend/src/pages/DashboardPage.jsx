@@ -96,13 +96,13 @@ export default function DashboardPage() {
   }, [authLoading, isAuthed, openAuth]);
 
   if (authLoading) {
-    return <div className="container-x py-24 text-center text-[#64748B]">Loading your dashboard…</div>;
+    return <div className="container-x py-24 text-center text-[#526071]">Loading your dashboard…</div>;
   }
   if (!isAuthed) {
     return (
       <div className="container-x py-24 text-center">
         <h1 className="text-2xl font-bold">Please log in</h1>
-        <p className="mt-2 text-[#64748B]">You need an account to view your dashboard.</p>
+        <p className="mt-2 text-[#526071]">You need an account to view your dashboard.</p>
         <button onClick={() => openAuth({ next: '/dashboard' })} className="btn-primary mt-6 inline-flex">Get started</button>
       </div>
     );
@@ -112,7 +112,7 @@ export default function DashboardPage() {
     <div className="container-x py-10 lg:py-14">
       <div className="eyebrow">Portfolio</div>
       <h1 className="mt-2 text-4xl md:text-5xl font-bold">Hi {user?.name?.split(' ')[0] || 'there'}</h1>
-      <p className="mt-3 text-[#64748B]">Your simulated portfolio — invest in any model portfolio to see it here.</p>
+      <p className="mt-3 text-[#526071]">Your simulated portfolio — invest in any model portfolio to see it here.</p>
 
       <div className="mt-8 grid md:grid-cols-4 gap-4">
         <div className="surface p-5">
@@ -125,11 +125,11 @@ export default function DashboardPage() {
         </div>
         <div className="surface p-5">
           <div className="text-xs text-[#6B6480] uppercase tracking-wider font-semibold">Returns</div>
-          <div className={`num mt-1 text-2xl font-bold flex items-center gap-1 ${returns>=0?'text-[#12B76A]':'text-[#F04438]'}`}>
+          <div className={`num mt-1 text-2xl font-bold flex items-center gap-1 ${returns>=0?'text-[#0B7F4A]':'text-[#B91C1C]'}`}>
             {returns>=0?<TrendingUp className="h-5 w-5" />:<TrendingDown className="h-5 w-5" />}
             ₹{Math.round(returns).toLocaleString('en-IN')}
           </div>
-          <div className={`text-xs mt-0.5 ${returns>=0?'text-[#12B76A]':'text-[#F04438]'}`}>{returns>=0?'+':''}{returnPct.toFixed(2)}%</div>
+          <div className={`text-xs mt-0.5 ${returns>=0?'text-[#0B7F4A]':'text-[#B91C1C]'}`}>{returns>=0?'+':''}{returnPct.toFixed(2)}%</div>
         </div>
         <div className="surface p-5">
           <div className="text-xs text-[#6B6480] uppercase tracking-wider font-semibold">Active SIPs</div>
@@ -155,12 +155,12 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#FF9F0A] to-[#F04438] text-white grid place-items-center font-bold">Z</div>
               <div>
-                <div className="flex items-center gap-2 font-semibold"><CheckCircle2 className="h-4 w-4 text-[#12B76A]" /> Zerodha connected</div>
+                <div className="flex items-center gap-2 font-semibold"><CheckCircle2 className="h-4 w-4 text-[#0B7F4A]" /> Zerodha connected</div>
                 <div className="text-xs text-[#6B6480]">{kite.profile?.user_name} · Kite ID {kite.profile?.user_id_kite}</div>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => openTicket()} className="inline-flex items-center gap-1.5 rounded-full bg-[#12B76A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#059669] transition-colors">
+              <button onClick={() => openTicket()} className="inline-flex items-center gap-1.5 rounded-full bg-[#0A7D48] px-4 py-2 text-sm font-semibold text-white hover:bg-[#059669] transition-colors">
                 <LineChart className="h-4 w-4" /> Place order
               </button>
               <button onClick={loadKite} disabled={loadingKite} className="btn-outline">
@@ -172,19 +172,19 @@ export default function DashboardPage() {
           {kiteMargins?.equity && (
             <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="rounded-xl bg-[#F7F4FB] p-3">
-                <div className="text-[10px] uppercase tracking-wider text-[#6B6480] font-semibold">Available cash</div>
+                <div className="text-[12px] uppercase tracking-wider text-[#6B6480] font-semibold">Available cash</div>
                 <div className="num mt-1 font-bold">₹{Number(kiteMargins.equity?.available?.cash || 0).toLocaleString('en-IN')}</div>
               </div>
               <div className="rounded-xl bg-[#F7F4FB] p-3">
-                <div className="text-[10px] uppercase tracking-wider text-[#6B6480] font-semibold">Live margin</div>
+                <div className="text-[12px] uppercase tracking-wider text-[#6B6480] font-semibold">Live margin</div>
                 <div className="num mt-1 font-bold">₹{Number(kiteMargins.equity?.available?.live_balance || kiteMargins.equity?.net || 0).toLocaleString('en-IN')}</div>
               </div>
               <div className="rounded-xl bg-[#F7F4FB] p-3">
-                <div className="text-[10px] uppercase tracking-wider text-[#6B6480] font-semibold">Used</div>
+                <div className="text-[12px] uppercase tracking-wider text-[#6B6480] font-semibold">Used</div>
                 <div className="num mt-1 font-bold">₹{Number(kiteMargins.equity?.utilised?.debits || 0).toLocaleString('en-IN')}</div>
               </div>
               <div className="rounded-xl bg-[#F7F4FB] p-3">
-                <div className="text-[10px] uppercase tracking-wider text-[#6B6480] font-semibold">Net</div>
+                <div className="text-[12px] uppercase tracking-wider text-[#6B6480] font-semibold">Net</div>
                 <div className="num mt-1 font-bold">₹{Number(kiteMargins.equity?.net || 0).toLocaleString('en-IN')}</div>
               </div>
             </div>
@@ -193,7 +193,7 @@ export default function DashboardPage() {
             <div className="mt-5">
               <div className="text-xs font-semibold uppercase tracking-wider text-[#6B6480] mb-2">Live Kite holdings ({kiteHoldings.length})</div>
               <div className="surface overflow-hidden">
-                <div className="grid grid-cols-12 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-[#6B6480] bg-[#F7F4FB]">
+                <div className="grid grid-cols-12 px-4 py-2 text-[12px] font-semibold uppercase tracking-wider text-[#6B6480] bg-[#F7F4FB]">
                   <div className="col-span-4">Symbol</div>
                   <div className="col-span-2 text-right">Qty</div>
                   <div className="col-span-2 text-right">Avg</div>
@@ -208,16 +208,16 @@ export default function DashboardPage() {
                         <div className="col-span-4">
                           <div className="font-semibold flex items-center gap-2">{h.tradingsymbol}
                             <span className="hidden md:inline-flex gap-1">
-                              <button onClick={() => openTicket(h.tradingsymbol, 'BUY')} className="text-[10px] px-1.5 py-0.5 rounded bg-[#DCFCE7] text-[#059669] font-semibold">B</button>
-                              <button onClick={() => openTicket(h.tradingsymbol, 'SELL')} className="text-[10px] px-1.5 py-0.5 rounded bg-[#FEE2E2] text-[#DC2626] font-semibold">S</button>
+                              <button onClick={() => openTicket(h.tradingsymbol, 'BUY')} className="text-[12px] px-1.5 py-0.5 rounded bg-[#DCFCE7] text-[#059669] font-semibold">B</button>
+                              <button onClick={() => openTicket(h.tradingsymbol, 'SELL')} className="text-[12px] px-1.5 py-0.5 rounded bg-[#FEE2E2] text-[#B91C1C] font-semibold">S</button>
                             </span>
                           </div>
-                          <div className="text-[11px] text-[#6B6480]">{h.exchange}</div>
+                          <div className="text-[12px] text-[#6B6480]">{h.exchange}</div>
                         </div>
                         <div className="col-span-2 num text-right">{h.quantity}</div>
                         <div className="col-span-2 num text-right">₹{Number(h.average_price||0).toFixed(2)}</div>
                         <div className="col-span-2 num text-right">₹{Number(h.last_price||0).toFixed(2)}</div>
-                        <div className={`col-span-2 num text-right font-semibold ${pnl >= 0 ? 'text-[#12B76A]' : 'text-[#F04438]'}`}>
+                        <div className={`col-span-2 num text-right font-semibold ${pnl >= 0 ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>
                           {pnl >= 0 ? '+' : ''}₹{pnl.toFixed(2)}
                         </div>
                       </div>
@@ -241,7 +241,7 @@ export default function DashboardPage() {
                 <div className="rounded-xl border-2 border-dashed border-[#E8E1F0] p-6 text-center text-sm text-[#6B6480]">No orders yet. Click Place order to trade.</div>
               ) : (
                 <div className="surface overflow-hidden">
-                  <div className="grid grid-cols-12 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-[#6B6480] bg-[#F7F4FB]">
+                  <div className="grid grid-cols-12 px-4 py-2 text-[12px] font-semibold uppercase tracking-wider text-[#6B6480] bg-[#F7F4FB]">
                     <div className="col-span-1">Side</div>
                     <div className="col-span-3">Symbol</div>
                     <div className="col-span-1 text-right">Qty</div>
@@ -255,13 +255,13 @@ export default function DashboardPage() {
                       const status = String(o.status || '').toUpperCase();
                       const canCancel = ['OPEN','TRIGGER PENDING','MODIFY_VALIDATION_PENDING','MODIFY_PENDING','VALIDATION PENDING'].some(s => status.includes(s));
                       const isBuy = o.transaction_type === 'BUY';
-                      const statusColor = status.includes('COMPLETE') ? 'text-[#12B76A]' : status.includes('REJECT') || status.includes('CANCELLED') ? 'text-[#F04438]' : 'text-[#6B6480]';
+                      const statusColor = status.includes('COMPLETE') ? 'text-[#0B7F4A]' : status.includes('REJECT') || status.includes('CANCELLED') ? 'text-[#B91C1C]' : 'text-[#6B6480]';
                       return (
                         <div key={o.order_id} className="grid grid-cols-12 px-4 py-2.5 items-center text-sm">
-                          <div className="col-span-1"><span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isBuy ? 'bg-[#DCFCE7] text-[#059669]' : 'bg-[#FEE2E2] text-[#DC2626]'}`}>{o.transaction_type}</span></div>
+                          <div className="col-span-1"><span className={`text-[12px] font-bold px-1.5 py-0.5 rounded ${isBuy ? 'bg-[#DCFCE7] text-[#059669]' : 'bg-[#FEE2E2] text-[#B91C1C]'}`}>{o.transaction_type}</span></div>
                           <div className="col-span-3">
                             <div className="font-semibold">{o.tradingsymbol}</div>
-                            <div className="text-[10px] text-[#6B6480]">{o.exchange} · {o.product}</div>
+                            <div className="text-[12px] text-[#6B6480]">{o.exchange} · {o.product}</div>
                           </div>
                           <div className="col-span-1 num text-right">{o.quantity}</div>
                           <div className="col-span-2 num text-right">₹{Number(o.average_price || o.price || 0).toFixed(2)}</div>
@@ -269,7 +269,7 @@ export default function DashboardPage() {
                           <div className={`col-span-2 text-xs font-semibold ${statusColor}`}>{status || '—'}</div>
                           <div className="col-span-1 text-right">
                             {canCancel ? (
-                              <button onClick={() => cancelOrder(o)} className="h-6 w-6 grid place-items-center rounded text-[#F04438] hover:bg-[#FEF3F2]" title="Cancel order"><XCircle className="h-4 w-4" /></button>
+                              <button onClick={() => cancelOrder(o)} className="h-6 w-6 grid place-items-center rounded text-[#B91C1C] hover:bg-[#FEF3F2]" title="Cancel order"><XCircle className="h-4 w-4" /></button>
                             ) : null}
                           </div>
                         </div>
@@ -299,7 +299,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="text-right">
                   <div className="num font-semibold">₹{Math.round(i.currentValue).toLocaleString('en-IN')}</div>
-                  <div className={`text-xs font-semibold ${i.gain>=0?'text-[#12B76A]':'text-[#F04438]'}`}>{i.gain>=0?'+':''}{i.gainPct.toFixed(2)}%</div>
+                  <div className={`text-xs font-semibold ${i.gain>=0?'text-[#0B7F4A]':'text-[#B91C1C]'}`}>{i.gain>=0?'+':''}{i.gainPct.toFixed(2)}%</div>
                 </div>
               </Link>
             ))}
@@ -333,7 +333,7 @@ export default function DashboardPage() {
                 <Link key={id} to={`/smallcase/${id}`} className="surface p-4 hover:border-[#D8C7F1] transition-colors">
                   <div className="font-semibold text-sm">{b.name}</div>
                   <div className="text-xs text-[#6B6480]">{b.risk} risk · {b.strategy.replace('-',' ')}</div>
-                  <div className="mt-2 num text-lg font-bold text-[#12B76A]">+{b.returns.y3.toFixed(1)}%</div>
+                  <div className="mt-2 num text-lg font-bold text-[#0B7F4A]">+{b.returns.y3.toFixed(1)}%</div>
                 </Link>
               );
             })}

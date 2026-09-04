@@ -101,7 +101,7 @@ export default function Home() {
       <span><div className="nm">{p.name}</div><div className="sub">{(p.constituents || []).length} {bucketOf(p) === 'etf' ? 'ETFs' : bucketOf(p) === 'mf' ? 'Funds' : 'Stocks'}</div></span>
     </Link>
   );
-  const EmptyRow = () => <div className="prow" style={{ opacity: 0.6, cursor: 'default' }}><span className="ic" style={{ background: '#E8E1F0', color: '#6C2BD9' }}>◦</span><span><div className="nm" style={{ fontSize: 13 }}>No portfolios yet</div><div className="sub">Check back soon</div></span></div>;
+  const EmptyRow = () => <div className="prow" style={{ cursor: 'default' }}><span className="ic" style={{ background: '#E8E1F0', color: '#6C2BD9' }}>◦</span><span><div className="nm" style={{ fontSize: 13 }}>No portfolios yet</div><div className="sub">Check back soon</div></span></div>;
 
 
   const phoneList = [

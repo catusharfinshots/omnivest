@@ -57,7 +57,7 @@ export default function Footer() {
               </span>
               <span className="font-[Inter] text-lg font-bold">Omnivest</span>
             </Link>
-            <p className="mt-4 text-sm text-[#64748B] max-w-xs">
+            <p className="mt-4 text-sm text-[#526071] max-w-xs">
               Money at work — expert-managed model portfolios, AIFs and advisory, invested from your own broker account.
             </p>
 
@@ -69,13 +69,13 @@ export default function Footer() {
                   return (
                     <a key={key} href={url || '#'} target={url ? '_blank' : undefined} rel="noreferrer"
                       aria-label={label} data-testid={`social-${key}`}
-                      className="h-9 w-9 grid place-items-center rounded-lg bg-white border border-[#E6E8F0] text-[#64748B] hover:text-[#6C2BD9] hover:border-[#D8C7F1] transition-colors">
+                      className="h-9 w-9 grid place-items-center rounded-lg bg-white border border-[#E6E8F0] text-[#526071] hover:text-[#6C2BD9] hover:border-[#D8C7F1] transition-colors">
                       <Icon className="h-4 w-4" />
                     </a>
                   );
                 })}
               </div>
-              <a href={`mailto:${footer.contactEmail}`} data-testid="footer-contact-email" className="mt-3 inline-flex items-center gap-2 text-sm text-[#64748B] hover:text-[#6C2BD9]">
+              <a href={`mailto:${footer.contactEmail}`} data-testid="footer-contact-email" className="mt-3 inline-flex items-center gap-2 text-sm text-[#526071] hover:text-[#6C2BD9]">
                 <Mail className="h-4 w-4" /> Contact us on <span className="font-semibold text-[#0F1729]">{footer.contactEmail}</span>
               </a>
             </div>
@@ -86,7 +86,7 @@ export default function Footer() {
               <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0F1729] mb-3">{col.title}</div>
               <ul className="space-y-2">
                 {col.links.map((l) => (
-                  <li key={l.name}><Link to={l.to} onClick={scrollTop} className="inline-block py-1.5 sm:py-0.5 text-sm text-[#64748B] hover:text-[#0F1729]">{l.name}</Link></li>
+                  <li key={l.name}><Link to={l.to} onClick={scrollTop} className="inline-block py-1.5 sm:py-0.5 text-sm text-[#526071] hover:text-[#0F1729]">{l.name}</Link></li>
                 ))}
               </ul>
             </div>
@@ -96,10 +96,10 @@ export default function Footer() {
         <div className="mt-10 rounded-2xl bg-white border border-[#E6E8F0] p-6 grid md:grid-cols-2 gap-4 items-center">
           <div>
             <div className="text-base font-semibold text-[#0F1729]">Subscribe to Omnivest</div>
-            <p className="text-sm text-[#64748B]">{footer.subscribeHeading}</p>
+            <p className="text-sm text-[#526071]">{footer.subscribeHeading}</p>
           </div>
           {subscribed ? (
-            <div data-testid="subscribe-success" className="flex items-center gap-2 text-sm font-semibold text-[#0E9F5E] md:justify-end">
+            <div data-testid="subscribe-success" className="flex items-center gap-2 text-sm font-semibold text-[#0B7F4A] md:justify-end">
               <CheckCircle2 className="h-5 w-5" /> You're subscribed — thanks!
             </div>
           ) : (
@@ -113,7 +113,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 pt-8 border-t border-[#E6E8F0] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <p className="text-xs text-[#64748B] max-w-3xl">
+          <p className="text-xs text-[#526071] max-w-3xl">
             Investments in securities are subject to market risks. Read all scheme related documents carefully before investing. Past performance is not indicative of future returns.
           </p>
           <Link to="/partner" onClick={scrollTop} data-testid="become-partner-link" className="text-xs font-semibold text-[#6C2BD9] hover:text-[#5320A8] shrink-0">Become a partner →</Link>

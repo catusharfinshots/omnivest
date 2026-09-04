@@ -39,14 +39,14 @@ const EMPTY_FORM = {
 };
 
 function SectionTitle({ children }) {
-  return <div className="pt-2 text-[11px] font-bold uppercase tracking-wider text-[#6C2BD9]">{children}</div>;
+  return <div className="pt-2 text-[12px] font-bold uppercase tracking-wider text-[#6C2BD9]">{children}</div>;
 }
 
 function DocPicker({ kind, file, onPick }) {
   const ref = useRef(null);
   return (
     <div>
-      <Label>{DOC_LABELS[kind]} * <span className="font-normal text-[#94A3B8]">(PDF/JPG/PNG, max 5 MB)</span></Label>
+      <Label>{DOC_LABELS[kind]} * <span className="font-normal text-[#667085]">(PDF/JPG/PNG, max 5 MB)</span></Label>
       <input ref={ref} type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" className="hidden"
         data-testid={`doc-input-${kind}`}
         onChange={(e) => {
@@ -56,7 +56,7 @@ function DocPicker({ kind, file, onPick }) {
           onPick(f);
         }} />
       <button type="button" data-testid={`doc-pick-${kind}`} onClick={() => ref.current?.click()}
-        className={`mt-1.5 w-full h-11 rounded-xl border text-sm font-medium flex items-center justify-center gap-2 px-3 transition-colors ${file ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#0E9F5E]' : 'border-dashed border-[#CBD5E1] bg-white text-[#64748B] hover:border-[#A78BFA]'}`}>
+        className={`mt-1.5 w-full h-11 rounded-xl border text-sm font-medium flex items-center justify-center gap-2 px-3 transition-colors ${file ? 'border-[#BBF7D0] bg-[#F0FDF4] text-[#0B7F4A]' : 'border-dashed border-[#CBD5E1] bg-white text-[#526071] hover:border-[#A78BFA]'}`}>
         {file ? <FileCheck2 className="h-4 w-4 shrink-0" /> : <Upload className="h-4 w-4 shrink-0" />}
         <span className="truncate">{file ? file.name : 'Choose file'}</span>
       </button>
@@ -241,24 +241,24 @@ export default function PartnerApply() {
   const inner = done ? (
     <div className="min-h-[70vh] grid place-items-center bg-[#F7F4FB] p-6">
       <div className="surface p-10 text-center max-w-lg" data-testid="partner-success">
-        <span className="h-14 w-14 mx-auto rounded-2xl bg-[#DCFCE7] text-[#0E9F5E] grid place-items-center"><CheckCircle2 className="h-7 w-7" /></span>
+        <span className="h-14 w-14 mx-auto rounded-2xl bg-[#DCFCE7] text-[#0B7F4A] grid place-items-center"><CheckCircle2 className="h-7 w-7" /></span>
         <h1 className="mt-5 text-2xl font-bold">Application received</h1>
         {refNo && (
           <div className="mt-4 inline-block rounded-xl bg-[#F1E7FE] px-5 py-3" data-testid="partner-ref-no">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-[#7C5CAE]">Your reference number</div>
+            <div className="text-[12px] font-bold uppercase tracking-wider text-[#7C5CAE]">Your reference number</div>
             <div className="text-xl font-bold text-[#5320A8] tracking-wide">{refNo}</div>
           </div>
         )}
-        <p className="mt-4 text-sm text-[#64748B]">Please save this number — quote it in any correspondence about your application.</p>
+        <p className="mt-4 text-sm text-[#526071]">Please save this number — quote it in any correspondence about your application.</p>
         <div className="mt-6 text-left rounded-xl border border-[#E8E1F0] bg-white p-5">
-          <div className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">What happens next</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-[#667085]">What happens next</div>
           <ol className="mt-2 space-y-1.5 text-sm text-[#475569] list-decimal list-inside">
             <li>We verify your SEBI registration, RAASB enlistment and documents.</li>
             <li>You'll hear from us — typically within <b>2–3 working days</b>.</li>
             <li>Once approved, return to <b>omnivest.in/partner</b> and choose <b>“Partner login”</b> (with this mobile number) to open your analyst console.</li>
           </ol>
         </div>
-        <p className="mt-5 text-xs text-[#94A3B8]">Questions? Write to <a className="font-semibold text-[#6C2BD9]" href={`mailto:support@omnivest.in?subject=Partner application ${refNo}`}>support@omnivest.in</a> with your reference number.</p>
+        <p className="mt-5 text-xs text-[#667085]">Questions? Write to <a className="font-semibold text-[#6C2BD9]" href={`mailto:support@omnivest.in?subject=Partner application ${refNo}`}>support@omnivest.in</a> with your reference number.</p>
         <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
           <Link to="/" className="btn-primary px-5 py-2.5 text-sm" data-testid="success-go-home">Back to homepage</Link>
           <button type="button" data-testid="success-new-application" onClick={resetFlow} className="btn-outline px-5 py-2.5 text-sm">Submit another application</button>
@@ -270,7 +270,7 @@ export default function PartnerApply() {
       <div className="container-x py-10 max-w-3xl">
         <Link to="/partner" data-testid="apply-back-link" className="inline-flex items-center gap-1.5 text-sm font-medium text-[#6C2BD9] hover:underline"><ArrowLeft className="h-4 w-4" /> Back to partner page</Link>
         <h1 className="mt-4 text-3xl sm:text-4xl font-bold leading-tight">Apply as a research analyst</h1>
-        <p className="mt-2 text-sm text-[#64748B] max-w-xl">Takes about ten minutes. Keep your SEBI, RAASB and NISM details plus three documents handy — <Link to="/partner#requirements" className="text-[#6C2BD9] font-medium">see the full checklist</Link>.</p>
+        <p className="mt-2 text-sm text-[#526071] max-w-xl">Takes about ten minutes. Keep your SEBI, RAASB and NISM details plus three documents handy — <Link to="/partner#requirements" className="text-[#6C2BD9] font-medium">see the full checklist</Link>.</p>
         <div className="mt-8">
           <form onSubmit={submit} className="surface p-6 sm:p-8" data-testid="partner-form">
             <div className="space-y-4">
@@ -286,7 +286,7 @@ export default function PartnerApply() {
                 <div>
                   <Label>Mobile number *</Label>
                   <PhoneField testid="partner-phone" value={form.phone} onChange={setPhone('phone')} />
-                  {form.phone && !phoneOk && <p className="mt-1 text-xs text-[#DC2626]">Enter a valid mobile number.</p>}
+                  {form.phone && !phoneOk && <p className="mt-1 text-xs text-[#B91C1C]">Enter a valid mobile number.</p>}
                 </div>
                 <div>
                   <Label>Email *</Label>
@@ -303,11 +303,11 @@ export default function PartnerApply() {
                 <div>
                   <Label>SEBI reg. no. *</Label>
                   <Input data-testid="partner-sebi" required value={form.sebi_reg} onChange={(e) => setForm((f) => ({ ...f, sebi_reg: e.target.value.toUpperCase() }))} className="h-11 mt-1.5" placeholder="INH000012345" />
-                  {form.sebi_reg && !sebiOk && <p className="mt-1 text-xs text-[#DC2626]">Format: IN, a letter, then 9 digits (e.g. INH000012345).</p>}
+                  {form.sebi_reg && !sebiOk && <p className="mt-1 text-xs text-[#B91C1C]">Format: IN, a letter, then 9 digits (e.g. INH000012345).</p>}
                 </div>
                 <div>
                   <Label>Registration date *</Label>
-                  <Input data-testid="partner-sebi-date" type="date" required value={form.sebi_reg_date} onChange={set('sebi_reg_date')} className="h-11 mt-1.5" />
+                  <Input data-testid="partner-sebi-date" aria-label="SEBI registration date" type="date" required value={form.sebi_reg_date} onChange={set('sebi_reg_date')} className="h-11 mt-1.5" />
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
@@ -318,7 +318,7 @@ export default function PartnerApply() {
                 <div>
                   <Label>PAN *</Label>
                   <Input data-testid="partner-pan" required value={form.pan} onChange={(e) => setForm((f) => ({ ...f, pan: e.target.value.toUpperCase() }))} className="h-11 mt-1.5" placeholder="ABCDE1234F" />
-                  {form.pan && !panOk && <p className="mt-1 text-xs text-[#DC2626]">Format: 5 letters, 4 digits, 1 letter.</p>}
+                  {form.pan && !panOk && <p className="mt-1 text-xs text-[#B91C1C]">Format: 5 letters, 4 digits, 1 letter.</p>}
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
@@ -328,15 +328,15 @@ export default function PartnerApply() {
                 </div>
                 <div>
                   <Label>NISM valid till *</Label>
-                  <Input data-testid="partner-nism-valid" type="date" required value={form.nism_valid_till} onChange={set('nism_valid_till')} className="h-11 mt-1.5" />
-                  {nismExpired && <p className="mt-1 text-xs text-[#DC2626]">This certification appears expired — a valid NISM-XV is required.</p>}
+                  <Input data-testid="partner-nism-valid" aria-label="NISM certificate valid till" type="date" required value={form.nism_valid_till} onChange={set('nism_valid_till')} className="h-11 mt-1.5" />
+                  {nismExpired && <p className="mt-1 text-xs text-[#B91C1C]">This certification appears expired — a valid NISM-XV is required.</p>}
                 </div>
               </div>
               <div>
                 <Label>Registered office address (as per SEBI records) *</Label>
                 <Textarea data-testid="partner-address" required value={form.registered_address} onChange={set('registered_address')} rows={2} className="mt-1.5" placeholder="Street, area, city, state, PIN" />
                 {form.registered_address.trim() && !addressOk && (
-                  <p className="mt-1 text-xs text-[#DC2626]">Please enter your complete registered address — street, city and PIN (as per SEBI records).</p>
+                  <p className="mt-1 text-xs text-[#B91C1C]">Please enter your complete registered address — street, city and PIN (as per SEBI records).</p>
                 )}
               </div>
               <div>
@@ -390,7 +390,7 @@ export default function PartnerApply() {
                 )}
               </div>
               <div>
-                <Label>Other SEBI registrations held <span className="font-normal text-[#94A3B8]">(optional — IA / PMS / broker, with numbers)</span></Label>
+                <Label>Other SEBI registrations held <span className="font-normal text-[#667085]">(optional — IA / PMS / broker, with numbers)</span></Label>
                 <Input data-testid="partner-other-reg" value={form.other_registrations} onChange={set('other_registrations')} className="h-11 mt-1.5" placeholder="e.g. INA000001234 (Investment Adviser)" />
               </div>
               <label className="flex items-start gap-2.5 text-sm cursor-pointer" data-testid="partner-deposit-consent">
@@ -446,7 +446,7 @@ export default function PartnerApply() {
               <button data-testid="partner-submit" disabled={busy || !valid} className="btn-primary w-full py-3 disabled:opacity-60 disabled:cursor-not-allowed">
                 {busy && <Loader2 className="h-4 w-4 animate-spin" />} {busy ? 'Submitting…' : 'Submit application'}
               </button>
-              <p className="text-xs text-center text-[#94A3B8]">We'll verify your registration details and get back to you. Approval unlocks your analyst console.</p>
+              <p className="text-xs text-center text-[#667085]">We'll verify your registration details and get back to you. Approval unlocks your analyst console.</p>
             </div>
           </form>
         </div>

@@ -95,7 +95,7 @@ export default function KiteCallback() {
         )}
         {state === 'success' && (
           <div className="mt-6 flex flex-col items-center gap-2">
-            <CheckCircle2 className="h-10 w-10 text-[#12B76A]" />
+            <CheckCircle2 className="h-10 w-10 text-[#0B7F4A]" />
             <div className="font-semibold">Zerodha connected</div>
             <div className="text-sm text-[#6B6480]">{detail}</div>
             <div className="text-xs text-[#6B6480] mt-2">Closing this window…</div>
@@ -103,7 +103,7 @@ export default function KiteCallback() {
         )}
         {state === 'error' && (
           <div className="mt-6 flex flex-col items-center gap-2">
-            <XCircle className="h-10 w-10 text-[#F04438]" />
+            <XCircle className="h-10 w-10 text-[#B91C1C]" />
             <div className="font-semibold">Connection failed</div>
             <div className="text-xs text-[#6B6480] max-w-xs break-words">{detail}</div>
             <button onClick={() => window.close()} className="btn-outline mt-3">Close</button>

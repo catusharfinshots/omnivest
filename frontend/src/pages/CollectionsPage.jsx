@@ -31,7 +31,7 @@ export default function CollectionsPage() {
               <Link key={b.id} to={`/smallcase/${b.id}`} className="surface p-5 hover:border-[#D8C7F1] transition-colors">
                 <div className="text-sm font-semibold text-[#1A1030]">{b.name}</div>
                 <div className="text-xs text-[#6B6480] mt-1">{b.subtitle}</div>
-                <div className="mt-4 num text-lg font-bold text-[#12B76A]">+{b.returns.y3.toFixed(1)}% <span className="text-xs text-[#6B6480] font-medium">3Y CAGR</span></div>
+                <div className="mt-4 num text-lg font-bold text-[#0B7F4A]">+{b.returns.y3.toFixed(1)}% <span className="text-xs text-[#6B6480] font-medium">3Y CAGR</span></div>
               </Link>
             ))
           ) : (
@@ -39,7 +39,7 @@ export default function CollectionsPage() {
               <div key={f.id} className="surface p-5">
                 <div className="text-sm font-semibold">{f.name}</div>
                 <div className="text-xs text-[#6B6480]">{f.amc}</div>
-                <div className="mt-3 num text-lg font-bold text-[#12B76A]">+{f.returns.y3.toFixed(1)}%</div>
+                <div className="mt-3 num text-lg font-bold text-[#0B7F4A]">+{f.returns.y3.toFixed(1)}%</div>
               </div>
             ))
           )}
@@ -60,7 +60,7 @@ export default function CollectionsPage() {
             <div className="h-10 w-10 rounded-xl bg-[#F1E7FE] text-[#6C2BD9] grid place-items-center"><Icon name={c.icon} className="h-5 w-5" /></div>
             <div className="mt-4 text-sm font-semibold">{c.title}</div>
             <div className="text-xs text-[#6B6480] mt-1">{c.description}</div>
-            <div className="mt-3 chip-brand text-[10px]">{c.type === 'stock' ? 'Stocks' : 'Mutual funds'}</div>
+            <div className="mt-3 chip-brand text-[12px]">{c.type === 'stock' ? 'Stocks' : 'Mutual funds'}</div>
           </Link>
         ))}
       </div>

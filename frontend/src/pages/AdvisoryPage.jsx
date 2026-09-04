@@ -43,8 +43,8 @@ export default function AdvisoryPage() {
         <div className="container-x py-16">
           <div className="eyebrow">Advisory</div>
           <h1 className="mt-3 text-4xl sm:text-5xl font-bold tracking-tight max-w-3xl">Buy / Sell / Hold insights in seconds</h1>
-          <p className="mt-4 text-lg text-[#64748B] max-w-2xl">Research-backed advisory tailored to your holdings and goals. Subscribe to a plan or register your interest.</p>
-          <span className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#FEF3C7] text-[#B45309] px-3 py-1 text-xs font-semibold">Phase 2 — subscriptions coming soon</span>
+          <p className="mt-4 text-lg text-[#526071] max-w-2xl">Research-backed advisory tailored to your holdings and goals. Subscribe to a plan or register your interest.</p>
+          <span className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#FEF3C7] text-[#9A4A05] px-3 py-1 text-xs font-semibold">Phase 2 — subscriptions coming soon</span>
         </div>
       </section>
 
@@ -55,7 +55,7 @@ export default function AdvisoryPage() {
             <h3 className="text-lg font-semibold">{t.name}</h3>
             <div className="num mt-1 text-3xl font-bold">{t.price}</div>
             <ul className="mt-5 space-y-2 text-sm text-[#334155]">
-              {t.features.map(f => <li key={f} className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#12B76A]" /> {f}</li>)}
+              {t.features.map(f => <li key={f} className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#0B7F4A]" /> {f}</li>)}
             </ul>
             <button onClick={()=>choosePlan(t.name)} className={`w-full mt-6 ${t.highlight ? 'btn-primary' : 'btn-outline'} py-3`}>Choose {t.name}</button>
           </div>
@@ -67,17 +67,17 @@ export default function AdvisoryPage() {
           <div>
             <Compass className="h-8 w-8 text-[#6C2BD9]" />
             <h2 className="mt-4 text-2xl font-bold">Not sure which plan?</h2>
-            <p className="mt-2 text-[#64748B]">Leave your email and our advisory desk will help you pick the right plan.</p>
+            <p className="mt-2 text-[#526071]">Leave your email and our advisory desk will help you pick the right plan.</p>
             <div className="mt-5 flex gap-4 text-sm text-[#334155]">
               <span className="flex items-center gap-2"><Zap className="h-4 w-4 text-[#6C2BD9]" /> Fast setup</span>
-              <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[#12B76A]" /> SEBI-registered</span>
+              <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[#0B7F4A]" /> SEBI-registered</span>
             </div>
           </div>
           <form id="advisory-lead" onSubmit={submit} className="space-y-3">
             {plan && <div className="chip-brand">Selected plan: {plan}</div>}
             <Input required type="email" value={email} onChange={(e)=>setEmail(e.target.value)} className="h-12" placeholder="you@company.com" />
             <button disabled={busy} className="btn-primary w-full py-3 disabled:opacity-60">Register interest <ArrowRight className="h-4 w-4" /></button>
-            <div className="text-center text-xs text-[#94A3B8]">Or explore <Link to="/model-portfolios" className="text-[#6C2BD9] font-semibold">model portfolios</Link></div>
+            <div className="text-center text-xs text-[#667085]">Or explore <Link to="/model-portfolios" className="text-[#6C2BD9] font-semibold">model portfolios</Link></div>
           </form>
         </div>
       </section>

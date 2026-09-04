@@ -79,7 +79,7 @@ export default function BrokerConnectPage() {
           <p className="mt-3 text-[#6B6480] max-w-xl">Baskets execute in your own demat account. Connect once, invest anywhere.</p>
         </div>
         <div className="inline-flex items-center gap-2 text-xs text-[#6B6480]">
-          <ShieldCheck className="h-4 w-4 text-[#12B76A]" /> OAuth-secured · we never see your password
+          <ShieldCheck className="h-4 w-4 text-[#0B7F4A]" /> OAuth-secured · we never see your password
         </div>
       </div>
 
@@ -88,7 +88,7 @@ export default function BrokerConnectPage() {
           const isKite = b.key === 'kite';
           const isConnected = isKite && kite;
           return (
-            <div key={b.key} className={`surface p-6 relative overflow-hidden ${!b.active ? 'opacity-80' : ''}`}>
+            <div key={b.key} className={`surface p-6 relative overflow-hidden ${!b.active ? 'border-dashed' : ''}`}>
               <div className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${b.color} text-white grid place-items-center text-lg font-bold shadow-md`}>{b.logo}</div>
               <div className="mt-4 flex items-start justify-between gap-2">
                 <div>
@@ -96,12 +96,12 @@ export default function BrokerConnectPage() {
                   <div className="text-xs text-[#6B6480]">{b.tagline}</div>
                 </div>
                 {isConnected && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] text-[#12B76A] px-2 py-1 text-[11px] font-semibold">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] text-[#0B7F4A] px-2 py-1 text-[12px] font-semibold">
                     <CheckCircle2 className="h-3 w-3" /> Connected
                   </span>
                 )}
                 {!b.active && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#F7F4FB] text-[#6B6480] px-2 py-1 text-[11px] font-semibold">Soon</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#F7F4FB] text-[#6B6480] px-2 py-1 text-[12px] font-semibold">Soon</span>
                 )}
               </div>
 
@@ -123,7 +123,7 @@ export default function BrokerConnectPage() {
                   isConnected ? (
                     <>
                       <Link to="/dashboard" className="btn-outline flex-1">View holdings</Link>
-                      <button onClick={onDisconnect} className="btn-outline text-[#F04438] border-[#FCA5A5] hover:border-[#F04438]"><XCircle className="h-4 w-4" /> Disconnect</button>
+                      <button onClick={onDisconnect} className="btn-outline text-[#B91C1C] border-[#FCA5A5] hover:border-[#F04438]"><XCircle className="h-4 w-4" /> Disconnect</button>
                     </>
                   ) : (
                     <button disabled={loading} onClick={onConnectKite} className="btn-primary w-full">

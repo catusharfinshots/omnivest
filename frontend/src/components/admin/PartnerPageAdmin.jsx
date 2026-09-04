@@ -38,7 +38,7 @@ function ListEditor({ items, onChange, fields, addLabel, testid }) {
                 </div>
               ))}
             </div>
-            <button type="button" onClick={() => remove(i)} className="shrink-0 h-8 w-8 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2]" aria-label="Remove">
+            <button type="button" onClick={() => remove(i)} className="shrink-0 h-8 w-8 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2]" aria-label="Remove">
               <Trash2 className="h-4 w-4" />
             </button>
           </div>
@@ -102,7 +102,7 @@ export default function PartnerPageAdmin({ pp, onChange }) {
                     <Textarea rows={3} value={(f.bullets || []).join('\n')} onChange={(e) => set({ features: p.features.map((x, j) => (j === i ? { ...x, bullets: e.target.value.split('\n') } : x)) })} className="mt-1 bg-white" />
                   </div>
                 </div>
-                <button type="button" onClick={() => set({ features: p.features.filter((_, j) => j !== i) })} className="shrink-0 h-8 w-8 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2]" aria-label="Remove">
+                <button type="button" onClick={() => set({ features: p.features.filter((_, j) => j !== i) })} className="shrink-0 h-8 w-8 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2]" aria-label="Remove">
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>

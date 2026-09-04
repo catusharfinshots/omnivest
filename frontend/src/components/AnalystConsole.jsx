@@ -24,10 +24,10 @@ const OPTION_DEFAULTS = {
 };
 const STATUS_STYLES = {
   draft: 'bg-[#F1F1F4] text-[#6B6480]',
-  pending: 'bg-[#FEF3C7] text-[#B45309]',
-  approved: 'bg-[#DCFCE7] text-[#0E9F5E]',
-  rejected: 'bg-[#FEE2E2] text-[#DC2626]',
-  paused: 'bg-[#FEE2E2] text-[#DC2626]',
+  pending: 'bg-[#FEF3C7] text-[#9A4A05]',
+  approved: 'bg-[#DCFCE7] text-[#0B7F4A]',
+  rejected: 'bg-[#FEE2E2] text-[#B91C1C]',
+  paused: 'bg-[#FEE2E2] text-[#B91C1C]',
 };
 const STATUS_LABEL = { draft: 'Draft', pending: 'Awaiting approval', approved: 'Live', rejected: 'Rejected', paused: 'Paused by admin' };
 const nice = (iso) => (iso ? new Date(`${String(iso).slice(0, 10)}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
@@ -105,7 +105,7 @@ export default function AnalystConsole() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 shrink-0">
             <span className="h-8 w-8 rounded-lg grad-card text-white grid place-items-center"><img src={omniMark} alt="" className="h-5 w-5" /></span>
-            <div className="hidden sm:block"><div className="font-[Inter] font-bold leading-none">Omnivest</div><div className="text-[10px] uppercase tracking-widest text-[#6B6480]">Analyst console</div></div>
+            <div className="hidden sm:block"><div className="font-[Inter] font-bold leading-none">Omnivest</div><div className="text-[12px] uppercase tracking-widest text-[#6B6480]">Analyst console</div></div>
           </div>
           <div className="flex items-center gap-0.5 sm:gap-2 text-sm whitespace-nowrap overflow-x-auto">
             <span className="text-[#6B6480] hidden md:inline mr-2">{user?.name}</span>
@@ -160,12 +160,12 @@ export default function AnalystConsole() {
                         <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-[#1A1030] truncate">{p.name}</span>
-                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${STATUS_STYLES[p.status] || STATUS_STYLES.draft}`}>{STATUS_LABEL[p.status] || p.status}</span>
-                          {p.featured && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#6C2BD9]">Featured</span>}
-                          {p.subscription === 'Paid' && <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#B45309]">Paid</span>}
+                          <span className={`text-[12px] font-bold uppercase px-2 py-0.5 rounded-full ${STATUS_STYLES[p.status] || STATUS_STYLES.draft}`}>{STATUS_LABEL[p.status] || p.status}</span>
+                          {p.featured && <span className="text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#6C2BD9]">Featured</span>}
+                          {p.subscription === 'Paid' && <span className="text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#9A4A05]">Paid</span>}
                         </div>
                         <div className="text-xs text-[#6B6480] mt-0.5 truncate">{p.subtitle || 'No pitch yet'} · {(p.constituents || []).length} holdings · {p.benchmark || 'NIFTY 50'}{(p.tags || []).length ? ` · ${p.tags.join(', ')}` : ''}</div>
-                        {p.launch_date && <div className="text-[11px] text-[#6B6480] mt-1 inline-flex items-center gap-1"><CalendarCheck className="h-3 w-3 text-[#6C2BD9]" /> Live since {nice(p.launch_date)}{(p.versions || []).length > 1 ? ` · ${p.versions.length} versions` : ''}</div>}
+                        {p.launch_date && <div className="text-[12px] text-[#6B6480] mt-1 inline-flex items-center gap-1"><CalendarCheck className="h-3 w-3 text-[#6C2BD9]" /> Live since {nice(p.launch_date)}{(p.versions || []).length > 1 ? ` · ${p.versions.length} versions` : ''}</div>}
                         {p.changes_requested && p.review_note && (
                           <div className="mt-2 flex items-start gap-1.5 text-xs rounded-lg bg-[#FFFBEB] border border-[#FDE68A] px-2.5 py-1.5 text-[#92400E]" data-testid="changes-requested"><AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" /><span><b>Admin asked for changes:</b> {p.review_note} — edit and resubmit.</span></div>
                         )}
@@ -179,18 +179,18 @@ export default function AnalystConsole() {
                         {live && <button onClick={() => { setPostsFor(p); setView('posts'); }} className="btn-ghost text-xs" data-testid="posts-btn"><MessageSquare className="h-3.5 w-3.5" /> Updates</button>}
                         {live && <button onClick={() => setPerfOpen(perfOpen === p.id ? null : p.id)} className="btn-ghost text-xs">Performance</button>}
                         <button onClick={() => startEdit(p)} className="btn-ghost text-xs"><Pencil className="h-3.5 w-3.5" /> {live ? 'Rebalance / edit' : 'Edit'}</button>
-                        {!live && <button onClick={() => remove(p.id)} className="h-8 w-8 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>}
+                        {!live && <button onClick={() => remove(p.id)} className="h-8 w-8 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>}
                       </div>
                     </div>
                     {canSubmit && missing && (
                       <div data-testid="draft-checklist" className="mt-3 rounded-lg border border-[#E8E1F0] bg-[#FAFAFE] px-3 py-2.5">
-                        {missing.length === 0 ? <div className="text-xs font-medium text-[#0E9F5E]">✓ Ready to submit — everything's in place.</div> : (
+                        {missing.length === 0 ? <div className="text-xs font-medium text-[#0B7F4A]">✓ Ready to submit — everything's in place.</div> : (
                           <details>
-                            <summary className="cursor-pointer text-xs font-semibold text-[#B45309] list-none flex items-center gap-1">
-                              <span className="inline-grid place-items-center h-4 w-4 rounded-full bg-[#B45309] text-white text-[9px]">{missing.length}</span>
+                            <summary className="cursor-pointer text-xs font-semibold text-[#9A4A05] list-none flex items-center gap-1">
+                              <span className="inline-grid place-items-center h-4 w-4 rounded-full bg-[#B45309] text-white text-[12px]">{missing.length}</span>
                               {missing.length} item{missing.length > 1 ? 's' : ''} left before you can submit
                             </summary>
-                            <ul className="mt-2 space-y-1 text-[11px] text-[#6B6480] list-disc pl-5">{missing.map((m, i) => <li key={i}>{m}</li>)}</ul>
+                            <ul className="mt-2 space-y-1 text-[12px] text-[#6B6480] list-disc pl-5">{missing.map((m, i) => <li key={i}>{m}</li>)}</ul>
                           </details>
                         )}
                       </div>

@@ -37,7 +37,7 @@ export default function PerformanceChart({ basket }) {
         <div>
           <div className="eyebrow">Performance</div>
           <div className="mt-2 flex items-baseline gap-3">
-            <div className={`num text-2xl font-bold ${positive ? 'text-[#12B76A]' : 'text-[#F04438]'} flex items-center gap-1`}>
+            <div className={`num text-2xl font-bold ${positive ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'} flex items-center gap-1`}>
               <TrendingUp className="h-5 w-5" />
               {positive ? '+' : ''}{rangeReturn.toFixed(2)}%
             </div>
@@ -68,7 +68,7 @@ export default function PerformanceChart({ basket }) {
           <path d={area} fill="url(#perf-area)" />
           <path d={path} fill="none" stroke="#6C2BD9" strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" />
         </svg>
-        <div className="absolute inset-x-0 bottom-0 flex justify-between text-[10px] text-[#6B6480] px-1">
+        <div className="absolute inset-x-0 bottom-0 flex justify-between text-[12px] text-[#6B6480] px-1">
           <span>{data[0]?.date}</span>
           <span>{data[data.length-1]?.date}</span>
         </div>
@@ -77,8 +77,8 @@ export default function PerformanceChart({ basket }) {
       <div className="mt-6 grid grid-cols-3 sm:grid-cols-6 gap-3">
         {['m1','m6','y1','y3','y5','cagr'].map((k) => (
           <div key={k} className="rounded-xl border border-[#E8E1F0] p-3 text-center">
-            <div className="text-[10px] text-[#6B6480] font-semibold uppercase tracking-wider">{k === 'cagr' ? 'CAGR' : k.toUpperCase()}</div>
-            <div className={`num mt-1 text-sm font-semibold ${basket.returns[k] >= 0 ? 'text-[#12B76A]' : 'text-[#F04438]'}`}>
+            <div className="text-[12px] text-[#6B6480] font-semibold uppercase tracking-wider">{k === 'cagr' ? 'CAGR' : k.toUpperCase()}</div>
+            <div className={`num mt-1 text-sm font-semibold ${basket.returns[k] >= 0 ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>
               {basket.returns[k] >= 0 ? '+' : ''}{basket.returns[k].toFixed(1)}%
             </div>
           </div>

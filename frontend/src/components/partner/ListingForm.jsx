@@ -49,9 +49,9 @@ const DURATION_LABEL = { 1: 'Monthly', 3: 'Quarterly', 6: 'Half-yearly', 12: 'Ye
 function Field({ label, hint, children, required }) {
   return (
     <div>
-      <Label className="flex items-center gap-1">{label}{required && <span className="text-[#DC2626]">*</span>}</Label>
+      <Label className="flex items-center gap-1">{label}{required && <span className="text-[#B91C1C]">*</span>}</Label>
       <div className="mt-1.5">{children}</div>
-      {hint && <div className="mt-1 text-[11px] text-[#94A3B8]">{hint}</div>}
+      {hint && <div className="mt-1 text-[12px] text-[#667085]">{hint}</div>}
     </div>
   );
 }
@@ -222,8 +222,8 @@ export default function ListingForm({ token, initial, options, rules, managerNam
         {STEPS.map((s, i) => (
           <li key={s.key} className="shrink-0 min-w-[132px] sm:min-w-0">
             <button type="button" onClick={() => go(i)} className={`w-full text-left rounded-lg px-2 py-2 border transition-colors ${i === step ? 'border-[#6C2BD9] bg-[#F7F4FB]' : i < step ? 'border-[#DCFCE7] bg-[#F0FDF4]' : 'border-[#EEE8F7] bg-white hover:border-[#D8C7F1]'}`}>
-              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-                <span className={`h-4 w-4 grid place-items-center rounded-full text-[9px] ${i < step ? 'bg-[#0E9F5E] text-white' : i === step ? 'bg-[#6C2BD9] text-white' : 'bg-[#EEE8F7] text-[#6B6480]'}`}>{i < step ? <Check className="h-2.5 w-2.5" /> : i + 1}</span>
+              <div className="flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider text-[#667085]">
+                <span className={`h-4 w-4 grid place-items-center rounded-full text-[12px] ${i < step ? 'bg-[#0A7D48] text-white' : i === step ? 'bg-[#6C2BD9] text-white' : 'bg-[#EEE8F7] text-[#6B6480]'}`}>{i < step ? <Check className="h-2.5 w-2.5" /> : i + 1}</span>
                 <span className="hidden lg:inline">Step {i + 1}</span>
               </div>
               <div className={`mt-0.5 text-[12px] font-semibold truncate ${i === step ? 'text-[#5320A8]' : 'text-[#1A1030]'}`}>{s.title}</div>
@@ -235,7 +235,7 @@ export default function ListingForm({ token, initial, options, rules, managerNam
       <div className="mt-4 sm:mt-5 grid lg:grid-cols-[1fr_360px] gap-5 items-start">
         <div>
           <section className="surface p-4 sm:p-6">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-[#6C2BD9]">Step {step + 1} of {STEPS.length}</div>
+            <div className="text-[12px] font-bold uppercase tracking-wider text-[#6C2BD9]">Step {step + 1} of {STEPS.length}</div>
             <h2 className="text-lg font-bold mt-0.5">{S.title}</h2>
             <p className="text-xs text-[#6B6480]">{S.hint}</p>
 
@@ -276,7 +276,7 @@ export default function ListingForm({ token, initial, options, rules, managerNam
               <div className="mt-5">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="text-xs text-[#6B6480]">{rules?.min_constituents ?? 2}–{rules?.max_constituents ?? 50} constituents · no single stock above {maxW}% · weights must total 100%</div>
-                  <div className={`text-xs font-semibold ${Math.round(total) === 100 ? 'text-[#0E9F5E]' : 'text-[#DC2626]'}`} data-testid="weights-total">Total {Math.round(total * 100) / 100}% {Math.round(total) === 100 ? '✓' : '(must be 100%)'}</div>
+                  <div className={`text-xs font-semibold ${Math.round(total) === 100 ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`} data-testid="weights-total">Total {Math.round(total * 100) / 100}% {Math.round(total) === 100 ? '✓' : '(must be 100%)'}</div>
                 </div>
                 <div className="mt-3 space-y-2">
                   {form.constituents.map((c, i) => {
@@ -290,7 +290,7 @@ export default function ListingForm({ token, initial, options, rules, managerNam
                         <select value={c.exchange || 'NSE'} onChange={(e) => setC(i, 'exchange', e.target.value)} className="h-9 rounded-lg border border-[#E8E1F0] px-2 text-sm bg-white"><option>NSE</option><option>BSE</option></select>
                         <select value={c.type} onChange={(e) => setC(i, 'type', e.target.value)} className="h-9 rounded-lg border border-[#E8E1F0] px-2 text-sm bg-white">{(options?.constituentType || ['Stock', 'ETF']).map((t) => <option key={t}>{t}</option>)}</select>
                         <Input type="number" min="0" max="100" step="0.5" value={c.weight} onChange={(e) => setC(i, 'weight', e.target.value)} className={`h-9 ${over ? 'border-[#DC2626]' : ''}`} placeholder="%" title={over ? `Above the ${maxW}% cap` : ''} />
-                        <button type="button" onClick={() => { dirty.current = true; setForm((f) => ({ ...f, constituents: f.constituents.filter((_, j) => j !== i) })); }} className="h-9 w-9 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2] justify-self-end"><Trash2 className="h-4 w-4" /></button>
+                        <button type="button" onClick={() => { dirty.current = true; setForm((f) => ({ ...f, constituents: f.constituents.filter((_, j) => j !== i) })); }} className="h-9 w-9 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2] justify-self-end"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </div>
                     );
@@ -301,11 +301,11 @@ export default function ListingForm({ token, initial, options, rules, managerNam
                 <div className="mt-5 grid sm:grid-cols-2 gap-3">
                   <div className="rounded-xl bg-[#F8FAFC] p-4">
                     <div className="flex items-center justify-between">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">Auto minimum investment</div>
-                      <button type="button" onClick={async () => { const s = await save(true); if (s) toast.success('Recalculated at today\'s prices'); }} disabled={busy || perfBusy || !filled} className="btn-ghost text-[11px] py-0.5 px-1.5"><RefreshCw className={`h-3 w-3 ${perfBusy ? 'animate-spin' : ''}`} /> Recalculate</button>
+                      <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">Auto minimum investment</div>
+                      <button type="button" onClick={async () => { const s = await save(true); if (s) toast.success('Recalculated at today\'s prices'); }} disabled={busy || perfBusy || !filled} className="btn-ghost text-[12px] py-0.5 px-1.5"><RefreshCw className={`h-3 w-3 ${perfBusy ? 'animate-spin' : ''}`} /> Recalculate</button>
                     </div>
                     <div className="mt-1 text-2xl font-bold text-[#1A1030] flex items-center gap-0.5"><IndianRupee className="h-5 w-5" />{perf?.min_investment?.amount ? perf.min_investment.amount.toLocaleString('en-IN') : '—'}</div>
-                    <div className="text-[11px] text-[#94A3B8]">{perf?.min_investment ? `1+ share of every constituent · prices ${perf.price_date}` : (filled ? 'Save or click Recalculate to compute' : 'Add constituents first')}</div>
+                    <div className="text-[12px] text-[#667085]">{perf?.min_investment ? `1+ share of every constituent · prices ${perf.price_date}` : (filled ? 'Save or click Recalculate to compute' : 'Add constituents first')}</div>
                   </div>
                   <div className="rounded-xl bg-[#F8FAFC] p-4 text-xs text-[#4B4560] flex gap-2">
                     <Info className="h-4 w-4 text-[#6C2BD9] shrink-0 mt-0.5" />
@@ -363,9 +363,9 @@ export default function ListingForm({ token, initial, options, rules, managerNam
                     <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="form-plans">
                       {(rules?.plan_durations || [1, 3, 6, 12]).map((m) => (
                         <div key={m} className="rounded-xl border border-[#E8E1F0] p-3">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">{DURATION_LABEL[m] || `${m} months`}</div>
+                          <div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">{DURATION_LABEL[m] || `${m} months`}</div>
                           <div className="mt-1 flex items-center gap-1"><IndianRupee className="h-3.5 w-3.5 text-[#6B6480]" /><Input type="number" min="0" value={planPrice(m)} onChange={(e) => setPlan(m, e.target.value)} className="h-9" placeholder="—" /></div>
-                          {planPrice(m) !== '' && Number(planPrice(m)) > 0 && <div className="mt-1 text-[11px] text-[#94A3B8]">≈ ₹{Math.round(Number(planPrice(m)) / m)}/month</div>}
+                          {planPrice(m) !== '' && Number(planPrice(m)) > 0 && <div className="mt-1 text-[12px] text-[#667085]">≈ ₹{Math.round(Number(planPrice(m)) / m)}/month</div>}
                         </div>
                       ))}
                     </div>
@@ -384,8 +384,8 @@ export default function ListingForm({ token, initial, options, rules, managerNam
                   {form.factsheet_pdf ? (
                     <div className="flex items-center gap-3 rounded-xl border border-[#E8E1F0] bg-[#FAFAFE] px-3 py-2.5 w-fit" data-testid="factsheet-pdf-row">
                       <FileText className="h-5 w-5 text-[#6C2BD9]" />
-                      <div className="text-sm"><div className="font-semibold text-[#1A1030]">{form.factsheet_pdf.filename}</div><div className="text-[11px] text-[#94A3B8]">{Math.round((form.factsheet_pdf.size || 0) / 1024)} KB</div></div>
-                      <button type="button" onClick={removeFactsheet} className="h-8 w-8 grid place-items-center rounded-lg text-[#DC2626] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
+                      <div className="text-sm"><div className="font-semibold text-[#1A1030]">{form.factsheet_pdf.filename}</div><div className="text-[12px] text-[#667085]">{Math.round((form.factsheet_pdf.size || 0) / 1024)} KB</div></div>
+                      <button type="button" onClick={removeFactsheet} className="h-8 w-8 grid place-items-center rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2]"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   ) : (
                     <label data-testid="factsheet-pdf-upload" className="flex items-center gap-2 rounded-xl border border-dashed border-[#D8C7F1] bg-[#F7F4FB] px-4 py-4 text-sm text-[#5320A8] cursor-pointer hover:bg-[#F1E7FE] transition-colors w-fit">
@@ -411,7 +411,7 @@ export default function ListingForm({ token, initial, options, rules, managerNam
                 ) : (
                   <div className="rounded-xl border border-[#DCFCE7] bg-[#F0FDF4] p-4 text-sm font-semibold text-[#166534] flex items-center gap-2" data-testid="readiness"><Check className="h-4 w-4" /> Everything's in place. Submit when you're happy with the preview.</div>
                 )}
-                <div className="mt-4 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">How investors will see it</div>
+                <div className="mt-4 text-[12px] font-bold uppercase tracking-wider text-[#667085]">How investors will see it</div>
                 <div className="mt-2"><ListingPreview form={form} perf={perf} classification={classification} managerName={managerName} /></div>
                 <div className="mt-3 text-xs text-[#6B6480]">On approval, your constituents are “bought” at that day's close and the live track record starts. Admin usually reviews within a business day; if something needs a change you'll see a note on your listing.</div>
               </div>

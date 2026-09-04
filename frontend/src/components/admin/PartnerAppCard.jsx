@@ -15,7 +15,7 @@ function Field({ label, value }) {
   if (!value) return null;
   return (
     <div className="min-w-0">
-      <div className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">{label}</div>
+      <div className="text-[12px] font-bold uppercase tracking-wide text-[#667085]">{label}</div>
       <div className="text-xs text-[#1A1030] break-words">{value}</div>
     </div>
   );
@@ -67,30 +67,30 @@ export default function PartnerAppCard({ app: a, token, onReview }) {
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-[#1A1030]">{a.name}</span>
-            {a.ref_no && <span data-testid="partner-ref" className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1A1030] text-white tracking-wide">{a.ref_no}</span>}
-            {a.applicant_type && <span data-testid="partner-applicant-type" className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#5320A8]">{a.applicant_type}</span>}
-            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${a.status === 'pending' ? 'bg-[#FEF3C7] text-[#B45309]' : a.status === 'approved' ? 'bg-[#DCFCE7] text-[#0E9F5E]' : 'bg-[#FEE2E2] text-[#DC2626]'}`}>{a.status}</span>
+            {a.ref_no && <span data-testid="partner-ref" className="text-[12px] font-bold px-2 py-0.5 rounded-full bg-[#1A1030] text-white tracking-wide">{a.ref_no}</span>}
+            {a.applicant_type && <span data-testid="partner-applicant-type" className="text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#5320A8]">{a.applicant_type}</span>}
+            <span className={`text-[12px] font-bold uppercase px-2 py-0.5 rounded-full ${a.status === 'pending' ? 'bg-[#FEF3C7] text-[#9A4A05]' : a.status === 'approved' ? 'bg-[#DCFCE7] text-[#0B7F4A]' : 'bg-[#FEE2E2] text-[#B91C1C]'}`}>{a.status}</span>
             {a.disciplinary_history === true
-              ? <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FEE2E2] text-[#DC2626]"><ShieldAlert className="h-3 w-3" /> disciplinary: yes</span>
+              ? <span className="inline-flex items-center gap-1 text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FEE2E2] text-[#B91C1C]"><ShieldAlert className="h-3 w-3" /> disciplinary: yes</span>
               : a.disciplinary_history === false
-                ? <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#F1F5F9] text-[#64748B]"><ShieldCheck className="h-3 w-3" /> disciplinary: no</span>
+                ? <span className="inline-flex items-center gap-1 text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#F1F5F9] text-[#526071]"><ShieldCheck className="h-3 w-3" /> disciplinary: no</span>
                 : null}
           </div>
-          <div className="mt-1 text-xs text-[#64748B]">{a.phone}{a.email ? ` · ${a.email}` : ''}{a.firm ? ` · ${a.firm}` : ''}{a.sebi_reg ? ` · SEBI ${a.sebi_reg}` : ''}</div>
+          <div className="mt-1 text-xs text-[#526071]">{a.phone}{a.email ? ` · ${a.email}` : ''}{a.firm ? ` · ${a.firm}` : ''}{a.sebi_reg ? ` · SEBI ${a.sebi_reg}` : ''}</div>
           {a.note && <div className="mt-1.5 text-xs text-[#475569] max-w-2xl">{a.note}</div>}
           {a.status !== 'pending' && a.review_note && (
             <div data-testid="partner-review-note" className="mt-2 flex items-start gap-1.5 text-xs max-w-2xl rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] px-2.5 py-1.5">
-              <MessageSquareText className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[#94A3B8]" />
+              <MessageSquareText className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[#667085]" />
               <span className="text-[#475569]"><b className="text-[#1A1030]">Review note</b> (visible to the applicant): {a.review_note}</span>
             </div>
           )}
-          <div className="mt-1 text-[11px] text-[#94A3B8]">Applied {new Date(a.created_at).toLocaleDateString('en-IN')}</div>
+          <div className="mt-1 text-[12px] text-[#667085]">Applied {new Date(a.created_at).toLocaleDateString('en-IN')}</div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {a.status === 'pending' && (
             <>
-              <button type="button" data-testid={`approve-partner-${a.id}`} onClick={() => onReview(a.id, 'approve', '')} className="rounded-lg bg-[#12B76A] text-white text-xs font-semibold px-3 py-2 hover:bg-[#0E9F5E]">Approve</button>
-              <button type="button" data-testid={`reject-partner-${a.id}`} onClick={() => setRejectOpen(true)} className="rounded-lg border border-[#FECACA] text-[#DC2626] text-xs font-semibold px-3 py-2 hover:bg-[#FEF2F2]">Reject</button>
+              <button type="button" data-testid={`approve-partner-${a.id}`} onClick={() => onReview(a.id, 'approve', '')} className="rounded-lg bg-[#0A7D48] text-white text-xs font-semibold px-3 py-2 hover:bg-[#086B3D]">Approve</button>
+              <button type="button" data-testid={`reject-partner-${a.id}`} onClick={() => setRejectOpen(true)} className="rounded-lg border border-[#FECACA] text-[#B91C1C] text-xs font-semibold px-3 py-2 hover:bg-[#FEF2F2]">Reject</button>
             </>
           )}
           <button type="button" data-testid={`expand-partner-${a.id}`} onClick={toggle} className="rounded-lg border border-[#E2E8F0] text-[#475569] text-xs font-semibold px-3 py-2 hover:bg-[#F8FAFC] inline-flex items-center gap-1">
@@ -104,7 +104,7 @@ export default function PartnerAppCard({ app: a, token, onReview }) {
           <DialogHeader>
             <DialogTitle>Reject application {a.ref_no || ''}</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-[#64748B]">Explain why — <b>the applicant will see this</b> when they track their application, so include what they should correct if you'd like them to re-apply.</p>
+          <p className="text-sm text-[#526071]">Explain why — <b>the applicant will see this</b> when they track their application, so include what they should correct if you'd like them to re-apply.</p>
           <Textarea data-testid="reject-note-input" autoFocus rows={4} value={rejectNote} onChange={(e) => setRejectNote(e.target.value)}
             placeholder="e.g. Your NISM certificate has expired — please renew it and re-apply with the updated certificate." />
           <div className="flex justify-end gap-2">
@@ -141,13 +141,13 @@ export default function PartnerAppCard({ app: a, token, onReview }) {
 
           <div className="mt-4 flex items-center gap-2 flex-wrap">
             {docs === null ? (
-              <span className="text-xs text-[#94A3B8]">Loading documents…</span>
+              <span className="text-xs text-[#667085]">Loading documents…</span>
             ) : docs.length === 0 ? (
-              <span className="text-xs text-[#B45309] bg-[#FEF3C7] rounded-full px-2.5 py-1 font-semibold">No documents uploaded</span>
+              <span className="text-xs text-[#9A4A05] bg-[#FEF3C7] rounded-full px-2.5 py-1 font-semibold">No documents uploaded</span>
             ) : docs.map((d) => (
               <button key={d.id} type="button" data-testid={`download-doc-${d.kind}`} onClick={() => download(d)}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] text-[#475569] text-xs font-semibold px-3 py-1.5 hover:bg-[#F8FAFC]">
-                <Download className="h-3.5 w-3.5" /> {DOC_LABELS[d.kind] || d.kind} <span className="text-[#94A3B8] font-normal">({Math.round(d.size / 1024)} KB)</span>
+                <Download className="h-3.5 w-3.5" /> {DOC_LABELS[d.kind] || d.kind} <span className="text-[#667085] font-normal">({Math.round(d.size / 1024)} KB)</span>
               </button>
             ))}
             <a href={SEBI_RA_REGISTER} target="_blank" rel="noreferrer"

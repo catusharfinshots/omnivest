@@ -27,7 +27,7 @@ export default function FixedDepositsPage() {
               {fd.insured && <span className="inline-flex items-center gap-1 chip-brand"><ShieldCheck className="h-3 w-3" /> DICGC insured</span>}
             </div>
             <div className="mt-4 text-sm font-semibold text-[#6B6480]">{fd.provider}</div>
-            <div className="mt-1 num text-3xl font-bold text-[#12B76A]">{fd.rate}%</div>
+            <div className="mt-1 num text-3xl font-bold text-[#0B7F4A]">{fd.rate}%</div>
             <div className="text-xs text-[#6B6480]">Interest p.a. · {fd.tenure}</div>
             <div className="mt-3 text-xs text-[#6B6480]">Min. ₹{fd.minAmount.toLocaleString('en-IN')}</div>
             <div className="mt-4 flex gap-2">

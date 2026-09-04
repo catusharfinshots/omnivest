@@ -37,13 +37,13 @@ export default function SharePreviewAdmin({ token }) {
           </div>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-xs" data-testid="share-check-table">
-              <thead><tr className="text-left text-[10px] uppercase tracking-wider text-[#94A3B8] border-b border-[#E8E1F0]"><th className="py-2 pr-3">Page</th><th className="py-2 pr-3">Preview title</th><th className="py-2 pr-3">Status</th><th className="py-2"></th></tr></thead>
+              <thead><tr className="text-left text-[12px] uppercase tracking-wider text-[#667085] border-b border-[#E8E1F0]"><th className="py-2 pr-3">Page</th><th className="py-2 pr-3">Preview title</th><th className="py-2 pr-3">Status</th><th className="py-2"></th></tr></thead>
               <tbody>
                 {res.results.map((r, i) => (
                   <tr key={i} className="border-b border-[#F1EBF9]">
-                    <td className="py-2 pr-3"><div className="font-semibold text-[#1A1030]">{r.label}</div><div className="text-[#94A3B8]">{r.route}{r.direct ? ' (address-bar URL)' : ''}</div></td>
+                    <td className="py-2 pr-3"><div className="font-semibold text-[#1A1030]">{r.label}</div><div className="text-[#667085]">{r.route}{r.direct ? ' (address-bar URL)' : ''}</div></td>
                     <td className="py-2 pr-3 text-[#4B4560] max-w-[280px] truncate">{r.title || '—'}</td>
-                    <td className={`py-2 pr-3 ${r.ok ? 'text-[#0E9F5E]' : 'text-[#DC2626]'}`}>{r.ok ? 'OK' : r.issues.join('; ')}</td>
+                    <td className={`py-2 pr-3 ${r.ok ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>{r.ok ? 'OK' : r.issues.join('; ')}</td>
                     <td className="py-2 text-right">{r.image && <a href={r.image} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[#6C2BD9] hover:underline"><ExternalLink className="h-3 w-3" /> image</a>}</td>
                   </tr>
                 ))}

@@ -75,7 +75,7 @@ export default function MarketDataAdmin({ token }) {
       <div className="rounded-xl border border-[#E8E1F0] bg-white p-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            {connected ? <CheckCircle2 className="h-6 w-6 text-[#12B76A]" /> : status?.needs_reconnect ? <AlertTriangle className="h-6 w-6 text-[#F79009]" /> : <PlugZap className="h-6 w-6 text-[#6C2BD9]" />}
+            {connected ? <CheckCircle2 className="h-6 w-6 text-[#0B7F4A]" /> : status?.needs_reconnect ? <AlertTriangle className="h-6 w-6 text-[#F79009]" /> : <PlugZap className="h-6 w-6 text-[#6C2BD9]" />}
             <div>
               <div className="text-sm font-semibold" data-testid="market-status-text">
                 {connected ? `Connected as ${status.kite_user || 'Kite user'}` : status?.needs_reconnect ? 'Session expired — reconnect needed' : 'Not connected'}
@@ -107,7 +107,7 @@ export default function MarketDataAdmin({ token }) {
             {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Refresh instruments
           </button>
         </div>
-        <p className="mt-2 text-xs text-[#94A3B8]">Zerodha regenerates the master list once daily. Refresh each morning after connecting so symbol search stays current.</p>
+        <p className="mt-2 text-xs text-[#667085]">Zerodha regenerates the master list once daily. Refresh each morning after connecting so symbol search stays current.</p>
       </div>
 
       <div className="text-xs text-[#6B6480]">

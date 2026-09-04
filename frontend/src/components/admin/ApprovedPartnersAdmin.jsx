@@ -73,8 +73,8 @@ export default function ApprovedPartnersAdmin({ token }) {
               <div className="h-11 w-11 rounded-xl grad-card text-white grid place-items-center text-sm font-bold">{r.logo}</div>
               <div>
                 <div className="flex items-center gap-1.5 text-sm font-semibold text-[#1A1030]">
-                  {r.name} <BadgeCheck className="h-4 w-4 text-[#12B76A]" />
-                  {r.applicantType && <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-[#EDE9FE] text-[#5320A8]">{r.applicantType}</span>}
+                  {r.name} <BadgeCheck className="h-4 w-4 text-[#0B7F4A]" />
+                  {r.applicantType && <span className="text-[12px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-[#EDE9FE] text-[#5320A8]">{r.applicantType}</span>}
                 </div>
                 <div className="text-xs text-[#6B6480]">{r.baskets} live {r.baskets === 1 ? 'basket' : 'baskets'}</div>
               </div>
@@ -90,23 +90,23 @@ export default function ApprovedPartnersAdmin({ token }) {
 
           <div className="mt-4 grid md:grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] uppercase tracking-wider text-[#94A3B8] font-semibold">Firm / entity</label>
+              <label className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Firm / entity</label>
               <Input value={r.firm || ''} onChange={(e) => patch(r.id, 'firm', e.target.value)} className="h-9 mt-1" placeholder="Firm name" />
             </div>
             <div>
-              <label className="text-[11px] uppercase tracking-wider text-[#94A3B8] font-semibold">SEBI Reg. no.</label>
+              <label className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">SEBI Reg. no.</label>
               <Input value={r.sebiReg || ''} onChange={(e) => patch(r.id, 'sebiReg', e.target.value)} className="h-9 mt-1" placeholder="INA000000000" />
             </div>
             <div>
-              <label className="text-[11px] uppercase tracking-wider text-[#94A3B8] font-semibold">Logo initials</label>
+              <label className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Logo initials</label>
               <Input value={r.logo || ''} onChange={(e) => patch(r.id, 'logo', e.target.value.slice(0, 3).toUpperCase())} className="h-9 mt-1" placeholder="AB" />
             </div>
             <div>
-              <label className="text-[11px] uppercase tracking-wider text-[#94A3B8] font-semibold">Philosophy (short)</label>
+              <label className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Philosophy (short)</label>
               <Input value={r.philosophy || ''} onChange={(e) => patch(r.id, 'philosophy', e.target.value)} className="h-9 mt-1" placeholder="e.g. Long-term compounding with quality" />
             </div>
             <div className="md:col-span-2">
-              <label className="text-[11px] uppercase tracking-wider text-[#94A3B8] font-semibold">Description / strategy</label>
+              <label className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Description / strategy</label>
               <Textarea value={r.description || ''} onChange={(e) => patch(r.id, 'description', e.target.value)} className="mt-1 min-h-[64px]" placeholder="Describe the partner's approach" />
             </div>
           </div>
