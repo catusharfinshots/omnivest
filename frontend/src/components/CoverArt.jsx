@@ -22,34 +22,25 @@ export const PALETTES = {
 const API = `${process.env.REACT_APP_BACKEND_URL || ''}`;
 
 // Listing cover: an uploaded image, or a generated illustration (gradient + pattern + theme icon).
+// Plain CSS layers only — no SVG foreignObject, which iOS Safari mis-positions.
 // `cover` = {kind, theme, palette, icon, url?} as served by the backend. Never blank.
 export default function CoverArt({ cover, name = '', size = 56, radius = 16, className = '', iconName, palette: paletteOverride }) {
   const pal = PALETTES[paletteOverride || cover?.palette] || PALETTES.violet;
   const Icon = ICONS[iconName || cover?.icon] || PieChart;
-  const id = React.useMemo(() => `cv${Math.random().toString(36).slice(2, 8)}`, []);
+  const box = { width: size, height: size, borderRadius: radius };
   if (cover?.kind === 'upload' && cover?.url) {
-    return <img src={cover.url.startsWith('http') ? cover.url : `${API}${cover.url}`} alt={name} width={size} height={size} className={`shrink-0 object-cover ${className}`} style={{ width: size, height: size, borderRadius: radius }} loading="lazy" />;
+    return <img src={cover.url.startsWith('http') ? cover.url : `${API}${cover.url}`} alt={name} width={size} height={size} className={`shrink-0 object-cover ${className}`} style={box} loading="lazy" />;
   }
-  const s = size;
+  const iconPx = Math.round(size * 0.42);
   return (
-    <svg width={s} height={s} viewBox="0 0 100 100" className={`shrink-0 ${className}`} style={{ borderRadius: radius }} role="img" aria-label={name} data-theme={cover?.theme}>
-      <defs>
-        <linearGradient id={`${id}g`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor={pal[0]} /><stop offset="100%" stopColor={pal[1]} /></linearGradient>
-        <radialGradient id={`${id}r`} cx="30%" cy="25%" r="70%"><stop offset="0%" stopColor="#fff" stopOpacity="0.28" /><stop offset="100%" stopColor="#fff" stopOpacity="0" /></radialGradient>
-        <clipPath id={`${id}c`}><rect width="100" height="100" rx={radius * 100 / s} /></clipPath>
-      </defs>
-      <g clipPath={`url(#${id}c)`}>
-        <rect width="100" height="100" fill={`url(#${id}g)`} />
-        <circle cx="82" cy="18" r="34" fill={pal[2]} fillOpacity="0.18" />
-        <circle cx="12" cy="90" r="26" fill="#fff" fillOpacity="0.10" />
-        <circle cx="50" cy="50" r="30" fill="#fff" fillOpacity="0.10" />
-        <rect width="100" height="100" fill={`url(#${id}r)`} />
-        <foreignObject x="26" y="26" width="48" height="48">
-          <div xmlns="http://www.w3.org/1999/xhtml" style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.22))' }}>
-            <Icon width={40} height={40} strokeWidth={1.75} />
-          </div>
-        </foreignObject>
-      </g>
-    </svg>
+    <div className={`relative shrink-0 overflow-hidden ${className}`} style={{ ...box, background: `linear-gradient(135deg, ${pal[0]}, ${pal[1]})` }} role="img" aria-label={name} data-theme={cover?.theme}>
+      <span aria-hidden="true" style={{ position: 'absolute', left: '48%', top: '-50%', width: '68%', height: '68%', borderRadius: '50%', background: pal[2], opacity: 0.18 }} />
+      <span aria-hidden="true" style={{ position: 'absolute', left: '-14%', top: '64%', width: '52%', height: '52%', borderRadius: '50%', background: '#fff', opacity: 0.1 }} />
+      <span aria-hidden="true" style={{ position: 'absolute', left: '20%', top: '20%', width: '60%', height: '60%', borderRadius: '50%', background: '#fff', opacity: 0.1 }} />
+      <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.28), rgba(255,255,255,0) 70%)' }} />
+      <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.22))' }}>
+        <Icon width={iconPx} height={iconPx} strokeWidth={1.75} />
+      </span>
+    </div>
   );
 }

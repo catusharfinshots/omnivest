@@ -126,7 +126,7 @@ export default function Home() {
             <Link to="/model-portfolios" className="btn btn-outline">▢ {c.hero.secondaryCta}</Link>
           </div>
           <div className="ratings">
-            <span>Rated <b><CountUpStat value={c.stats.rating} /></b></span>
+            <span><b><CountUpStat value={c.stats.rating} /></b> rated</span>
             <span><b><CountUpStat value={c.stats.investors} /></b> investors</span>
             <span><b><CountUpStat value={c.stats.managed} /></b> managed</span>
           </div>
