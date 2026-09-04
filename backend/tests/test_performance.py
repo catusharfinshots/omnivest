@@ -99,7 +99,7 @@ def _seed_prices():
     def series(base, yearly):
         return [[d.isoformat(), round(base * (1 + yearly) ** (i / 260), 4)] for i, d in enumerate(days)]
     docs = {
-        "NSE:PERFA": series(1000, 0.25), "NSE:PERFB": series(200, 0.05),
+        "NSE:PERFA": series(1000, 0.25), "NSE:PERFB": series(200, 0.05), "NSE:PERFC": series(500, 0.10),
         "NSE:NIFTY 50": series(20000, 0.10), "NSE:NIFTY 500": series(18000, 0.11),
         "NSE:NIFTY MIDCAP 150": series(15000, 0.14), "NSE:NIFTY SMLCAP 250": series(12000, 0.16),
     }
@@ -194,10 +194,17 @@ def test_launch_day_performance_end_to_end():
         assert m["volatility_label"] in ("Low", "Medium", "High")
         assert d["bench_metrics"]["NIFTY 500"]["cagr_pct"] is not None and d["launched_days_ago"] >= 400
 
-        # rebalance after launch -> version recorded with today's IST date
-        up = requests.put(f"{API}/analyst/portfolios/{pid}", json=_listing.complete_payload("Perf Basket", [{**cons[0], "weight": 40}, {**cons[1], "weight": 60}], "NIFTY 500"), headers=analyst, timeout=30)
+        # rebalance after launch: the edit is a revision (live listing untouched) until the admin
+        # approves it -> only then is a version recorded, with today's IST date
+        up = requests.put(f"{API}/analyst/portfolios/{pid}", json=_listing.complete_payload("Perf Basket", [{**cons[0], "weight": 40}, {**cons[1], "weight": 30}, {"symbol": "PERFC", "name": "Perf C", "exchange": "NSE", "type": "Stock", "weight": 30}], "NIFTY 500"), headers=analyst, timeout=30)
         assert up.status_code == 200
-        vs = up.json()["portfolio"].get("versions") or []
+        wc = up.json()["portfolio"]
+        assert wc["status"] == "approved" and wc["has_revision"] and len(wc.get("versions") or []) <= 1
+        assert requests.get(f"{API}/portfolios/{pid}", timeout=30).json()["portfolio"]["constituents"][0]["weight"] == 50
+        assert requests.post(f"{API}/analyst/portfolios/{pid}/submit", headers=analyst, timeout=30).status_code == 200
+        rv = requests.post(f"{API}/admin/portfolios/{pid}/review", json={"action": "approve"}, headers=headers, timeout=30)
+        assert rv.status_code == 200 and rv.json().get("revision") == "applied", rv.text
+        vs = requests.get(f"{API}/portfolios/{pid}", timeout=30).json()["portfolio"].get("versions") or []
         assert len(vs) == 2 and vs[-1]["effective_date"] == pe.ist_today().isoformat()
     finally:
         if pid:

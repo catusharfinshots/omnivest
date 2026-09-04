@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import CountUpStat from '../components/CountUpStat';
+import { Compass } from 'lucide-react';
 import './Home.css';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -123,7 +124,7 @@ export default function Home() {
           <p className="lead">{c.hero.sub}</p>
           <div className="hero-cta">
             <button onClick={() => openAuth({ next: '/dashboard' })} className="btn btn-primary">{c.hero.primaryCta} →</button>
-            <Link to="/model-portfolios" className="btn btn-outline">▢ {c.hero.secondaryCta}</Link>
+            <Link to="/model-portfolios" className="btn btn-outline"><Compass className="h-4 w-4" aria-hidden="true" /> {c.hero.secondaryCta}</Link>
           </div>
           <div className="ratings">
             <span><b><CountUpStat value={c.stats.rating} /></b> rated</span>
