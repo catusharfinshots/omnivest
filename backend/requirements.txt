@@ -26,3 +26,4 @@ kiteconnect==5.2.0
 pytest==9.1.1
 requests==2.34.2
 bleach>=6.1
+Pillow>=10.1

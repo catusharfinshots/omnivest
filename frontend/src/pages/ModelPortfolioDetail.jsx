@@ -135,7 +135,7 @@ export default function ModelPortfolioDetail() {
         <div className="container-x pt-6 pb-8">
           <div className="flex items-center justify-between gap-4">
             <button onClick={() => navigate('/model-portfolios')} className="inline-flex items-center gap-1.5 text-sm text-[#64748B] hover:text-[#6C2BD9]"><ArrowLeft className="h-4 w-4" /> All model portfolios</button>
-            <ShareButton path={`/model-portfolios/${basket.id}`} title={`${basket.name} | Omnivest`} text={basket.subtitle || ''} onShare={() => track('share_click', { portfolio_id: basket.id })} />
+            <ShareButton path={`/model-portfolios/${basket.id}`} shortCode={isDb ? basket.id.replace(/-/g, '').slice(0, 8) : undefined} title={`${basket.name} | Omnivest`} text={`Check out ${basket.name} on Omnivest.`} onShare={() => track('share_click', { portfolio_id: basket.id })} />
           </div>
           <div className="mt-5 flex items-start justify-between gap-6 flex-wrap">
             <div className="flex items-start gap-4 min-w-0">
