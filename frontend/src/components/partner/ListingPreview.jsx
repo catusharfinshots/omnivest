@@ -1,6 +1,7 @@
 import React from 'react';
 import { TrendingUp, Layers, ShieldCheck, IndianRupee, Sparkles, PlayCircle } from 'lucide-react';
 import CoverArt from '../CoverArt';
+import { Badge, AccessBadge } from '../Tone';
 
 const CAP_COLORS = { Large: '#6C2BD9', Mid: '#A78BFA', Small: '#F59E0B', Micro: '#F97316', Other: '#CBD5E1' };
 const plainText = (html) => (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -26,9 +27,9 @@ export default function ListingPreview({ form, perf, classification, managerName
             <div className="text-lg font-bold text-[#1A1030] leading-tight truncate">{form.name || 'Your portfolio name'}</div>
             <div className="text-xs text-[#6B6480] mt-0.5">by {managerName || 'You'}</div>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {form.strategy && <span className="chip text-[12px]"><Layers className="h-3 w-3" /> {form.strategy.replace('-', ' ')}</span>}
-              {(form.tags || []).map((t) => <span key={t} className="chip-brand text-[12px]">{t}</span>)}
-              <span className={`text-[12px] ${paid ? 'chip-accent' : 'chip-brand'}`}>{paid ? (cheapest ? `₹${cheapest.price}/${cheapest.months}mo` : 'Paid') : 'Free access'}</span>
+              {form.strategy && <Badge tone="neutral" icon={<Layers className="h-3 w-3" aria-hidden="true" />}>{form.strategy.replace('-', ' ')}</Badge>}
+              {(form.tags || []).map((t) => <Badge key={t} tone="info">{t}</Badge>)}
+              <AccessBadge paid={paid} perMonth={paid && cheapest ? cheapest.price / (cheapest.months || 1) : null} />
             </div>
           </div>
           <div className="text-right shrink-0">

@@ -7,7 +7,7 @@
   --teal:#0F766E; --ink-dark:#120A26;
   --header-h:64px;
   color:var(--ink);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   line-height:1.5;
 }
 .bk-home *{box-sizing:border-box}
@@ -199,3 +199,6 @@
 .bk-home .faq-item.open .faq-a{max-height:400px;padding:0 20px 18px}
 .bk-home .faq-a p{margin:0;color:#475569;font-size:15px;line-height:1.6}
 .bk-home .faq-viewall{display:inline-block;margin-top:24px;color:#6C2BD9;font-weight:700;font-size:15px}
+
+/* Same display face as the rest of the site (index.css) so the home page is not the odd one out */
+.bk-home h1,.bk-home h2,.bk-home h3{font-family:"Plus Jakarta Sans","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:-.02em}
