@@ -284,7 +284,8 @@ def build_router(db) -> APIRouter:
         mi = ((perf or {}).get("min_investment") or {}).get("amount")
         min_s = f"Rs {mi:,}" if mi else "—"   # bundled font has no ₹ glyph
         n = len(doc.get("constituents") or [])
-        access = "Free access" if doc.get("subscription") != "Paid" else (f"Rs {doc.get('feeAmount')}/{(doc.get('feeCycle') or 'mo')[:2]}" if doc.get("feeAmount") else "Subscription")
+        cycle = {"monthly": "mo", "quarterly": "qtr", "half-yearly": "half-yr", "yearly": "yr"}.get(str(doc.get("feeCycle") or "monthly"), str(doc.get("feeCycle") or "mo"))
+        access = "Free access" if doc.get("subscription") != "Paid" else (f"Rs {doc.get('feeAmount')}/{cycle}" if doc.get("feeAmount") else "Subscription")
         return [head, ("Min. investment", min_s), ("Holdings", f"{n} stocks"), ("Access", access)]
 
     async def _listing_page(request: Request, doc: dict) -> HTMLResponse:
