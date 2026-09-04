@@ -94,7 +94,11 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 vals = payload[k]
                 if not isinstance(vals, list) or not all(isinstance(v, str) for v in vals):
                     raise HTTPException(status_code=422, detail=f"{k} must be a list of strings")
-                cleaned = [v.strip() for v in vals if v.strip()]
+                cleaned, seen = [], set()
+                for v in vals:                      # trim + case-insensitive dedupe, first spelling wins
+                    v = v.strip()
+                    if v and v.lower() not in seen:
+                        seen.add(v.lower()); cleaned.append(v)
                 if not cleaned:
                     raise HTTPException(status_code=422, detail=f"{k} needs at least one option")
                 update[k] = cleaned
