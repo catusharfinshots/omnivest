@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { track } from '../lib/track';
 import { getManager } from '../mock';
+import CoverArt from '../components/CoverArt';
 import { TrendingUp, TrendingDown, Users, Search, Sparkles, Lock } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -34,9 +35,9 @@ function PortfolioCard({ b }) {
       className={`group surface p-5 hover:shadow-[0_16px_40px_-24px_rgba(108,43,217,0.35)] hover:border-[#D8C7F1] transition-all block relative ${b.featured ? 'border-[#D8C7F1] ring-1 ring-[#EDE9FE]' : ''}`}>
       {b.featured && <span className="absolute -top-2.5 left-4 inline-flex items-center gap-1 rounded-full grad-card text-white text-[10px] font-bold px-2.5 py-0.5 shadow"><Sparkles className="h-3 w-3" /> Featured</span>}
       <div className="flex items-start gap-3">
-        <span className="h-11 w-11 shrink-0 rounded-xl grad-card text-white grid place-items-center text-sm font-bold">
-          {b.name.slice(0, 2).toUpperCase()}
-        </span>
+        {b.cover ? <CoverArt cover={b.cover} name={b.name} size={48} radius={14} /> : (
+          <span className="h-11 w-11 shrink-0 rounded-xl grad-card text-white grid place-items-center text-sm font-bold">{b.name.slice(0, 2).toUpperCase()}</span>
+        )}
         <div className="min-w-0">
           <div className="text-xs text-[#64748B]">by {managerName}</div>
           <h3 className="text-[16px] font-semibold text-[#0F1729] leading-snug group-hover:text-[#6C2BD9]">{b.name}</h3>

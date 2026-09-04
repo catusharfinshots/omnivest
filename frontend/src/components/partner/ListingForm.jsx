@@ -8,6 +8,7 @@ import { Textarea } from '../ui/textarea';
 import InstrumentPicker from './InstrumentPicker';
 import RichTextEditor from './RichTextEditor';
 import ListingPreview from './ListingPreview';
+import CoverPicker from './CoverPicker';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -18,6 +19,7 @@ export const BLANK = {
   factsheet: { objective: '', whoShouldInvest: '', riskFactors: '', pdfName: '' },
   constituents: [{ symbol: '', name: '', exchange: 'NSE', type: 'Stock', weight: 0 }],
   factsheet_pdf: null,
+  cover: null,
 };
 
 const STEPS = [
@@ -131,7 +133,7 @@ export default function ListingForm({ token, initial, options, rules, managerNam
       if (editingId) saved = (await axios.put(`${API}/analyst/portfolios/${editingId}`, payload(), auth)).data.portfolio;
       else { saved = (await axios.post(`${API}/analyst/portfolios`, payload(), auth)).data.portfolio; setEditingId(saved.id); }
       dirty.current = false;
-      setForm((f) => ({ ...f, factsheet_pdf: saved.factsheet_pdf || f.factsheet_pdf, rationale: saved.rationale ?? f.rationale, methodology: saved.methodology ?? f.methodology }));
+      setForm((f) => ({ ...f, factsheet_pdf: saved.factsheet_pdf || f.factsheet_pdf, rationale: saved.rationale ?? f.rationale, methodology: saved.methodology ?? f.methodology, cover: saved.cover || f.cover }));
       if (!quiet) toast.success('Saved as draft');
       onSaved && onSaved(saved);
       loadPerf(saved.id);
@@ -255,6 +257,9 @@ export default function ListingForm({ token, initial, options, rules, managerNam
                     {benchmarks.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
                   </select>
                 </Field>
+                <div className="md:col-span-2">
+                  <CoverPicker form={form} cover={form.cover} onChange={(c) => patch('cover', c)} editingId={editingId} token={token} ensureSaved={() => save(true)} />
+                </div>
                 <div className="md:col-span-2">
                   <Field label={`Style tags (up to ${rules?.max_tags ?? 3})`} hint="Help investors find you in explore filters.">
                     <div className="flex flex-wrap gap-2" data-testid="form-tags">

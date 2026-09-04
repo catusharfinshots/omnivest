@@ -3,6 +3,7 @@ import { Eye, Sparkles, PauseCircle, PlayCircle, MessageSquareWarning, Check, X,
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Textarea } from '../ui/textarea';
 import VersionDiff from './VersionDiff';
+import CoverArt from '../CoverArt';
 
 const STATUS = { approved: 'bg-[#DCFCE7] text-[#0E9F5E]', pending: 'bg-[#FEF3C7] text-[#B45309]', rejected: 'bg-[#FEE2E2] text-[#DC2626]', paused: 'bg-[#FEE2E2] text-[#DC2626]' };
 const plain = (html) => (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -37,6 +38,7 @@ export default function ListingReviewCard({ p, onReview, onAction }) {
   return (
     <div className="border border-[#E8E1F0] rounded-xl p-4" data-testid={`review-card-${p.id}`}>
       <div className="flex items-start justify-between gap-4">
+        {p.cover && <CoverArt cover={p.cover} name={p.name} size={56} radius={14} />}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-[#1A1030] truncate">{p.name}</span>
@@ -53,6 +55,7 @@ export default function ListingReviewCard({ p, onReview, onAction }) {
             <span>{p.factsheet_pdf ? '✓ Factsheet PDF' : '– No factsheet PDF'}</span>
             <span>{p.videoUrl ? '✓ Intro video' : '– No video'}</span>
             <span>{p.factsheet?.riskFactors ? '✓ Key risks' : '– No key risks'}</span>
+            {p.cover?.kind === 'upload' && <button type="button" onClick={() => onAction(p.id, 'cover/reset')} className="text-[#DC2626] hover:underline" data-testid="cover-reset">Uploaded cover — reset to generated</button>}
             {p.reviewed_at && <span>reviewed {nice(p.reviewed_at)}</span>}
           </div>
           {p.review_note && !pending && <div className="mt-2 text-xs rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] px-2.5 py-1.5 text-[#475569]"><b className="text-[#1A1030]">Your note to the partner:</b> {p.review_note}</div>}

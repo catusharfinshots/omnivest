@@ -1,5 +1,6 @@
 import React from 'react';
 import { TrendingUp, Layers, ShieldCheck, IndianRupee, Sparkles, PlayCircle } from 'lucide-react';
+import CoverArt from '../CoverArt';
 
 const CAP_COLORS = { Large: '#6C2BD9', Mid: '#A78BFA', Small: '#F59E0B', Micro: '#F97316', Other: '#CBD5E1' };
 const plainText = (html) => (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -20,7 +21,7 @@ export default function ListingPreview({ form, perf, classification, managerName
     <div className="rounded-2xl border border-[#E8E1F0] bg-white overflow-hidden shadow-[0_12px_40px_-28px_rgba(108,43,217,0.45)]" data-testid="listing-preview">
       <div className="grad-hero px-5 pt-5 pb-4 border-b border-[#EEE8F7]">
         <div className="flex items-start gap-3">
-          <span className="h-12 w-12 shrink-0 rounded-2xl grad-card text-white grid place-items-center text-base font-bold">{(form.name || 'NP').slice(0, 2).toUpperCase()}</span>
+          <CoverArt cover={form.cover && form.cover.kind ? form.cover : { kind: 'auto', theme: 'default', palette: 'violet' }} name={form.name} size={52} radius={16} />
           <div className="min-w-0 flex-1">
             <div className="text-lg font-bold text-[#1A1030] leading-tight truncate">{form.name || 'Your portfolio name'}</div>
             <div className="text-xs text-[#6B6480] mt-0.5">by {managerName || 'You'}</div>

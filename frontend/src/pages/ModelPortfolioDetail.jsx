@@ -10,6 +10,7 @@ import PerformanceSection from '../components/listing/PerformanceSection';
 import RebalanceTimeline from '../components/listing/RebalanceTimeline';
 import HoldingsSection from '../components/listing/HoldingsSection';
 import UpdatesSection from '../components/listing/UpdatesSection';
+import CoverArt from '../components/CoverArt';
 import { useAuth } from '../context/AuthContext';
 import { usePortfolio } from '../context/PortfolioContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -138,7 +139,7 @@ export default function ModelPortfolioDetail() {
           </div>
           <div className="mt-5 flex items-start justify-between gap-6 flex-wrap">
             <div className="flex items-start gap-4 min-w-0">
-              <span className="h-14 w-14 shrink-0 rounded-2xl grad-card text-white grid place-items-center text-lg font-bold">{basket.name.slice(0, 2).toUpperCase()}</span>
+              {basket.cover ? <CoverArt cover={basket.cover} name={basket.name} size={64} radius={18} /> : <span className="h-14 w-14 shrink-0 rounded-2xl grad-card text-white grid place-items-center text-lg font-bold">{basket.name.slice(0, 2).toUpperCase()}</span>}
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{basket.name}</h1>

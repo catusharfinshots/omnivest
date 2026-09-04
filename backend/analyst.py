@@ -20,6 +20,7 @@ from auth import build_current_user_dep, decode_token
 import performance as perf_engine
 from listing_options import load_rules
 from richtext import sanitize_html, plain_text
+from covers import normalise_cover, public_cover
 import storage
 
 
@@ -71,6 +72,7 @@ class PortfolioIn(BaseModel):
     plans: List[Plan] = []       # paid listings: price per duration
     factsheet: Factsheet = Factsheet()
     constituents: List[Constituent] = []
+    cover: Optional[dict] = None   # {kind: auto|theme|upload, theme, palette} — never blank (see covers.py)
     # legacy / compatibility
     risk: str = "Medium"
     minAmount: int = 5000
@@ -82,8 +84,9 @@ class PortfolioIn(BaseModel):
 VIDEO_HOSTS = ("youtube.com", "youtu.be", "vimeo.com")
 
 
-def _normalise(doc: dict) -> dict:
-    """Sanitise rich text, derive legacy fee fields from plans, tidy tags."""
+def _normalise(doc: dict, existing: Optional[dict] = None) -> dict:
+    """Sanitise rich text, derive legacy fee fields from plans, tidy tags, guarantee a cover."""
+    normalise_cover(doc, existing)
     doc["rationale"] = sanitize_html(doc.get("rationale"))
     doc["methodology"] = sanitize_html(doc.get("methodology"))
     doc["tags"] = [t.strip() for t in (doc.get("tags") or []) if isinstance(t, str) and t.strip()][:10]
@@ -190,6 +193,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     @router.get("/analyst/portfolios")
     async def my_portfolios(user: dict = Depends(require_analyst)):
         docs = await col.find({"owner_id": user["id"]}, {"_id": 0}).sort("updated_at", -1).to_list(500)
+        for d in docs:
+            d["cover"] = public_cover(d)
         return {"portfolios": docs}
 
     @router.post("/analyst/portfolios")
@@ -213,7 +218,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         existing = await col.find_one({"id": pid, "owner_id": user["id"]})
         if not existing:
             raise HTTPException(status_code=404, detail="Portfolio not found")
-        doc = _normalise(payload.dict())
+        doc = _normalise(payload.dict(), existing)
         # editing an approved/pending item sends it back to draft (needs re-submit)
         doc["status"] = "draft"
         doc["updated_at"] = _now()
@@ -330,6 +335,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if status in ("pending", "approved", "rejected", "paused"):
             q = {"status": status}
         docs = await col.find(q, {"_id": 0}).sort("updated_at", -1).to_list(1000)
+        for d in docs:
+            d["cover"] = public_cover(d)
         counts = {k: 0 for k in ("pending", "approved", "rejected", "paused")}
         async for row in col.aggregate([{"$match": {"status": {"$in": list(counts)}}}, {"$group": {"_id": "$status", "n": {"$sum": 1}}}]):
             counts[row["_id"]] = row["n"]
@@ -416,6 +423,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     async def public_portfolios(background: BackgroundTasks):
         docs = await col.find({"status": "approved"}, {"_id": 0, "owner_id": 0, "review_note": 0}).sort([("featured", -1), ("updated_at", -1)]).to_list(1000)
         # computed performance summary per card (auto-refreshed in the background when stale)
+        for d in docs:
+            d["cover"] = public_cover(d)
         if docs and perf_engine.ENGINE is not None:
             summaries = await perf_engine.ENGINE.summaries([d["id"] for d in docs], background)
             for d in docs:
@@ -435,6 +444,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             doc["preview"] = True
         owner_id = doc.pop("owner_id", None)
         doc.pop("review_note", None)
+        doc["cover"] = public_cover(doc)
         # manager card: approved-partner record merged with the analyst's own profile
         mgr = await db.managers.find_one({"user_id": owner_id, "active": True}, {"_id": 0}) if owner_id else None
         usr = await db.users.find_one({"id": owner_id}, {"_id": 0, "analyst_profile": 1, "name": 1}) if owner_id else None

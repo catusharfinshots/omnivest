@@ -11,6 +11,7 @@ import PartnerOverview from './partner/PartnerOverview';
 import ListingForm from './partner/ListingForm';
 import PostsManager from './partner/PostsManager';
 import ComputedPerformance from './partner/ComputedPerformance';
+import CoverArt from './CoverArt';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -154,7 +155,9 @@ export default function AnalystConsole() {
                 return (
                   <div key={p.id} data-testid="portfolio-row" className="surface p-4">
                     <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex items-start gap-3">
+                        {p.cover && <CoverArt cover={p.cover} name={p.name} size={44} radius={12} className="mt-0.5" />}
+                        <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-[#1A1030] truncate">{p.name}</span>
                           <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${STATUS_STYLES[p.status] || STATUS_STYLES.draft}`}>{STATUS_LABEL[p.status] || p.status}</span>
@@ -168,6 +171,7 @@ export default function AnalystConsole() {
                         )}
                         {p.status === 'rejected' && p.review_note && <div className="mt-2 flex items-start gap-1.5 text-xs rounded-lg bg-[#FEF2F2] border border-[#FECACA] px-2.5 py-1.5 text-[#991B1B]"><AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" /><span><b>Rejected:</b> {p.review_note}</span></div>}
                         {p.status === 'paused' && p.review_note && <div className="mt-2 flex items-start gap-1.5 text-xs rounded-lg bg-[#FEF2F2] border border-[#FECACA] px-2.5 py-1.5 text-[#991B1B]"><PauseCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" /><span><b>Paused by admin:</b> {p.review_note} — fix and resubmit, or contact support.</span></div>}
+                        </div>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                         {canSubmit && <button onClick={() => submitForReview(p.id)} disabled={missing && missing.length > 0} className="btn-outline text-xs disabled:opacity-50" title={missing?.length ? 'Complete the checklist first' : ''}><Send className="h-3.5 w-3.5" /> Submit</button>}

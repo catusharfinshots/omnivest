@@ -217,7 +217,7 @@ export default function AdminPage() {
   const listingAction = async (id, kind, body = {}) => {
     try {
       await axios.post(`${LEADS_API}/admin/portfolios/${id}/${kind}`, body, { headers: { Authorization: `Bearer ${token}` } });
-      toast.success(kind === 'feature' ? (body.featured ? 'Pinned to the top of explore' : 'Removed from featured') : kind === 'pause' ? 'Listing paused — hidden from investors' : 'Listing is live again');
+      toast.success(kind === 'feature' ? (body.featured ? 'Pinned to the top of explore' : 'Removed from featured') : kind === 'pause' ? 'Listing paused — hidden from investors' : kind === 'cover/reset' ? 'Cover reset to the generated illustration' : 'Listing is live again');
       fetchListings();
       refreshCounts();
     } catch (e) { toast.error(e?.response?.data?.detail || 'Could not update'); }

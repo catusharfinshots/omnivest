@@ -142,6 +142,10 @@ api_router.include_router(build_classification_router(db))
 from posts import build_router as build_posts_router  # noqa: E402
 api_router.include_router(build_posts_router(db))
 
+# Listing cover art (theme catalogue + auto-pick, partner uploads, admin reset)
+from covers import build_router as build_covers_router  # noqa: E402
+api_router.include_router(build_covers_router(db))
+
 # Include the router in the main app
 app.include_router(api_router)
 
