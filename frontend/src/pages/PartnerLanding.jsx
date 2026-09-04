@@ -126,9 +126,10 @@ function FloatChip({ children, className = '', delay = 0 }) {
       {children}
     </div>
   );
-  if (reduce) return <div className={className}>{inner}</div>;
+  // Illustrative chips on the hero mock: decorative, so the gate masks them (fonts differ per OS)
+  if (reduce) return <div className={className} data-decorative>{inner}</div>;
   return (
-    <motion.div className={className}
+    <motion.div className={className} data-decorative
       initial={reduce ? false : { opacity: 0, scale: 0.6 }} animate={reduce ? { opacity: 1, scale: 1, y: 0 } : { opacity: 1, scale: 1, y: [0, -7, 0] }}
       transition={{ opacity: { duration: 0.4, delay }, scale: { duration: 0.4, delay, type: 'spring', bounce: 0.4 }, y: { duration: 4, repeat: Infinity, ease: 'easeInOut', delay: delay + 0.4 } }}>
       {inner}
