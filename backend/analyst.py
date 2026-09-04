@@ -108,6 +108,33 @@ def _public_view(doc: dict) -> dict:
     return doc
 
 
+REVISION_META = ("status", "updated_at", "submitted_at", "review_note", "changes_requested")
+
+
+def _working_copy(doc: dict) -> dict:
+    """What the partner edits: the live listing with its unpublished revision (if any) laid over it.
+    Live listings never change until an admin approves the revision, so investors keep seeing the
+    approved version while the partner works."""
+    doc.pop("_id", None)
+    rev = doc.get("revision")
+    if not rev:
+        doc["has_revision"] = False
+        return doc
+    out = {**doc, **(rev.get("fields") or {})}
+    out["status"] = doc.get("status")                 # the listing itself stays live
+    out["has_revision"] = True
+    out["revision_status"] = rev.get("status", "draft")
+    out["revision_note"] = rev.get("review_note", "")
+    out["revision_changes_requested"] = bool(rev.get("changes_requested"))
+    out["revision_updated_at"] = rev.get("updated_at")
+    out.pop("revision", None)
+    return out
+
+
+def _weights(cons) -> dict:
+    return {(c.get("symbol") or "").upper(): float(c.get("weight") or 0) for c in (cons or []) if c.get("symbol")}
+
+
 def _validate_complete(doc: dict, rules: Optional[dict] = None) -> List[str]:
     """Strict completeness check enforced when an analyst submits for approval.
     Drafts are allowed to be incomplete; this only gates the submit step.
@@ -193,6 +220,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     @router.get("/analyst/portfolios")
     async def my_portfolios(user: dict = Depends(require_analyst)):
         docs = await col.find({"owner_id": user["id"]}, {"_id": 0}).sort("updated_at", -1).to_list(500)
+        docs = [_working_copy(d) for d in docs]
         for d in docs:
             d["cover"] = public_cover(d)
         return {"portfolios": docs}
@@ -219,31 +247,44 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if not existing:
             raise HTTPException(status_code=404, detail="Portfolio not found")
         doc = _normalise(payload.dict(), existing)
-        # editing an approved/pending item sends it back to draft (needs re-submit)
+        if existing.get("status") in ("approved", "paused"):
+            # A live (or paused) listing is never taken down by an edit. The changes are held as a
+            # revision the partner submits and an admin approves; investors keep seeing the approved
+            # version until then.
+            rev = {"fields": doc, "status": "draft", "updated_at": _now(), "review_note": "", "changes_requested": False}
+            await col.update_one({"id": pid}, {"$set": {"revision": rev, "updated_at": _now()}})
+            return {"portfolio": _working_copy(await col.find_one({"id": pid}, {"_id": 0}))}
+        # unpublished work (draft / pending / rejected): edits land directly and return it to draft
         doc["status"] = "draft"
         doc["updated_at"] = _now()
         doc["changes_requested"] = False
-        if existing.get("status") == "approved":
-            doc["was_live"] = True   # a live listing being rebalanced/edited: keep launch data, re-review
-        # Rebalance history: once a listing has launched, a change in constituents
-        # or weights is recorded as a new version (drives the rebalance timeline
-        # and keeps the computed NAV series continuous).
-        def _w(cons):
-            return {(c.get("symbol") or "").upper(): float(c.get("weight") or 0) for c in (cons or []) if c.get("symbol")}
-        if existing.get("launch_date") and _w(existing.get("constituents")) != _w(doc.get("constituents")):
-            versions = existing.get("versions") or [{"effective_date": existing["launch_date"], "constituents": existing.get("constituents") or []}]
-            versions.append({"effective_date": perf_engine.ist_today().isoformat(), "constituents": doc.get("constituents") or []})
-            doc["versions"] = versions
         await col.update_one({"id": pid}, {"$set": doc})
-        merged = await col.find_one({"id": pid}, {"_id": 0})
-        return {"portfolio": merged}
+        return {"portfolio": _working_copy(await col.find_one({"id": pid}, {"_id": 0}))}
+
+    @router.delete("/analyst/portfolios/{pid}/revision")
+    async def discard_revision(pid: str, user: dict = Depends(require_analyst)):
+        """Throw away unpublished changes to a live listing; the approved version stays as it is."""
+        res = await col.update_one({"id": pid, "owner_id": user["id"], "revision": {"$exists": True}}, {"$unset": {"revision": ""}, "$set": {"updated_at": _now()}})
+        if not res.matched_count:
+            raise HTTPException(status_code=404, detail="No unpublished changes to discard")
+        return {"ok": True}
 
     @router.post("/analyst/portfolios/{pid}/submit")
     async def submit_portfolio(pid: str, user: dict = Depends(require_analyst)):
         existing = await col.find_one({"id": pid, "owner_id": user["id"]})
         if not existing:
             raise HTTPException(status_code=404, detail="Portfolio not found")
-        problems = _validate_complete(existing, await load_rules(db))
+        rules = await load_rules(db)
+        if existing.get("revision"):
+            problems = _validate_complete(_working_copy(dict(existing)), rules)
+            if problems:
+                raise HTTPException(status_code=422, detail={"message": "Portfolio is incomplete", "errors": problems})
+            await col.update_one({"id": pid}, {"$set": {"revision.status": "pending", "revision.submitted_at": _now(), "revision.review_note": "",
+                                                        "revision.changes_requested": False, "updated_at": _now()}})
+            return {"ok": True, "status": existing.get("status"), "revision_status": "pending"}
+        if existing.get("status") in ("approved", "paused"):
+            raise HTTPException(status_code=409, detail="This listing is already live. Edit it to create changes for review.")
+        problems = _validate_complete(existing, rules)
         if problems:
             raise HTTPException(status_code=422, detail={"message": "Portfolio is incomplete", "errors": problems})
         await col.update_one({"id": pid}, {"$set": {"status": "pending", "review_note": "", "changes_requested": False, "updated_at": _now()}})
@@ -256,7 +297,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if not existing:
             raise HTTPException(status_code=404, detail="Portfolio not found")
         rules = await load_rules(db)
-        return {"missing": _validate_complete(existing, rules), "rules": rules}
+        return {"missing": _validate_complete(_working_copy(dict(existing)), rules), "rules": rules}
 
     @router.delete("/analyst/portfolios/{pid}")
     async def delete_portfolio(pid: str, user: dict = Depends(require_analyst)):
@@ -332,14 +373,24 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         """Drafts are the partner's private work and never reach the admin console:
         only submitted (pending), approved and rejected listings are listed."""
         q = {"status": {"$in": ["pending", "approved", "rejected", "paused"]}}
-        if status in ("pending", "approved", "rejected", "paused"):
+        if status == "pending":
+            q = {"$or": [{"status": "pending"}, {"revision.status": "pending"}]}
+        elif status in ("approved", "rejected", "paused"):
             q = {"status": status}
         docs = await col.find(q, {"_id": 0}).sort("updated_at", -1).to_list(1000)
         for d in docs:
             d["cover"] = public_cover(d)
+            rev = d.pop("revision", None)
+            if rev:
+                # the live version stays in the top-level fields; the proposal rides alongside for the diff
+                d["revision_pending"] = rev.get("status") == "pending"
+                d["revision_status"] = rev.get("status")
+                d["proposed"] = rev.get("fields") or {}
+                d["proposed"]["cover"] = public_cover({**d, **d["proposed"]})
         counts = {k: 0 for k in ("pending", "approved", "rejected", "paused")}
         async for row in col.aggregate([{"$match": {"status": {"$in": list(counts)}}}, {"$group": {"_id": "$status", "n": {"$sum": 1}}}]):
             counts[row["_id"]] = row["n"]
+        counts["pending"] += await col.count_documents({"revision.status": "pending"})
         return {"portfolios": docs, "counts": counts}
 
     @router.post("/admin/portfolios/{pid}/review")
@@ -358,10 +409,30 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             "reviewed_at": _now(),
             "updated_at": _now(),
         }
-        existing = await col.find_one({"id": pid}, {"_id": 0, "id": 1, "launch_date": 1, "status": 1})
+        existing = await col.find_one({"id": pid}, {"_id": 0, "id": 1, "launch_date": 1, "status": 1, "revision": 1, "constituents": 1, "versions": 1})
         if existing is None or existing.get("status") == "draft":
             # drafts are invisible to admin; approval is only possible via the partner's submit gate
             raise HTTPException(status_code=404, detail="Portfolio not found")
+        rev = existing.get("revision")
+        if rev and rev.get("status") == "pending" and existing.get("status") in ("approved", "paused"):
+            # Reviewing proposed changes to a live listing. The live version is untouched until approval.
+            if action == "approve":
+                fields = dict(rev.get("fields") or {})
+                if existing.get("launch_date") and _weights(existing.get("constituents")) != _weights(fields.get("constituents")):
+                    versions = existing.get("versions") or [{"effective_date": existing["launch_date"], "constituents": existing.get("constituents") or []}]
+                    versions.append({"effective_date": perf_engine.ist_today().isoformat(), "constituents": fields.get("constituents") or []})
+                    fields["versions"] = versions
+                fields.update({"reviewed_at": _now(), "updated_at": _now(), "review_note": note, "changes_requested": False})
+                await col.update_one({"id": pid}, {"$set": fields, "$unset": {"revision": ""}})
+                if perf_engine.ENGINE is not None:
+                    background.add_task(perf_engine.ENGINE.refresh_bg, pid)
+                return {"ok": True, "status": existing.get("status"), "revision": "applied", "launch_date": existing.get("launch_date")}
+            if action == "request_changes":
+                await col.update_one({"id": pid}, {"$set": {"revision.status": "draft", "revision.review_note": note, "revision.changes_requested": True, "updated_at": _now()}})
+                return {"ok": True, "status": existing.get("status"), "revision": "changes_requested"}
+            # reject = discard the proposal; the partner sees why, the live listing is unchanged
+            await col.update_one({"id": pid}, {"$set": {"review_note": note, "revision_rejected_at": _now(), "updated_at": _now()}, "$unset": {"revision": ""}})
+            return {"ok": True, "status": existing.get("status"), "revision": "rejected"}
         if action in ("approve", "request_changes") and existing.get("status") != "pending":
             raise HTTPException(status_code=409, detail="Only submitted (pending) listings can be approved or sent back.")
         # First approval = launch day. Constituents are "bought" at the last NSE
@@ -421,7 +492,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     # ---------- Public ----------
     @router.get("/portfolios")
     async def public_portfolios(background: BackgroundTasks):
-        docs = await col.find({"status": "approved"}, {"_id": 0, "owner_id": 0, "review_note": 0}).sort([("featured", -1), ("updated_at", -1)]).to_list(1000)
+        docs = await col.find({"status": "approved"}, {"_id": 0, "owner_id": 0, "review_note": 0, "revision": 0}).sort([("featured", -1), ("updated_at", -1)]).to_list(1000)
         # computed performance summary per card (auto-refreshed in the background when stale)
         for d in docs:
             d["cover"] = public_cover(d)
@@ -432,16 +503,21 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         return {"portfolios": docs}
 
     @router.get("/portfolios/{pid}")
-    async def public_portfolio(pid: str, authorization: Optional[str] = Header(None)):
+    async def public_portfolio(pid: str, authorization: Optional[str] = Header(None), revision: int = Query(default=0)):
         """Approved listings are public. Admins may preview a submitted (pending/paused/rejected)
-        listing exactly as investors would see it; drafts stay private to the partner."""
+        listing exactly as investors would see it, or a live listing's proposed revision (?revision=1);
+        drafts and unpublished revisions stay private to the partner."""
         doc = await col.find_one({"id": pid}, {"_id": 0})
         if not doc or doc.get("status") == "draft":
             raise HTTPException(status_code=404, detail="Portfolio not found")
-        if doc.get("status") != "approved":
+        rev = doc.pop("revision", None)
+        if doc.get("status") != "approved" or revision:
             if not await _is_admin(authorization):
                 raise HTTPException(status_code=404, detail="Portfolio not found")
             doc["preview"] = True
+            if revision and rev:
+                doc.update(rev.get("fields") or {})
+                doc["preview_revision"] = True
         owner_id = doc.pop("owner_id", None)
         doc.pop("review_note", None)
         doc["cover"] = public_cover(doc)

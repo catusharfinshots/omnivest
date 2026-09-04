@@ -162,7 +162,7 @@ export default function PartnerApply() {
     nismExpired && 'Your NISM certificate date is in the past — a valid certificate is required',
     !panOk && 'Enter a valid PAN (format ABCDE1234F)',
     !addressOk && 'Enter your complete registered office address (street, city, PIN)',
-    !form.firm.trim() && 'Enter your firm / experience',
+    !form.firm.trim() && 'Enter your firm name',
     !APPLICANT_TYPES.includes(form.applicant_type) && 'Choose what you are applying as (Individual / LLP / Company)',
     isFirmType && !officersOk && 'Complete the Principal & Compliance Officer details (name, valid email and mobile for each)',
     !files.sebi_cert && 'Upload your SEBI registration certificate',
@@ -340,8 +340,8 @@ export default function PartnerApply() {
                 )}
               </div>
               <div>
-                <Label>Firm / experience *</Label>
-                <Input data-testid="partner-firm" required value={form.firm} onChange={set('firm')} className="h-11 mt-1.5" placeholder="e.g. 8 yrs, XYZ Capital" />
+                <Label>Firm name *</Label>
+                <Input data-testid="partner-firm" required value={form.firm} onChange={set('firm')} className="h-11 mt-1.5" placeholder="e.g. XYZ Capital (shown on your public manager card)" />
               </div>
               <div>
                 <Label>Applying as *</Label>

@@ -16,11 +16,43 @@ const PROMPTS = {
 };
 
 // One submitted listing in the admin review queue: what it is, what changed, and every action.
+const FIELD_LABELS = { name: 'Name', subtitle: 'Pitch', strategy: 'Strategy', risk: 'Risk', rebalanceFreq: 'Rebalance', benchmark: 'Benchmark', subscription: 'Access', tags: 'Tags', rationale: 'Rationale', methodology: 'Methodology', videoUrl: 'Video', minInvestment: 'Min investment' };
+const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+const wmap = (cons) => Object.fromEntries((cons || []).filter((c) => c.symbol).map((c) => [String(c.symbol).toUpperCase(), Number(c.weight) || 0]));
+const short = (v) => (Array.isArray(v) ? v.join(', ') : typeof v === 'string' ? plain(v).slice(0, 60) : String(v ?? '—'));
+
+// What a partner wants to change on a live listing, live -> proposed. Investors see none of it yet.
+function RevisionDiff({ live, proposed }) {
+  const fields = Object.keys(FIELD_LABELS).filter((k) => !same(live[k], proposed[k]));
+  const a = wmap(live.constituents), b = wmap(proposed.constituents);
+  const syms = Array.from(new Set([...Object.keys(a), ...Object.keys(b)])).sort();
+  const rows = syms.map((s) => ({ s, from: a[s], to: b[s] })).filter((r) => r.from !== r.to);
+  const plansChanged = !same((live.plans || []).map((x) => [x.months, x.price]), (proposed.plans || []).map((x) => [x.months, x.price]));
+  return (
+    <div className="mt-2 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] p-2.5 text-[12px]" data-testid="revision-diff">
+      <div className="font-semibold text-[#92400E]">Proposed changes to a live listing — investors still see the current version</div>
+      <div className="mt-1.5 grid sm:grid-cols-2 gap-x-4 gap-y-0.5 text-[#4B4560]">
+        {fields.map((k) => (
+          <div key={k} className="flex items-start gap-1.5"><span className="font-semibold text-[#1A1030] w-24 shrink-0">{FIELD_LABELS[k]}</span><span className="line-through text-[#667085]">{short(live[k])}</span><span className="text-[#0B7F4A]">{short(proposed[k])}</span></div>
+        ))}
+        {plansChanged && <div className="flex items-start gap-1.5"><span className="font-semibold text-[#1A1030] w-24 shrink-0">Plans</span><span className="text-[#0B7F4A]">{(proposed.plans || []).map((x) => `${x.months}m ₹${x.price}`).join(' · ') || 'none'}</span></div>}
+        {rows.map((r) => (
+          <div key={r.s} className="flex items-center gap-1.5"><span className="font-semibold text-[#1A1030] w-24 truncate">{r.s}</span>
+            {r.from === undefined ? <span className="text-[#0B7F4A]">added at {r.to}%</span> : r.to === undefined ? <span className="text-[#B91C1C]">removed (was {r.from}%)</span> : <span>{r.from}% → <b className={r.to > r.from ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}>{r.to}%</b></span>}
+          </div>
+        ))}
+        {fields.length === 0 && rows.length === 0 && !plansChanged && <div className="text-[#6B6480]">No visible field changed.</div>}
+      </div>
+    </div>
+  );
+}
+
 export default function ListingReviewCard({ p, onReview, onAction }) {
   const [prompt, setPrompt] = useState(null); // 'reject' | 'request_changes' | 'pause'
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
-  const pending = p.status === 'pending';
+  const revision = !!p.revision_pending;
+  const pending = p.status === 'pending' || revision;
   const live = p.status === 'approved';
   const paused = p.status === 'paused';
   const paid = p.subscription === 'Paid';
@@ -44,7 +76,8 @@ export default function ListingReviewCard({ p, onReview, onAction }) {
             <span className="font-semibold text-[#1A1030] truncate">{p.name}</span>
             <span className={`text-[12px] font-bold uppercase px-2 py-0.5 rounded-full ${STATUS[p.status] || 'bg-[#F1F1F4] text-[#6B6480]'}`}>{p.status}</span>
             {p.featured && <span className="inline-flex items-center gap-1 text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#6C2BD9]"><Sparkles className="h-3 w-3" /> Featured</span>}
-            {p.was_live && pending && <span className="text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#9A4A05]">Re-submission of a live listing</span>}
+            {revision && <span className="text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#9A4A05]" data-testid="revision-badge">Changes awaiting approval</span>}
+            {p.revision_status === 'draft' && <span className="text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]">Partner is editing</span>}
             {paid && <span className="inline-flex items-center gap-1 text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#9A4A05]"><Lock className="h-3 w-3" /> {cheapest ? `from ₹${Math.round(cheapest.price / cheapest.months)}/mo` : 'Paid'}</span>}
           </div>
           <div className="text-xs text-[#6B6480] mt-0.5">by {p.owner_name || '—'} · {p.subtitle || 'No pitch'} · {p.constituents?.length || 0} holdings · {p.benchmark || 'NIFTY 50'} · {p.strategy} · {p.rebalanceFreq || 'Quarterly'}</div>
@@ -59,13 +92,14 @@ export default function ListingReviewCard({ p, onReview, onAction }) {
             {p.reviewed_at && <span>reviewed {nice(p.reviewed_at)}</span>}
           </div>
           {p.review_note && !pending && <div className="mt-2 text-xs rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] px-2.5 py-1.5 text-[#475569]"><b className="text-[#1A1030]">Your note to the partner:</b> {p.review_note}</div>}
-          <VersionDiff p={p} />
+          {revision ? <RevisionDiff live={p} proposed={p.proposed || {}} /> : <VersionDiff p={p} />}
         </div>
         <div className="flex flex-col gap-1.5 shrink-0 w-44">
-          <a href={`/model-portfolios/${p.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-1 rounded-lg border border-[#E8E1F0] text-[#5320A8] text-xs font-semibold px-3 py-2 hover:bg-[#F7F4FB]" data-testid="preview-link"><Eye className="h-3.5 w-3.5" /> Preview as investor</a>
+          <a href={`/model-portfolios/${p.id}${revision ? '?revision=1' : ''}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-1 rounded-lg border border-[#E8E1F0] text-[#5320A8] text-xs font-semibold px-3 py-2 hover:bg-[#F7F4FB]" data-testid="preview-link"><Eye className="h-3.5 w-3.5" /> {revision ? 'Preview proposed' : 'Preview as investor'}</a>
+          {revision && <a href={`/model-portfolios/${p.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-1 rounded-lg text-[#526071] text-xs font-semibold px-3 py-1.5 hover:bg-[#F7F4FB]">View live version</a>}
           {pending && (
             <>
-              <button type="button" onClick={() => onReview(p.id, 'approve')} className="inline-flex items-center justify-center gap-1 rounded-lg bg-[#0A7D48] text-white text-xs font-semibold px-3 py-2 hover:bg-[#086B3D]" data-testid="approve-btn"><Check className="h-3.5 w-3.5" /> Approve</button>
+              <button type="button" onClick={() => onReview(p.id, 'approve')} className="inline-flex items-center justify-center gap-1 rounded-lg bg-[#0A7D48] text-white text-xs font-semibold px-3 py-2 hover:bg-[#086B3D]" data-testid="approve-btn"><Check className="h-3.5 w-3.5" /> {revision ? 'Approve changes' : 'Approve'}</button>
               <button type="button" onClick={() => { setPrompt('request_changes'); setNote(''); }} className="inline-flex items-center justify-center gap-1 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] text-[#92400E] text-xs font-semibold px-3 py-2 hover:bg-[#FEF3C7]" data-testid="request-changes-btn"><MessageSquareWarning className="h-3.5 w-3.5" /> Request changes</button>
               <button type="button" onClick={() => { setPrompt('reject'); setNote(''); }} className="inline-flex items-center justify-center gap-1 rounded-lg border border-[#E8E1F0] text-[#B91C1C] text-xs font-semibold px-3 py-2 hover:bg-[#FEF2F2]" data-testid="reject-btn"><X className="h-3.5 w-3.5" /> Reject</button>
             </>

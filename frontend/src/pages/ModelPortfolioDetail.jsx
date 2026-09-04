@@ -57,7 +57,8 @@ export default function ModelPortfolioDetail() {
     if (mockBasket) { setBasket(mockBasket); setNotFound(false); return; }
     let active = true;
     const headers = user?.role === 'admin' && token ? { Authorization: `Bearer ${token}` } : undefined;
-    axios.get(`${API}/portfolios/${id}`, headers ? { headers } : undefined).then(({ data }) => {
+    const wantRevision = headers && new URLSearchParams(window.location.search).get('revision') === '1';
+    axios.get(`${API}/portfolios/${id}${wantRevision ? '?revision=1' : ''}`, headers ? { headers } : undefined).then(({ data }) => {
       if (!active) return;
       const p = data.portfolio;
       setBasket({ ...p, fee: { amount: p.feeAmount || 0, cycle: p.feeCycle || 'monthly' }, managerName: p.owner_name, constituents: p.constituents || [], plans: p.plans || [], tags: p.tags || [] });

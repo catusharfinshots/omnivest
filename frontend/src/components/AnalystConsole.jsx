@@ -55,7 +55,7 @@ export default function AnalystConsole() {
       setPortfolios(list);
       if (pr.data.profile) setProfile(pr.data.profile);
       // readiness (same rules as the submit gate) for anything the partner can still submit
-      const need = list.filter((x) => x.status === 'draft' || x.status === 'rejected');
+      const need = list.filter((x) => x.status === 'draft' || x.status === 'rejected' || (x.has_revision && x.revision_status === 'draft'));
       const pairs = await Promise.all(need.map(async (x) => {
         try { const { data } = await axios.get(`${API}/analyst/portfolios/${x.id}/readiness`, auth); return [x.id, data.missing || []]; }
         catch { return [x.id, null]; }
@@ -88,8 +88,13 @@ export default function AnalystConsole() {
     try { await axios.delete(`${API}/analyst/portfolios/${id}`, auth); toast.success('Deleted'); await load(); }
     catch { toast.error('Could not delete'); }
   };
+  const discardChanges = async (id) => {
+    if (!window.confirm('Discard your unpublished changes? The live listing stays exactly as investors see it now.')) return;
+    try { await axios.delete(`${API}/analyst/portfolios/${id}/revision`, auth); toast.success('Changes discarded'); await load(); }
+    catch { toast.error('Could not discard'); }
+  };
   const submitForReview = async (id) => {
-    try { await axios.post(`${API}/analyst/portfolios/${id}/submit`, {}, auth); toast.success('Submitted for admin approval'); await load(); }
+    try { const { data } = await axios.post(`${API}/analyst/portfolios/${id}/submit`, {}, auth); toast.success(data?.revision_status ? 'Changes sent for admin approval — your listing stays live meanwhile' : 'Submitted for admin approval'); await load(); }
     catch (e) {
       const d = e?.response?.data?.detail;
       if (d && typeof d === 'object' && Array.isArray(d.errors)) { toast.error(d.message || 'Listing is incomplete'); setReadiness((r) => ({ ...r, [id]: d.errors })); }
@@ -149,7 +154,9 @@ export default function AnalystConsole() {
             <div className="mt-6 space-y-3">
               {portfolios.length === 0 && <div className="surface p-10 text-center text-[#6B6480]">No listings yet. Click “New listing” to build your first one — it takes about 15 minutes.</div>}
               {portfolios.map((p) => {
-                const canSubmit = p.status === 'draft' || p.status === 'rejected';
+                const revDraft = p.has_revision && p.revision_status === 'draft';
+                const revPending = p.has_revision && p.revision_status === 'pending';
+                const canSubmit = p.status === 'draft' || p.status === 'rejected' || revDraft;
                 const missing = readiness[p.id];
                 const live = p.status === 'approved' || p.status === 'paused';
                 return (
@@ -161,12 +168,21 @@ export default function AnalystConsole() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-[#1A1030] truncate">{p.name}</span>
                           <span className={`text-[12px] font-bold uppercase px-2 py-0.5 rounded-full ${STATUS_STYLES[p.status] || STATUS_STYLES.draft}`}>{STATUS_LABEL[p.status] || p.status}</span>
+                          {revPending && <span className="text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#9A4A05]" data-testid="revision-pending">Changes awaiting approval</span>}
+                          {revDraft && <span className="text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]" data-testid="revision-draft">Unpublished changes</span>}
                           {p.featured && <span className="text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#6C2BD9]">Featured</span>}
                           {p.subscription === 'Paid' && <span className="text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#9A4A05]">Paid</span>}
                         </div>
                         <div className="text-xs text-[#6B6480] mt-0.5 truncate">{p.subtitle || 'No pitch yet'} · {(p.constituents || []).length} holdings · {p.benchmark || 'NIFTY 50'}{(p.tags || []).length ? ` · ${p.tags.join(', ')}` : ''}</div>
                         {p.launch_date && <div className="text-[12px] text-[#6B6480] mt-1 inline-flex items-center gap-1"><CalendarCheck className="h-3 w-3 text-[#6C2BD9]" /> Live since {nice(p.launch_date)}{(p.versions || []).length > 1 ? ` · ${p.versions.length} versions` : ''}</div>}
-                        {p.changes_requested && p.review_note && (
+                        {p.has_revision && <div className="text-[12px] text-[#526071] mt-1">Investors keep seeing the approved version until an admin approves your changes.</div>}
+                        {p.revision_changes_requested && p.revision_note && (
+                          <div className="mt-2 flex items-start gap-1.5 text-xs rounded-lg bg-[#FFFBEB] border border-[#FDE68A] px-2.5 py-1.5 text-[#92400E]" data-testid="revision-changes-requested"><AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" /><span><b>Admin asked for changes to your update:</b> {p.revision_note} — edit and resubmit. The live listing is unchanged.</span></div>
+                        )}
+                        {p.revision_rejected_at && p.review_note && p.status === 'approved' && (
+                          <div className="mt-2 flex items-start gap-1.5 text-xs rounded-lg bg-[#FEF2F2] border border-[#FECACA] px-2.5 py-1.5 text-[#991B1B]" data-testid="revision-rejected"><AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" /><span><b>Your proposed changes were declined:</b> {p.review_note}. The live listing is unchanged.</span></div>
+                        )}
+                        {p.changes_requested && p.review_note && !p.has_revision && (
                           <div className="mt-2 flex items-start gap-1.5 text-xs rounded-lg bg-[#FFFBEB] border border-[#FDE68A] px-2.5 py-1.5 text-[#92400E]" data-testid="changes-requested"><AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" /><span><b>Admin asked for changes:</b> {p.review_note} — edit and resubmit.</span></div>
                         )}
                         {p.status === 'rejected' && p.review_note && <div className="mt-2 flex items-start gap-1.5 text-xs rounded-lg bg-[#FEF2F2] border border-[#FECACA] px-2.5 py-1.5 text-[#991B1B]"><AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" /><span><b>Rejected:</b> {p.review_note}</span></div>}
@@ -174,7 +190,8 @@ export default function AnalystConsole() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:justify-end">
-                        {canSubmit && <button onClick={() => submitForReview(p.id)} disabled={missing && missing.length > 0} className="btn-outline text-xs disabled:opacity-50" title={missing?.length ? 'Complete the checklist first' : ''}><Send className="h-3.5 w-3.5" /> Submit</button>}
+                        {canSubmit && <button onClick={() => submitForReview(p.id)} disabled={missing && missing.length > 0} className="btn-outline text-xs disabled:opacity-50" title={missing?.length ? 'Complete the checklist first' : ''} data-testid="submit-btn"><Send className="h-3.5 w-3.5" /> {revDraft ? 'Submit changes' : 'Submit'}</button>}
+                        {revDraft && <button onClick={() => discardChanges(p.id)} className="btn-ghost text-xs text-[#B91C1C]" data-testid="discard-revision">Discard changes</button>}
                         {p.status === 'approved' && <a href={`/model-portfolios/${p.id}`} target="_blank" rel="noreferrer" className="btn-ghost text-xs"><Eye className="h-3.5 w-3.5" /> View live</a>}
                         {live && <button onClick={() => { setPostsFor(p); setView('posts'); }} className="btn-ghost text-xs" data-testid="posts-btn"><MessageSquare className="h-3.5 w-3.5" /> Updates</button>}
                         {live && <button onClick={() => setPerfOpen(perfOpen === p.id ? null : p.id)} className="btn-ghost text-xs">Performance</button>}
