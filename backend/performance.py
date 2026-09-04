@@ -421,6 +421,15 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         behind = (perf.get("price_date") or "") < last_close_date().isoformat()
         return behind and age > timedelta(minutes=RETRY_MINUTES)
 
+    def _pre_launch_doc(perf: Optional[dict], doc: dict) -> bool:
+        """True when the cached result predates the listing's approval (draft-stage doc, or a corrected launch date)."""
+        if not perf or not doc.get("launch_date"):
+            return False
+        if perf.get("status") == "not_launched":
+            return True
+        lpd = doc.get("launch_price_date")
+        return bool(lpd and perf.get("launch_price_date") and perf["launch_price_date"] != lpd)
+
     def _iso_utc(dt) -> Optional[str]:
         """Mongo returns naive UTC datetimes; always emit an explicit offset so browsers parse them correctly."""
         if not isinstance(dt, datetime):
@@ -487,11 +496,13 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
 
     @router.get("/portfolios/{pid}/performance")
     async def portfolio_performance(pid: str, background: BackgroundTasks):
-        doc = await portfolios.find_one({"id": pid, "status": "approved"}, {"_id": 0, "id": 1})
+        doc = await portfolios.find_one({"id": pid, "status": "approved"}, {"_id": 0, "id": 1, "launch_date": 1, "launch_price_date": 1})
         if not doc:
             raise HTTPException(status_code=404, detail="Portfolio not found")
         perf = await perf_col.find_one({"_id": pid})
-        if _is_stale(perf) and pid not in _inflight:
+        if _pre_launch_doc(perf, doc):
+            perf = await _refresh_inline(pid)   # approved since the last compute: never show the draft-stage doc
+        elif _is_stale(perf) and pid not in _inflight:
             if perf:
                 background.add_task(_refresh_bg, pid)
             else:  # first view after approval: compute inline so the page never shows a blank
@@ -504,10 +515,11 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     @router.get("/analyst/portfolios/{pid}/performance")
     async def analyst_performance(pid: str, user: dict = Depends(require_analyst)):
         """Partner view: auto-refreshes when stale (drafts get a min-investment preview)."""
-        if not await portfolios.find_one({"id": pid, "owner_id": user["id"]}):
+        doc = await portfolios.find_one({"id": pid, "owner_id": user["id"]}, {"_id": 0, "id": 1, "launch_date": 1, "launch_price_date": 1})
+        if not doc:
             raise HTTPException(status_code=404, detail="Portfolio not found")
         perf = await perf_col.find_one({"_id": pid})
-        if _is_stale(perf):
+        if _pre_launch_doc(perf, doc) or _is_stale(perf):
             perf = await _refresh_inline(pid) or perf
         return _public(perf) if perf else {"portfolio_id": pid, "status": "unavailable", "errors": ["Market data unavailable right now."]}
 
