@@ -66,13 +66,15 @@ def seed():
     v = requests.post(f"{API}/auth/phone/verify-otp", json={"phone": PHONE, "code": "123456", "flow": "partner"}, timeout=30).json()
     th = {"Authorization": f"Bearer {v['token']}"}
 
-    def mk(name, sub, cons, bench):
-        return _listing.create_submitted_listing(API, th, name, cons, benchmark=bench, subtitle=sub)
+    def mk(name, sub, cons, bench, **extra):
+        return _listing.create_submitted_listing(API, th, name, cons, benchmark=bench, subtitle=sub, **extra)
 
     cons = [{"symbol": "DEMOA", "name": "Demo Alpha Ltd", "exchange": "NSE", "type": "Stock", "weight": 50},
             {"symbol": "DEMOB", "name": "Demo Beta Ltd", "exchange": "NSE", "type": "Stock", "weight": 30},
             {"symbol": "DEMOC", "name": "Demo Gamma Ltd", "exchange": "NSE", "type": "Stock", "weight": 20}]
-    p_old = mk("Compounders 3", "Three quality compounders held for the long run.", cons, "NIFTY 500")
+    # the older listing is paid, so the gate audits the locked (subscribers-only) state of a listing page
+    p_old = mk("Compounders 3", "Three quality compounders held for the long run.", cons, "NIFTY 500", subscription="Paid",
+               plans=[{"months": 1, "price": 499}, {"months": 3, "price": 1299}, {"months": 6, "price": 2399}, {"months": 12, "price": 3999}])
     p_new = mk("Fresh Momentum", "Just launched — momentum leaders across sectors.", [{**cons[0], "weight": 50}, {**cons[1], "weight": 50}], "NIFTY 50")
     p_draft = requests.post(f"{API}/analyst/portfolios", json={"name": "Draft Basket", "subtitle": "Still being built.", "benchmark": "NIFTY 50",
                                                               "strategy": "thematic", "risk": "Medium", "minAmount": 5000, "rebalanceFreq": "Quarterly",

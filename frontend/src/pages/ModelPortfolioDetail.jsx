@@ -51,21 +51,22 @@ export default function ModelPortfolioDetail() {
   const [basket, setBasket] = useState(mockBasket || null);
   const [notFound, setNotFound] = useState(false);
   const [plan, setPlan] = useState(null);
+  const [interestSent, setInterestSent] = useState(false);
 
   useEffect(() => { axios.get(`${API}/content`).then(({ data }) => setDisclaimer(data?.performanceDisclaimer || '')).catch(() => {}); }, []);
 
   useEffect(() => {
     if (mockBasket) { setBasket(mockBasket); setNotFound(false); return; }
     let active = true;
-    const headers = user?.role === 'admin' && token ? { Authorization: `Bearer ${token}` } : undefined;
-    const wantRevision = headers && new URLSearchParams(window.location.search).get('revision') === '1';
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+    const wantRevision = user?.role === 'admin' && headers && new URLSearchParams(window.location.search).get('revision') === '1';
     axios.get(`${API}/portfolios/${id}${wantRevision ? '?revision=1' : ''}`, headers ? { headers } : undefined).then(({ data }) => {
       if (!active) return;
       const p = data.portfolio;
       setBasket({ ...p, fee: { amount: p.feeAmount || 0, cycle: p.feeCycle || 'monthly' }, managerName: p.owner_name, constituents: p.constituents || [], plans: p.plans || [], tags: p.tags || [] });
       setPlan((p.plans || [])[0] || null);
       if (!p.preview) track('portfolio_view', { portfolio_id: p.id });
-      axios.get(`${API}/portfolios/${p.id}/performance`).then((r) => { if (active) setPerf(r.data); }).catch(() => {});
+      axios.get(`${API}/portfolios/${p.id}/performance`, headers ? { headers } : undefined).then((r) => { if (active) setPerf(r.data); }).catch(() => {});
     }).catch(() => { if (active) setNotFound(true); });
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,10 +103,18 @@ export default function ModelPortfolioDetail() {
     if (!isAuthed) { openAuth({ next: `/model-portfolios/${basket.id}` }); return; }
     setInvestOpen(true);
   };
-  const onSubscribe = () => {
+  const access = basket.access || { paid, unlocked: true, reason: 'free' };
+  const locked = !!basket.holdings_locked;
+  const holdingsCount = basket.holdings_count ?? (basket.constituents || []).length;
+  const onSubscribe = async () => {
     if (isDb) track('subscribe_click', { portfolio_id: basket.id, plan: plan?.months });
     if (!isAuthed) { openAuth({ next: `/model-portfolios/${basket.id}` }); return; }
-    toast.success(`Thanks — we've noted your interest in the ${plan ? `${plan.months}-month` : ''} plan. Payments open soon; you'll be first to know.`);
+    if (!isDb) { toast.success('Demo listing'); return; }
+    try {
+      const { data } = await axios.post(`${API}/portfolios/${basket.id}/subscribe-interest`, { plan_months: plan?.months }, { headers: { Authorization: `Bearer ${token}` } });
+      setInterestSent(true);
+      toast.success(data.message || 'Request received');
+    } catch (e) { toast.error(e?.response?.data?.detail || 'Could not send your request'); }
   };
 
   // engine-derived numbers (never typed)
@@ -218,8 +227,14 @@ export default function ModelPortfolioDetail() {
                     <div className="mt-3 text-sm font-semibold group-hover:text-[#6C2BD9]">Methodology</div>
                     <div className="text-xs text-[#526071]">How this portfolio is built and rebalanced</div>
                   </button>
-                  {basket.factsheet_pdf ? (
-                    <a data-testid="factsheet-download" href={`${API}/portfolios/${basket.id}/factsheet`} target="_blank" rel="noreferrer" onClick={() => track('factsheet_download', { portfolio_id: basket.id })} className="surface p-4 hover:border-[#D8C7F1] transition-all group block">
+                  {basket.factsheet_pdf?.locked ? (
+                    <button type="button" onClick={onSubscribe} className="surface p-4 text-left hover:border-[#D8C7F1] transition-all group" data-testid="factsheet-locked">
+                      <Lock className="h-5 w-5 text-[#096B3E]" />
+                      <div className="mt-3 text-sm font-semibold group-hover:text-[#6C2BD9]">Factsheet</div>
+                      <div className="text-xs text-[#526071]">PDF for subscribers — includes holdings</div>
+                    </button>
+                  ) : basket.factsheet_pdf ? (
+                    <a data-testid="factsheet-download" href={`${API}/portfolios/${basket.id}/factsheet${token ? `?auth=${encodeURIComponent(token)}` : ''}`} target="_blank" rel="noreferrer" onClick={() => track('factsheet_download', { portfolio_id: basket.id })} className="surface p-4 hover:border-[#D8C7F1] transition-all group block">
                       <FileText className="h-5 w-5 text-[#6C2BD9]" />
                       <div className="mt-3 text-sm font-semibold group-hover:text-[#6C2BD9]">Factsheet</div>
                       <div className="text-xs text-[#526071]">Download the PDF factsheet</div>
@@ -248,7 +263,7 @@ export default function ModelPortfolioDetail() {
                     <div><dt className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Launched</dt><dd className="text-[#475569] mt-0.5">{basket.launch_date ? nice(basket.launch_date) : '—'}{perf?.start_date ? ` · bought at ${nice(perf.start_date)} close` : ''}</dd></div>
                     <div><dt className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Rebalance</dt><dd className="text-[#475569] mt-0.5">{basket.rebalanceFreq || 'Quarterly'}{(basket.versions || []).length > 1 ? ` · ${basket.versions.length - 1} so far` : ''}</dd></div>
                     <div><dt className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Benchmark</dt><dd className="text-[#475569] mt-0.5">{benchLabel}</dd></div>
-                    <div><dt className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Constituents</dt><dd className="text-[#475569] mt-0.5">{basket.constituents.length} {basket.constituents.every((c) => c.type === 'ETF') ? 'ETFs' : 'stocks & ETFs'}</dd></div>
+                    <div><dt className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Constituents</dt><dd className="text-[#475569] mt-0.5">{holdingsCount} {basket.holdings_kind || (basket.constituents.length && basket.constituents.every((c) => c.type === 'ETF') ? 'ETFs' : 'stocks & ETFs')}</dd></div>
                     {pm?.max_drawdown_pct !== null && pm?.max_drawdown_pct !== undefined && <div><dt className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Max drawdown</dt><dd className="text-[#475569] mt-0.5">{pct(pm.max_drawdown_pct)} since launch</dd></div>}
                     {basket.factsheet?.whoShouldInvest && <div className="sm:col-span-2"><dt className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Who should invest</dt><dd className="text-[#475569] mt-0.5">{basket.factsheet.whoShouldInvest}</dd></div>}
                   </dl>
@@ -266,7 +281,7 @@ export default function ModelPortfolioDetail() {
             {tab === 'Stocks & weights' && (
               <div className="space-y-5">
                 {isDb && <RebalanceTimeline basket={basket} />}
-                <HoldingsSection basket={basket} perf={perf} />
+                <HoldingsSection basket={basket} perf={perf} onSubscribe={onSubscribe} plan={plan} interestSent={interestSent} />
               </div>
             )}
 
@@ -301,7 +316,12 @@ export default function ModelPortfolioDetail() {
             <div className="num mt-1 text-3xl font-bold text-[#0F1729]">{INR(minAmount)}</div>
             {perfOk && perf.min_investment?.amount ? <div className="text-[12px] text-[#667085]">buys 1+ share of every stock at today's prices</div> : null}
 
-            {paid ? (
+            {paid && access.unlocked && access.reason === 'subscriber' ? (
+              <div className="mt-4 rounded-xl bg-[#E3F4EB] border border-[#BFE6D0] px-3 py-2.5 text-sm text-[#096B3E]" data-testid="subscribed-badge">
+                <div className="font-semibold inline-flex items-center gap-1.5"><Lock className="h-4 w-4" /> Subscribed</div>
+                <div className="text-[12px] mt-0.5">{access.plan_months}-month plan · valid until {nice(access.subscribed_until)}</div>
+              </div>
+            ) : paid ? (
               <div className="mt-4">
                 <div className="text-xs font-semibold text-[#1A1030]">Choose a plan</div>
                 <div className="mt-2 grid grid-cols-2 gap-2" data-testid="plan-picker">
@@ -313,14 +333,19 @@ export default function ModelPortfolioDetail() {
                     </button>
                   ))}
                 </div>
-                <button onClick={onSubscribe} className="btn-primary w-full mt-4" data-testid="subscribe-btn"><Lock className="h-4 w-4" /> Subscribe now</button>
-                <div className="mt-2 text-[12px] text-[#667085] text-center">Holdings and performance are always visible — subscription unlocks the manager's updates and research.</div>
+                {interestSent ? (
+                  <div className="mt-4 rounded-xl bg-[#EFF6FF] border border-[#C7DBFE] px-3 py-2.5 text-sm text-[#1D4ED8]" data-testid="interest-sent"><b>Request received.</b> We'll confirm your subscription shortly and unlock the stocks, weights and updates.</div>
+                ) : (
+                  <button onClick={onSubscribe} className="btn-primary w-full mt-4" data-testid="subscribe-btn"><Lock className="h-4 w-4" /> Subscribe{plan ? ` · ₹${plan.price.toLocaleString('en-IN')}` : ''}</button>
+                )}
+                <div className="mt-2 text-[12px] text-[#667085] text-center">Unlocks the stocks and weights, the factsheet and the manager's updates. Performance is always public.</div>
               </div>
             ) : (
               <div className="mt-1 text-sm text-[#526071]">Free access forever</div>
             )}
 
-            <button onClick={onInvest} className={`btn-invest w-full ${paid ? 'mt-3' : 'mt-5'}`}>Invest now</button>
+            {/* you cannot buy what you cannot see: investing opens once the recipe is unlocked */}
+            {!locked && <button onClick={onInvest} className={`btn-invest w-full ${paid ? 'mt-3' : 'mt-5'}`}>Invest now</button>}
             <button onClick={() => { toggleWatch(basket.id); toast.success(watched ? 'Removed from watchlist' : 'Added to watchlist'); }}
               className={`w-full mt-3 inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-semibold transition-colors ${watched ? 'border-[#6C2BD9] text-[#6C2BD9] bg-[#F7F4FB]' : 'border-[#E6E8F0] text-[#0F1729] hover:border-[#6C2BD9] hover:text-[#6C2BD9]'}`}>
               <Heart className={`h-4 w-4 ${watched ? 'fill-[#6C2BD9]' : ''}`} /> {watched ? 'In watchlist' : 'Add to watchlist'}
@@ -329,7 +354,7 @@ export default function ModelPortfolioDetail() {
             <div className="mt-5 pt-5 border-t border-[#EEF1F6] space-y-2 text-xs text-[#526071]">
               <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[#0B7F4A]" /> Stocks stay in your own demat account</div>
               <div className="flex items-center gap-2"><Repeat className="h-4 w-4 text-[#6C2BD9]" /> {basket.rebalanceFreq || 'Quarterly'} review</div>
-              <div className="flex items-center gap-2"><Layers className="h-4 w-4 text-[#6C2BD9]" /> {basket.constituents.length} constituents</div>
+              <div className="flex items-center gap-2"><Layers className="h-4 w-4 text-[#6C2BD9]" /> {holdingsCount} constituents{locked ? ' · names unlock on subscribing' : ''}</div>
             </div>
           </div>
         </div>

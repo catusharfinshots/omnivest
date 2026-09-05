@@ -47,6 +47,7 @@ export default function AnalystConsole() {
   const [options, setOptions] = useState(OPTION_DEFAULTS);
   const [rules, setRules] = useState(null);
   const [perfOpen, setPerfOpen] = useState(null);  // listing id with the performance panel expanded
+  const [subs, setSubs] = useState({});            // listing id -> { active, revenue, interest }
 
   const load = useCallback(async () => {
     try {
@@ -61,6 +62,12 @@ export default function AnalystConsole() {
         catch { return [x.id, null]; }
       }));
       setReadiness(Object.fromEntries(pairs));
+      const paidLive = list.filter((x) => x.subscription === 'Paid' && (x.status === 'approved' || x.status === 'paused'));
+      const counts = await Promise.all(paidLive.map(async (x) => {
+        try { const { data } = await axios.get(`${API}/analyst/portfolios/${x.id}/subscribers`, auth); return [x.id, data]; }
+        catch { return [x.id, null]; }
+      }));
+      setSubs(Object.fromEntries(counts.filter(([, v]) => v)));
     } catch { toast.error('Could not load your listings'); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
@@ -172,6 +179,7 @@ export default function AnalystConsole() {
                           {revDraft && <span className="text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]" data-testid="revision-draft">Unpublished changes</span>}
                           {p.featured && <span className="text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#6C2BD9]">Featured</span>}
                           {p.subscription === 'Paid' && <span className="text-[12px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#9A4A05]">Paid</span>}
+                          {subs[p.id] && <span className="text-[12px] font-semibold px-2 py-0.5 rounded-full bg-[#E3F4EB] text-[#096B3E]" data-testid="subscriber-count">{subs[p.id].active} subscriber{subs[p.id].active === 1 ? '' : 's'}{subs[p.id].revenue ? ` · ₹${Math.round(subs[p.id].revenue).toLocaleString('en-IN')}` : ''}{subs[p.id].interest ? ` · ${subs[p.id].interest} waiting` : ''}</span>}
                         </div>
                         <div className="text-xs text-[#6B6480] mt-0.5 truncate">{p.subtitle || 'No pitch yet'} · {(p.constituents || []).length} holdings · {p.benchmark || 'NIFTY 50'}{(p.tags || []).length ? ` · ${p.tags.join(', ')}` : ''}</div>
                         {p.launch_date && <div className="text-[12px] text-[#6B6480] mt-1 inline-flex items-center gap-1"><CalendarCheck className="h-3 w-3 text-[#6C2BD9]" /> Live since {nice(p.launch_date)}{(p.versions || []).length > 1 ? ` · ${p.versions.length} versions` : ''}</div>}

@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from auth import build_current_user_dep, decode_token
+import subscriptions as subs
 import performance as perf_engine
 from listing_options import load_rules
 from richtext import sanitize_html, plain_text
@@ -345,19 +346,19 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         doc = await col.find_one({"id": pid})
         if not doc or not doc.get("factsheet_pdf"):
             raise HTTPException(status_code=404, detail="Factsheet not found")
-        # Approved factsheets are public; drafts require owner/admin.
+        # Free approved factsheets are public. Drafts need owner/admin. Paid listings' factsheets list the
+        # holdings, so they are for subscribers (or owner/admin) only — decided here, on the server.
+        header = authorization if (authorization and authorization.startswith("Bearer ")) else (f"Bearer {auth}" if auth else None)
+        requester = await subs.viewer_from_header(db, header)
         if doc.get("status") != "approved":
-            token = None
-            if authorization and authorization.startswith("Bearer "):
-                token = authorization.split(" ", 1)[1].strip()
-            elif auth:
-                token = auth
-            if not token:
+            if not requester:
                 raise HTTPException(status_code=401, detail="Not authenticated")
-            payload = decode_token(token)
-            requester = await db.users.find_one({"id": payload.get("sub")}, {"_id": 0})
-            if not requester or (requester.get("role") != "admin" and requester["id"] != doc.get("owner_id")):
+            if requester.get("role") != "admin" and requester["id"] != doc.get("owner_id"):
                 raise HTTPException(status_code=403, detail="Not allowed")
+        else:
+            access = await subs.access_for(db, {"id": pid, "subscription": doc.get("subscription"), "owner_id": doc.get("owner_id")}, requester)
+            if not access["unlocked"]:
+                raise HTTPException(status_code=403, detail="The factsheet is available to subscribers of this portfolio.")
         meta = doc["factsheet_pdf"]
         try:
             data, _ct = storage.get_object(meta["storage_path"])
@@ -496,6 +497,9 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         # computed performance summary per card (auto-refreshed in the background when stale)
         for d in docs:
             d["cover"] = public_cover(d)
+            d["holdings_count"] = len(d.get("constituents") or [])
+            if d.get("subscription") == "Paid":
+                subs.lock_listing(d)      # the list is anonymous: paid recipes never leave the server here
         if docs and perf_engine.ENGINE is not None:
             summaries = await perf_engine.ENGINE.summaries([d["id"] for d in docs], background)
             for d in docs:
@@ -521,6 +525,12 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         owner_id = doc.pop("owner_id", None)
         doc.pop("review_note", None)
         doc["cover"] = public_cover(doc)
+        doc["holdings_count"] = len(doc.get("constituents") or [])
+        viewer = await subs.viewer_from_header(db, authorization)
+        access = await subs.access_for(db, {"id": pid, "subscription": doc.get("subscription"), "owner_id": owner_id}, viewer)
+        doc["access"] = access
+        if not access["unlocked"]:
+            subs.lock_listing(doc)
         # manager card: approved-partner record merged with the analyst's own profile
         mgr = await db.managers.find_one({"user_id": owner_id, "active": True}, {"_id": 0}) if owner_id else None
         usr = await db.users.find_one({"id": owner_id}, {"_id": 0, "analyst_profile": 1, "name": 1}) if owner_id else None

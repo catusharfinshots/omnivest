@@ -3,7 +3,7 @@ import { Link, useNavigate, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { baskets as seedBaskets, collections as seedCollections, mutualFunds as seedMF, testimonials as seedT, faqs as seedFaqs } from '../mock';
-import { Activity, LayoutGrid, Users, Package, LineChart, Landmark, MessageSquare, HelpCircle, Settings, Plus, Trash2, ExternalLink, LogOut, Inbox, ClipboardCheck, UserPlus, Copy, Database, ChevronLeft, ChevronRight, ChevronDown, Download, Pencil, TrendingUp, SlidersHorizontal } from 'lucide-react';
+import { Activity, LayoutGrid, Users, Package, LineChart, Landmark, MessageSquare, HelpCircle, Settings, Plus, Trash2, ExternalLink, LogOut, Inbox, ClipboardCheck, UserPlus, Copy, Database, ChevronLeft, ChevronRight, ChevronDown, Download, Pencil, TrendingUp, SlidersHorizontal, Lock } from 'lucide-react';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, 
 import AboutAdmin from '../components/admin/AboutAdmin';
 import MarketDataAdmin from '../components/admin/MarketDataAdmin';
 import ListingSettingsAdmin from '../components/admin/ListingSettingsAdmin';
+import SubscriptionsAdmin from '../components/admin/SubscriptionsAdmin';
 import ListingReviewCard from '../components/admin/ListingReviewCard';
 import PostsModerationAdmin from '../components/admin/PostsModerationAdmin';
 import SharePreviewAdmin from '../components/admin/SharePreviewAdmin';
@@ -38,6 +39,7 @@ const NAV = [
   { key: 'partnerpage', label: 'Partner page', icon: LayoutGrid },
   { key: 'market', label: 'Market data (Kite)', icon: TrendingUp },
   { key: 'dropdowns', label: 'Listing settings', icon: SlidersHorizontal },
+  { key: 'subscriptions', label: 'Subscriptions', icon: Lock },
   { key: 'database', label: 'Database', icon: Database },
   { key: 'settings', label: 'Site settings', icon: Settings },
 ];
@@ -46,7 +48,7 @@ const NAV_BY_KEY = NAV.reduce((m, n) => { m[n.key] = n; return m; }, {});
 
 // Sidebar groups (exact order + membership per spec).
 const NAV_GROUPS = [
-  { label: 'Partners & Listings', keys: ['partners', 'managers', 'partnerpage', 'listings', 'engine', 'dropdowns'] },
+  { label: 'Partners & Listings', keys: ['partners', 'managers', 'partnerpage', 'listings', 'subscriptions', 'engine', 'dropdowns'] },
   { label: 'Site content', keys: ['home', 'about', 'testimonials', 'faqs'] },
   { label: 'Investment catalog', keys: ['collections', 'mutual-funds', 'fds'] },
   { label: 'Operations', keys: ['leads', 'market'] },
@@ -574,6 +576,7 @@ export default function AdminPage() {
               {tab === 'engine' && <PerformanceEngineAdmin token={token} disclaimer={content.performanceDisclaimer} onDisclaimerChange={(v) => patchContent('performanceDisclaimer', v)} onAlerts={setEngineAlerts} />}
 
               {tab === 'dropdowns' && <ListingSettingsAdmin token={token} />}
+              {tab === 'subscriptions' && <SubscriptionsAdmin token={token} />}
 
               {tab === 'leads' && (
                 <section className="surface p-6">

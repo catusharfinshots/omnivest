@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 import { useBroker } from '../context/BrokerContext';
 import { useAuth } from '../context/AuthContext';
+import MySubscriptions from '../components/MySubscriptions';
 import { baskets, getBasket } from '../mock';
 import { TrendingUp, TrendingDown, CalendarClock, ShoppingBag, Heart, Link2, RefreshCw, CheckCircle2, Loader2, ExternalLink, LineChart, ClipboardList, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,7 +16,7 @@ const API = `${BACKEND_URL}/api`;
 export default function DashboardPage() {
   const { investments, sips, watchlist } = usePortfolio();
   const { connections, userId, getKiteHoldings, getKiteMargins, refreshKite } = useBroker();
-  const { isAuthed, loading: authLoading, user, openAuth } = useAuth();
+  const { isAuthed, loading: authLoading, user, openAuth, token } = useAuth();
   const navigate = useNavigate();
   const kite = connections.kite;
 
@@ -322,6 +323,8 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <MySubscriptions token={token} />
 
       {watchlist.length > 0 && (
         <div className="mt-10">

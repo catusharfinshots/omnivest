@@ -33,7 +33,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from types import SimpleNamespace
 from typing import Dict, List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import Header, APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel
@@ -495,10 +495,12 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         return {"benchmarks": [{"key": b, "label": BENCH_LABELS[b]} for b in BENCHMARKS], "default": DEFAULT_BENCHMARK}
 
     @router.get("/portfolios/{pid}/performance")
-    async def portfolio_performance(pid: str, background: BackgroundTasks):
-        doc = await portfolios.find_one({"id": pid, "status": "approved"}, {"_id": 0, "id": 1, "launch_date": 1, "launch_price_date": 1})
+    async def portfolio_performance(pid: str, background: BackgroundTasks, authorization: Optional[str] = Header(None)):
+        doc = await portfolios.find_one({"id": pid, "status": "approved"}, {"_id": 0, "id": 1, "launch_date": 1, "launch_price_date": 1, "subscription": 1, "owner_id": 1})
         if not doc:
             raise HTTPException(status_code=404, detail="Portfolio not found")
+        import subscriptions as subs
+        access = await subs.access_for(db, doc, await subs.viewer_from_header(db, authorization))
         perf = await perf_col.find_one({"_id": pid})
         if _pre_launch_doc(perf, doc):
             perf = await _refresh_inline(pid)   # approved since the last compute: never show the draft-stage doc
@@ -509,7 +511,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 perf = await _refresh_inline(pid)
         if not perf:
             return {"portfolio_id": pid, "status": "computing"}
-        return _public(perf)
+        out = _public(perf)
+        return out if access["unlocked"] else subs.lock_perf(out)
 
     # ---------------- analyst / admin ----------------
     @router.get("/analyst/portfolios/{pid}/performance")

@@ -18,6 +18,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel, Field
 
 from auth import build_current_user_dep, decode_token
+import subscriptions as subs
 from richtext import sanitize_html
 
 
@@ -90,7 +91,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         is_admin = bool(viewer and viewer.get("role") == "admin")
         if not listing or (listing["status"] != "approved" and not is_admin):
             raise HTTPException(status_code=404, detail="Portfolio not found")
-        unlocked_all = listing.get("subscription") != "Paid" or is_admin or (viewer and viewer["id"] == listing.get("owner_id"))
+        unlocked_all = (await subs.access_for(db, listing, viewer))["unlocked"]
         out: List[dict] = []
         async for p in posts.find({"portfolio_id": pid}, {"_id": 0}).sort("created_at", -1).limit(100):
             if unlocked_all or not p.get("subscribers_only"):

@@ -45,8 +45,8 @@ function PortfolioRow({ b, i, saved, onSave }) {
   const c = b.computed && b.computed.status === 'ok' ? b.computed : null;
   const useCagr = !!(c && c.cagr_pct !== null && c.cagr_pct !== undefined);
   const isNew = !!(c && !useCagr && (c.launched_days_ago ?? 0) <= 30);
-  const stocks = (b.constituents || []).length;
-  const kind = (b.constituents || []).every((x) => x.type === 'ETF') && stocks ? 'ETFs' : 'stocks';
+  const stocks = b.holdings_count ?? (b.constituents || []).length;
+  const kind = b.holdings_kind || ((b.constituents || []).every((x) => x.type === 'ETF') && stocks ? 'ETFs' : 'stocks');
   const strategy = (b.strategy || 'thematic').replace('-', ' ');
   return (
     // Flat list row (smallcase pattern): whitespace and one separator do the work; no box inside a box.

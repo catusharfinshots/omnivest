@@ -1,11 +1,14 @@
 import React from 'react';
+import { Lock } from 'lucide-react';
 
 const CAP_COLORS = { Large: '#6C2BD9', Mid: '#A78BFA', Small: '#F59E0B', Micro: '#F97316', Other: '#CBD5E1' };
 const INR = (n) => (n === null || n === undefined ? '—' : `₹${Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`);
 
 // Weights table + market-cap / sector distribution (from the engine's classification).
-export default function HoldingsSection({ basket, perf }) {
+export default function HoldingsSection({ basket, perf, onSubscribe, plan, interestSent }) {
   const cons = basket.constituents || [];
+  const locked = !!basket.holdings_locked;
+  const count = basket.holdings_count ?? cons.length;
   const prices = perf?.latest_prices || {};
   const dist = perf?.distribution;
   const capEntries = dist?.cap ? Object.entries(dist.cap) : [];
@@ -51,6 +54,33 @@ export default function HoldingsSection({ basket, perf }) {
         </div>
       )}
 
+      {locked && (
+        // Server sends no names, symbols or prices for a paid listing until subscribed; these rows are pure placeholders.
+        <div className="surface relative overflow-hidden" data-testid="holdings-locked">
+          <div className="px-4 py-3 bg-[#F5F7FB] text-[#526071] text-sm flex items-center justify-between"><span>Constituent</span><span>Weight</span></div>
+          <div aria-hidden="true" className="select-none">
+            {Array.from({ length: Math.min(Math.max(count, 6), 8) }).map((_, i) => (
+              <div key={i} className="border-t border-[#EEF1F6] px-4 py-3 flex items-center justify-between">
+                <div><div className="h-3.5 rounded bg-[#E2E8F0]" style={{ width: `${120 + ((i * 37) % 80)}px` }} /><div className="mt-1.5 h-2.5 w-16 rounded bg-[#EEF1F6]" /></div>
+                <div className="flex items-center gap-2"><div className="h-1.5 w-24 rounded-full bg-[#EEF1F6]" /><div className="h-3.5 w-10 rounded bg-[#E2E8F0]" /></div>
+              </div>
+            ))}
+          </div>
+          <div className="absolute inset-x-0 bottom-0 top-11 bg-gradient-to-b from-white/30 via-white/85 to-white flex items-center justify-center px-4 py-6">
+            <div className="text-center max-w-sm">
+              <div className="mx-auto h-10 w-10 rounded-full bg-[#E3F4EB] text-[#096B3E] grid place-items-center"><Lock className="h-5 w-5" /></div>
+              <div className="mt-2 text-[15px] font-bold text-[#0F1729]">{count} {basket.holdings_kind || 'stocks'}{basket.top_weight_pct ? ` · largest weight ${basket.top_weight_pct}%` : ''}</div>
+              <div className="mt-1 text-[13px] text-[#526071]">Names, weights and prices unlock on subscribing. Performance, sector split and rebalance dates stay public.</div>
+              {interestSent ? (
+                <div className="mt-3 text-[13px] font-semibold text-[#1D4ED8]">Request received — we'll confirm shortly.</div>
+              ) : (
+                <button type="button" onClick={onSubscribe} className="btn-primary mt-3" data-testid="holdings-subscribe"><Lock className="h-4 w-4" /> Subscribe{plan ? ` · from ₹${Math.round(plan.price / plan.months).toLocaleString('en-IN')}/mo` : ''}</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {!locked && (
       <div className="surface overflow-x-auto">
         <table className="w-full text-sm" data-testid="weights-table">
           <thead className="bg-[#F5F7FB] text-[#526071]">
@@ -85,6 +115,7 @@ export default function HoldingsSection({ basket, perf }) {
         </table>
         {perf?.price_date && <div className="px-4 py-2 text-[12px] text-[#667085] border-t border-[#EEF1F6]">Closing prices as of {perf.price_date}. Weights are the partner's targets; your actual quantities depend on the amount you invest.</div>}
       </div>
+      )}
     </div>
   );
 }
