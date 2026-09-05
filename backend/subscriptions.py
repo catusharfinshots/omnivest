@@ -113,6 +113,25 @@ def lock_perf(perf: dict) -> dict:
     return perf
 
 
+async def create_subscription(db: AsyncIOMotorDatabase, user_id: str, listing: dict, months: int, price: float,
+                              source: str, note: str = "", created_by: str = "", payment: Optional[dict] = None) -> dict:
+    """The one way a subscription row is born — admin grant today, Razorpay payment tomorrow.
+    A new subscription on top of an active one extends from the current expiry (stacking)."""
+    pid = listing["id"]
+    start = _now()
+    existing = await active_subscription(db, user_id, pid)
+    if existing:
+        start = _aware(existing["expires_at"])
+    s = {"id": str(uuid.uuid4()), "user_id": user_id, "portfolio_id": pid, "plan_months": months, "price": float(price or 0),
+         "source": source, "status": "active", "started_at": start, "expires_at": start + timedelta(days=30 * months),
+         "note": note, "created_by": created_by, "created_at": _now()}
+    if payment:
+        s["payment"] = payment
+    await db[COLL].insert_one(dict(s))
+    await db[INTEREST].update_many({"portfolio_id": pid, "user_id": user_id, "status": "open"}, {"$set": {"status": "granted", "granted_at": _now()}})
+    return s
+
+
 # ---------------- routes ----------------
 def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     router = APIRouter()
@@ -233,15 +252,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         plan = next((p for p in (listing.get("plans") or []) if int(p.get("months") or 0) == months), None)
         price = payload.get("price")
         price = float(price) if price not in (None, "") else float((plan or {}).get("price") or 0)
-        start = _now()
-        existing = await active_subscription(db, user["id"], pid)
-        if existing:
-            start = _aware(existing["expires_at"])   # stacking: a new grant extends from the current expiry
-        s = {"id": str(uuid.uuid4()), "user_id": user["id"], "portfolio_id": pid, "plan_months": months, "price": price,
-             "source": "admin", "status": "active", "started_at": start, "expires_at": start + timedelta(days=30 * months),
-             "note": (payload.get("note") or "").strip(), "created_by": admin.get("email") or admin.get("id"), "created_at": _now()}
-        await col.insert_one(dict(s))
-        await db[INTEREST].update_many({"portfolio_id": pid, "user_id": user["id"], "status": "open"}, {"$set": {"status": "granted", "granted_at": _now()}})
+        s = await create_subscription(db, user["id"], listing, months, price, "admin", (payload.get("note") or "").strip(), admin.get("email") or admin.get("id"))
         await _audit("subscription_granted", s, admin, s["note"])
         return {"ok": True, "subscription": _row(s, listing, user)}
 

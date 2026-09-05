@@ -26,6 +26,9 @@ jobs:
       OTP_DEMO_CODE: "123456"
       PUBLIC_ORIGIN: http://localhost:3000
       REACT_APP_BACKEND_URL: http://localhost:8000
+      RAZORPAY_MODE: mock
+      RAZORPAY_KEY_SECRET: mock-secret
+      RAZORPAY_WEBHOOK_SECRET: mock-webhook-secret
     steps:
       - uses: actions/checkout@v4
 

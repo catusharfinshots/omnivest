@@ -93,6 +93,9 @@ api_router.include_router(build_invites_router(db))
 from subscriptions import build_router as build_subscriptions_router  # noqa: E402
 api_router.include_router(build_subscriptions_router(db))
 
+from payments import build_router as build_payments_router  # noqa: E402
+api_router.include_router(build_payments_router(db))
+
 # Admin-only read-only database viewer
 from dbadmin import build_router as build_dbadmin_router  # noqa: E402
 api_router.include_router(build_dbadmin_router(db))
