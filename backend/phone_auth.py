@@ -64,6 +64,37 @@ class VerifyReq(BaseModel):
     flow: str = Field(default="customer", pattern="^(customer|partner)$")
 
 
+async def issue_otp(phone: str) -> dict:
+    """Send a one-time code to an already-known number (checkout consent, sensitive actions). Same demo/Twilio rules as login."""
+    if DEMO_MODE:
+        return {"ok": True, "demo": True}
+    if not _client or not VERIFY_SID:
+        raise HTTPException(status_code=400, detail="SMS service is not configured yet.")
+    now = time.time()
+    if now - _last_send.get(phone, 0) < SEND_COOLDOWN:
+        raise HTTPException(status_code=429, detail="Please wait a few seconds before requesting another code")
+    _last_send[phone] = now
+    try:
+        await run_in_threadpool(lambda: _client.verify.v2.services(VERIFY_SID).verifications.create(to=phone, channel="sms"))
+    except Exception as e:  # noqa: BLE001
+        logger.warning("OTP send failed: %s", e)
+        raise HTTPException(status_code=400, detail="Couldn't send the code. Please try again in a moment.")
+    return {"ok": True, "demo": False}
+
+
+async def check_otp(phone: str, code: str) -> bool:
+    if DEMO_MODE:
+        return code == DEMO_CODE
+    if not _client or not VERIFY_SID:
+        raise HTTPException(status_code=400, detail="SMS service is not configured yet.")
+    try:
+        res = await run_in_threadpool(lambda: _client.verify.v2.services(VERIFY_SID).verification_checks.create(to=phone, code=code))
+    except Exception as e:  # noqa: BLE001
+        logger.warning("OTP check failed: %s", e)
+        return False
+    return getattr(res, "status", "") == "approved"
+
+
 def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     router = APIRouter(prefix="/auth/phone", tags=["phone-auth"])
 

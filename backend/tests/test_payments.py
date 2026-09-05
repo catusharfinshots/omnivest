@@ -40,6 +40,12 @@ def test_checkout_creates_subscription_and_unlocks():
                                                plans=[{"months": 1, "price": 499}, {"months": 3, "price": 1299}, {"months": 6, "price": 2399}, {"months": 12, "price": 3999}])
         requests.post(f"{API}/admin/portfolios/{pid}/review", json={"action": "approve"}, headers=h, timeout=30).raise_for_status()
 
+        # prerequisites (covered in detail by test_checkout): billing on file + terms signed for this listing
+        requests.put(f"{API}/me/billing", json={"pan": "ABCDE1234F", "pan_name": "Sub Tester", "dob": "1990-05-04", "state": "Karnataka"}, headers=inv, timeout=30).raise_for_status()
+        t = requests.get(f"{API}/portfolios/{pid}/terms", timeout=30).json()
+        requests.post(f"{API}/checkout/consent/request", headers=inv, timeout=30).raise_for_status()
+        requests.post(f"{API}/checkout/consent/confirm", json={"portfolio_id": pid, "code": "123456", "terms_version": t["version"]}, headers=inv, timeout=30).raise_for_status()
+
         # anonymous cannot order; a wrong plan is refused; the amount comes from the partner's plan
         assert requests.post(f"{API}/payments/orders", json={"portfolio_id": pid, "plan_months": 3}, timeout=30).status_code == 401
         assert requests.post(f"{API}/payments/orders", json={"portfolio_id": pid, "plan_months": 5}, headers=inv, timeout=30).status_code == 422
@@ -82,7 +88,7 @@ def test_checkout_creates_subscription_and_unlocks():
         assert adm["counts"]["active"] == 1 and adm["subscriptions"][0]["source"] == "razorpay"
     finally:
         requests.delete(f"{API}/admin/db/users/{inv_id}", headers=h, timeout=30)
-        for coll in ("subscriptions", "subscription_interest", "payment_orders"):
+        for coll in ("subscriptions", "subscription_interest", "payment_orders", "consents"):
             for row in requests.get(f"{API}/admin/db/{coll}", params={"limit": 200}, headers=h, timeout=30).json().get("documents", []):
                 if row.get("portfolio_id") == pid:
                     requests.delete(f"{API}/admin/db/{coll}/{row['id']}", headers=h, timeout=30)

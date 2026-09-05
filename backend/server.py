@@ -93,6 +93,9 @@ api_router.include_router(build_invites_router(db))
 from subscriptions import build_router as build_subscriptions_router  # noqa: E402
 api_router.include_router(build_subscriptions_router(db))
 
+from checkout import build_router as build_checkout_router  # noqa: E402
+api_router.include_router(build_checkout_router(db))
+
 from payments import build_router as build_payments_router  # noqa: E402
 api_router.include_router(build_payments_router(db))
 

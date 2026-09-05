@@ -25,6 +25,7 @@ from fastapi import APIRouter, Body, Depends, Header, HTTPException, Request
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 import subscriptions as subs
+import checkout
 from auth import build_current_user_dep
 
 ORDERS = "payment_orders"
@@ -77,6 +78,10 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         plan = next((p for p in (listing.get("plans") or []) if int(p.get("months") or 0) == months), None)
         if not plan or float(plan.get("price") or 0) <= 0:
             raise HTTPException(status_code=422, detail="Pick a valid plan")
+        # SEBI-style prerequisites, checked on the server: billing details on file and the terms signed for this listing
+        ready = await checkout.readiness(db, user, pid)
+        if ready["missing"]:
+            raise HTTPException(status_code=428, detail={"message": "Complete the checkout steps first", "missing": ready["missing"]})
         amount_paise = int(round(float(plan["price"]) * 100))   # the price the partner set, never what the browser sends
         receipt = f"omni_{uuid.uuid4().hex[:20]}"
         if c["mock"]:
@@ -92,7 +97,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 raise HTTPException(status_code=502, detail=f"Payment gateway error: {e}")
         doc = {"id": str(uuid.uuid4()), "order_id": order_id, "receipt": receipt, "user_id": user["id"], "portfolio_id": pid,
                "portfolio_name": listing.get("name"), "plan_months": months, "amount": amount_paise, "currency": "INR",
-               "status": "created", "created_at": _now()}
+               "consent": ready["consent"], "status": "created", "created_at": _now()}
         await orders.insert_one(dict(doc))
         return {"order_id": order_id, "amount": amount_paise, "currency": "INR", "key_id": c["key_id"], "mode": "mock" if c["mock"] else "live",
                 "name": "Omnivest", "description": f"{listing.get('name')} · {months} month{'s' if months > 1 else ''}",
@@ -105,7 +110,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             return await db[subs.COLL].find_one({"id": order["subscription_id"]}, {"_id": 0})
         listing = await portfolios.find_one({"id": order["portfolio_id"]}, {"_id": 0, "id": 1, "name": 1})
         s = await subs.create_subscription(db, order["user_id"], listing, int(order["plan_months"]), order["amount"] / 100.0, "razorpay",
-                                           f"Razorpay {payment_id}", how, payment={"order_id": order["order_id"], "payment_id": payment_id, "amount": order["amount"]})
+                                           f"Razorpay {payment_id}", how, payment={"order_id": order["order_id"], "payment_id": payment_id, "amount": order["amount"]},
+                                           consent=order.get("consent"))
         await orders.update_one({"id": order["id"]}, {"$set": {"status": "paid", "payment_id": payment_id, "paid_at": _now(), "subscription_id": s["id"], "fulfilled_by": how}})
         await db.audit_log.insert_one({"id": str(uuid.uuid4()), "type": "subscription_paid", "portfolio_id": order["portfolio_id"], "subscription_id": s["id"],
                                        "user_id": order["user_id"], "plan_months": order["plan_months"], "amount": order["amount"], "payment_id": payment_id,

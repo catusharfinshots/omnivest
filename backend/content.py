@@ -41,6 +41,22 @@ DEFAULT_CONTENT = {
         "subscribeHeading": "Get market insights & product updates in your inbox",
         "socials": {"facebook": "", "x": "", "youtube": "", "linkedin": "", "instagram": ""},
     },
+    "subscriptionTerms": (
+        "<h3>Omnivest platform terms for paid model portfolios</h3>"
+        "<p>Omnivest Technologies (“Omnivest”) operates omnivest.in, a platform where SEBI-registered research analysts "
+        "(“Partners”) publish model portfolios. When you subscribe to a paid model portfolio, Omnivest collects the "
+        "subscription fee on its own account and grants you access to that portfolio’s constituents, weights, factsheet and "
+        "updates for the plan period.</p>"
+        "<ul><li>Research is prepared by the Partner named above, who is solely responsible for it. Omnivest does not provide "
+        "investment advice and does not execute trades on your behalf; orders are placed by you through your own broker.</li>"
+        "<li>Fees are non-refundable once access is granted, except where required by law or where Omnivest withdraws a portfolio "
+        "within seven days of your payment, in which case the unused portion is refunded.</li>"
+        "<li>Investments in securities are subject to market risk. Past performance, including the computed track record shown on "
+        "Omnivest, is not indicative of future returns.</li>"
+        "<li>Your PAN, name and date of birth are collected for invoicing and to maintain the client records the Partner is required "
+        "to keep under the SEBI (Research Analysts) Regulations. They are shared with the Partner for that purpose only.</li>"
+        "<li>Grievances: write to support@omnivest.in. Unresolved complaints may be escalated to SEBI SCORES.</li></ul>"
+    ),
     "performanceDisclaimer": (
         "Performance is computed by Omnivest from NSE closing prices, starting on the day the portfolio was approved. "
         "Figures are price returns: bonus and split adjusted, but dividends, brokerage, taxes and slippage are excluded. "
@@ -149,7 +165,7 @@ DEFAULT_CONTENT = {
     },
 }
 
-ALLOWED_KEYS = ("hero", "stats", "trust", "testimonials", "footer", "partnerTerms", "partnerPage", "performanceDisclaimer")
+ALLOWED_KEYS = ("hero", "stats", "trust", "testimonials", "footer", "partnerTerms", "partnerPage", "performanceDisclaimer", "subscriptionTerms")
 
 
 def build_router(db: AsyncIOMotorDatabase) -> APIRouter:

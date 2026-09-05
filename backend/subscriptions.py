@@ -114,7 +114,8 @@ def lock_perf(perf: dict) -> dict:
 
 
 async def create_subscription(db: AsyncIOMotorDatabase, user_id: str, listing: dict, months: int, price: float,
-                              source: str, note: str = "", created_by: str = "", payment: Optional[dict] = None) -> dict:
+                              source: str, note: str = "", created_by: str = "", payment: Optional[dict] = None,
+                              consent: Optional[dict] = None) -> dict:
     """The one way a subscription row is born — admin grant today, Razorpay payment tomorrow.
     A new subscription on top of an active one extends from the current expiry (stacking)."""
     pid = listing["id"]
@@ -127,6 +128,8 @@ async def create_subscription(db: AsyncIOMotorDatabase, user_id: str, listing: d
          "note": note, "created_by": created_by, "created_at": _now()}
     if payment:
         s["payment"] = payment
+    if consent:
+        s["consent"] = consent
     await db[COLL].insert_one(dict(s))
     await db[INTEREST].update_many({"portfolio_id": pid, "user_id": user_id, "status": "open"}, {"$set": {"status": "granted", "granted_at": _now()}})
     return s
@@ -152,6 +155,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             "status": s.get("status"), "started_at": _iso(s.get("started_at")), "expires_at": _iso(exp),
             "active": s.get("status") == "active" and bool(exp and exp > _now()),
             "note": s.get("note", ""), "created_by": s.get("created_by"),
+            "consent": s.get("consent"),   # which terms version was signed, and when
             "listing": {"id": listing["id"], "name": listing.get("name"), "owner_name": listing.get("owner_name")} if listing else None,
             "user": {"name": user.get("name", ""), "phone": _mask_phone(user.get("phone")), "email": user.get("email")} if user else None,
         }

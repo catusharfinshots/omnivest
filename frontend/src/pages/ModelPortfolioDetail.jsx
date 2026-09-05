@@ -13,7 +13,7 @@ import UpdatesSection from '../components/listing/UpdatesSection';
 import CoverArt from '../components/CoverArt';
 import { Badge, VolatilityBadge, AccessBadge, Metric } from '../components/Tone';
 import { useAuth } from '../context/AuthContext';
-import { openCheckout } from '../lib/razorpay';
+import CheckoutModal from '../components/CheckoutModal';
 import { usePortfolio } from '../context/PortfolioContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { toast } from 'sonner';
@@ -53,7 +53,7 @@ export default function ModelPortfolioDetail() {
   const [notFound, setNotFound] = useState(false);
   const [plan, setPlan] = useState(null);
   const [interestSent, setInterestSent] = useState(false);
-  const [paying, setPaying] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   useEffect(() => { axios.get(`${API}/content`).then(({ data }) => setDisclaimer(data?.performanceDisclaimer || '')).catch(() => {}); }, []);
 
@@ -108,37 +108,20 @@ export default function ModelPortfolioDetail() {
   const access = basket.access || { paid, unlocked: true, reason: 'free' };
   const locked = !!basket.holdings_locked;
   const holdingsCount = basket.holdings_count ?? (basket.constituents || []).length;
-  const onSubscribe = async () => {
+  const reloadListing = async () => {
+    const h = { headers: { Authorization: `Bearer ${token}` } };
+    try {
+      const { data: fresh } = await axios.get(`${API}/portfolios/${basket.id}`, h);
+      const p = fresh.portfolio;
+      setBasket({ ...p, fee: { amount: p.feeAmount || 0, cycle: p.feeCycle || 'monthly' }, managerName: p.owner_name, constituents: p.constituents || [], plans: p.plans || [], tags: p.tags || [] });
+      axios.get(`${API}/portfolios/${p.id}/performance`, h).then((r) => setPerf(r.data)).catch(() => {});
+    } catch { /* keep what we have */ }
+  };
+  const onSubscribe = () => {
     if (isDb) track('subscribe_click', { portfolio_id: basket.id, plan: plan?.months });
     if (!isAuthed) { openAuth({ next: `/model-portfolios/${basket.id}` }); return; }
     if (!isDb) { toast.success('Demo listing'); return; }
-    const h = { headers: { Authorization: `Bearer ${token}` } };
-    try {
-      const { data: cfg } = await axios.get(`${API}/payments/config`);
-      if (cfg.enabled && plan) {
-        // online payment: the server prices the order, Razorpay collects, the server verifies and unlocks
-        setPaying(true);
-        const { data: order } = await axios.post(`${API}/payments/orders`, { portfolio_id: basket.id, plan_months: plan.months }, h);
-        const resp = await openCheckout(order);
-        const { data } = await axios.post(`${API}/payments/verify`, { ...resp }, h);
-        track('subscribe_paid', { portfolio_id: basket.id, plan: plan.months });
-        toast.success(`You're subscribed until ${nice(data.subscription.expires_at)}. Stocks, weights and updates are unlocked.`);
-        setPaying(false);
-        // reload the listing with the new access
-        const { data: fresh } = await axios.get(`${API}/portfolios/${basket.id}`, h);
-        const p = fresh.portfolio;
-        setBasket({ ...p, fee: { amount: p.feeAmount || 0, cycle: p.feeCycle || 'monthly' }, managerName: p.owner_name, constituents: p.constituents || [], plans: p.plans || [], tags: p.tags || [] });
-        axios.get(`${API}/portfolios/${p.id}/performance`, h).then((r) => setPerf(r.data)).catch(() => {});
-        return;
-      }
-      const { data } = await axios.post(`${API}/portfolios/${basket.id}/subscribe-interest`, { plan_months: plan?.months }, h);
-      setInterestSent(true);
-      toast.success(data.message || 'Request received');
-    } catch (e) {
-      setPaying(false);
-      const msg = e?.response?.data?.detail || e?.message || 'Could not complete';
-      if (/closed/i.test(msg)) toast('Payment window closed — nothing was charged.'); else toast.error(msg);
-    }
+    setCheckoutOpen(true);
   };
 
   // engine-derived numbers (never typed)
@@ -343,7 +326,7 @@ export default function ModelPortfolioDetail() {
             {paid && access.unlocked && access.reason === 'subscriber' ? (
               <div className="mt-4 rounded-xl bg-[#E3F4EB] border border-[#BFE6D0] px-3 py-2.5 text-sm text-[#096B3E]" data-testid="subscribed-badge">
                 <div className="font-semibold inline-flex items-center gap-1.5"><Lock className="h-4 w-4" /> Subscribed</div>
-                <div className="text-[12px] mt-0.5">{access.plan_months}-month plan · valid until {nice(access.subscribed_until)}</div>
+                <div className="text-[12px] mt-0.5">{access.plan_months}-month plan · valid until {new Date(access.subscribed_until).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
               </div>
             ) : paid ? (
               <div className="mt-4">
@@ -360,7 +343,7 @@ export default function ModelPortfolioDetail() {
                 {interestSent ? (
                   <div className="mt-4 rounded-xl bg-[#EFF6FF] border border-[#C7DBFE] px-3 py-2.5 text-sm text-[#1D4ED8]" data-testid="interest-sent"><b>Request received.</b> We'll confirm your subscription shortly and unlock the stocks, weights and updates.</div>
                 ) : (
-                  <button onClick={onSubscribe} disabled={paying} className="btn-primary w-full mt-4 disabled:opacity-60" data-testid="subscribe-btn"><Lock className="h-4 w-4" /> {paying ? 'Opening payment…' : `Subscribe${plan ? ` · ₹${plan.price.toLocaleString('en-IN')}` : ''}`}</button>
+                  <button onClick={onSubscribe} className="btn-primary w-full mt-4" data-testid="subscribe-btn"><Lock className="h-4 w-4" /> Subscribe{plan ? ` · ₹${plan.price.toLocaleString('en-IN')}` : ''}</button>
                 )}
                 <div className="mt-2 text-[12px] text-[#667085] text-center">Unlocks the stocks and weights, the factsheet and the manager's updates. Performance is always public.</div>
               </div>
@@ -384,6 +367,10 @@ export default function ModelPortfolioDetail() {
         </div>
       </div>
 
+      {isDb && (
+        <CheckoutModal open={checkoutOpen} onClose={() => setCheckoutOpen(false)} basket={basket} plan={plan} setPlan={setPlan} token={token} user={user}
+          onSubscribed={() => { setInterestSent(true); reloadListing(); }} />
+      )}
       <Dialog open={methodOpen} onOpenChange={setMethodOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Methodology</DialogTitle></DialogHeader>

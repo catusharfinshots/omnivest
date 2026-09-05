@@ -107,7 +107,7 @@ export default function Footer() {
               <input data-testid="subscribe-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@email.com"
                 className="h-11 w-full sm:flex-1 min-w-0 md:max-w-xs rounded-lg border border-[#E6E8F0] px-3 text-sm focus:outline-none focus:border-[#6C2BD9]" />
-              <button data-testid="subscribe-btn" disabled={busy} className="btn-primary w-full sm:w-auto justify-center disabled:opacity-60"><Send className="h-4 w-4" /> Subscribe</button>
+              <button data-testid="newsletter-btn" disabled={busy} className="btn-primary w-full sm:w-auto justify-center disabled:opacity-60"><Send className="h-4 w-4" /> Subscribe</button>
             </form>
           )}
         </div>

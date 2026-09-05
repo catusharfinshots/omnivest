@@ -16,7 +16,9 @@ async function adminToken(request) {
 async function typePhone(page, testid, national, scope) {
   // The field shows +91 already; type the 10 digits the way people do.
   const input = (scope || page).locator(`[data-testid=${testid}] input`).first();
-  await input.click();
+  // fill() waits for visible + editable but not "stable": WebKit reports the focused input inside the
+  // opening modal as unstable for a while, which made a plain click() time out on iPhone.
+  await input.focus();
   await input.fill(`+91${national}`);
   await expect(input).toHaveValue(new RegExp(national.slice(-4)));
 }

@@ -215,3 +215,12 @@ code {
   .lift, .lift:hover, .lift:active { transition: none; transform: none; }
   .skeleton { animation: none; }
 }
+
+/* Terms document inside the checkout modal */
+.terms-doc h3 { font-size: 14px; font-weight: 700; margin: 10px 0 6px; color: #0F1729; }
+.terms-doc p { margin: 6px 0; }
+.terms-doc ul { margin: 6px 0 6px 18px; list-style: disc; }
+.terms-doc li { margin: 3px 0; }
+.terms-doc table.terms-kv { width: 100%; border-collapse: collapse; margin: 4px 0 8px; }
+.terms-doc table.terms-kv th { text-align: left; font-weight: 600; color: #526071; padding: 3px 8px 3px 0; width: 38%; vertical-align: top; }
+.terms-doc table.terms-kv td { padding: 3px 0; color: #0F1729; }
