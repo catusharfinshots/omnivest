@@ -43,7 +43,7 @@ def test_checkout_creates_subscription_and_unlocks():
         # prerequisites (covered in detail by test_checkout): billing on file + terms signed for this listing
         requests.put(f"{API}/me/billing", json={"pan": "ABCDE1234F", "pan_name": "Sub Tester", "dob": "1990-05-04", "state": "Karnataka"}, headers=inv, timeout=30).raise_for_status()
         t = requests.get(f"{API}/portfolios/{pid}/terms", timeout=30).json()
-        requests.post(f"{API}/checkout/consent/request", headers=inv, timeout=30).raise_for_status()
+        requests.post(f"{API}/checkout/consent/request", json={"portfolio_id": pid}, headers=inv, timeout=30).raise_for_status()
         requests.post(f"{API}/checkout/consent/confirm", json={"portfolio_id": pid, "code": "123456", "terms_version": t["version"]}, headers=inv, timeout=30).raise_for_status()
 
         # anonymous cannot order; a wrong plan is refused; the amount comes from the partner's plan

@@ -51,9 +51,11 @@ def test_billing_terms_and_order_gate():
         # terms: partner block + platform terms, versioned
         t = requests.get(f"{API}/portfolios/{pid}/terms", timeout=30).json()
         assert t["paid"] and "Research analyst" in t["html"] and "Omnivest" in t["html"] and t["partner"]["sebiReg"] == "INH000066666"
+        assert "INH000066666" in t["html"] and "Registered address" in t["html"] and "Investor Charter" in t["charter_html"]
         assert t["version"] == st["terms_version"]
         # wrong code, stale version, then the real signature
-        assert requests.post(f"{API}/checkout/consent/request", headers=inv, timeout=30).status_code == 200
+        rq = requests.post(f"{API}/checkout/consent/request", json={"portfolio_id": pid}, headers=inv, timeout=30)
+        assert rq.status_code == 200 and rq.json()["phone_hint"].startswith("+91")
         r = requests.post(f"{API}/checkout/consent/confirm", json={"portfolio_id": pid, "code": "000000", "terms_version": t["version"]}, headers=inv, timeout=30)
         assert r.status_code == 401
         r = requests.post(f"{API}/checkout/consent/confirm", json={"portfolio_id": pid, "code": "123456", "terms_version": "old"}, headers=inv, timeout=30)

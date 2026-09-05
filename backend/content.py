@@ -13,6 +13,8 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from auth import build_current_user_dep
 
+CHARTER_HTML = '<h3>Investor Charter in respect of Research Analysts (SEBI, Annexure A)</h3><p><b>Vision:</b> Invest with knowledge and safety. <b>Mission:</b> Every investor should be able to invest in the right investment products based on their needs, manage and monitor them to meet their goals, access reports and enjoy financial wellness.</p><h4>Business transacted by the Research Analyst with investors</h4><ul><li>Publish research reports based on the research activities of the RA.</li><li>Provide an independent, unbiased view on securities.</li><li>Offer unbiased recommendations, disclosing financial interests in recommended securities.</li><li>Provide research recommendations based on analysis of publicly available information and known observations.</li><li>Conduct audit annually.</li><li>Ensure all advertisements adhere to the Advertisement Code for Research Analysts.</li><li>Maintain records of interactions with all clients, including prospective clients, where any conversation related to the research services has taken place.</li></ul><h4>Services provided to investors</h4><ul><li>Onboarding: sharing of terms and conditions of research services; completing KYC of fee-paying clients.</li><li>Disclosure: information material for an informed decision, including business activity, disciplinary history, terms and conditions, details of associates, risks and conflicts of interest; the extent of use of Artificial Intelligence tools; conflicts of any third-party research distributed; conflicts between research services and other activities.</li><li>Distribute research reports and recommendations to clients without discrimination.</li><li>Maintain confidentiality of research until it is in the public domain; respect data-privacy rights of clients.</li><li>Disclose and adhere to timelines for services; give clear guidance and caution notices for complex and high-risk products.</li><li>Treat all clients with honesty and integrity; keep client information confidential unless legally required or specifically consented.</li></ul><h4>Grievance redressal</h4><p>Approach the Research Analyst first; the RA shall strive to redress the grievance immediately, but not later than 21 days of receipt. Complaints may also be filed on SEBI SCORES 2.0 (<a href="https://scores.sebi.gov.in" target="_blank" rel="noreferrer">scores.sebi.gov.in</a>) with two-level review (RAASB, then SEBI), or by email to the designated RAASB address. If unsatisfied, investors may use the SMART ODR platform for online conciliation or arbitration. Physical complaints: Office of Investor Assistance and Education, SEBI Bhavan, Plot No. C4-A, G Block, Bandra-Kurla Complex, Bandra (E), Mumbai 400051.</p><h4>Rights of investors</h4><ul><li>Privacy and confidentiality; transparent practices; fair and equitable treatment; adequate information.</li><li>Initial and continuing disclosure, including all statutory and regulatory disclosures; fair and true advertisement.</li><li>Awareness of service parameters and turnaround times; to be heard and receive satisfactory, timely grievance redressal.</li><li>To exit from a product or service in accordance with the agreed terms; clear guidance and caution notices for complex and high-risk products.</li><li>Additional rights for vulnerable consumers, including access to services in a suitable manner if differently abled; to provide feedback; protection against coercive, unfair and one-sided clauses.</li></ul><h4>Responsibilities of investors</h4><ul><li>Deal only with SEBI-registered Research Analysts and check the registration certificate and number on the SEBI website.</li><li>Read the disclosures in research reports before investing.</li><li>Pay the Research Analyst through banking channels only and keep duly signed receipts mentioning the details of the payment.</li><li>Read the terms and conditions of the research service before subscribing; keep your contact details updated; raise grievances promptly.</li><li>Do not fall for guaranteed-return claims, luring advertisements or unregistered entities; do not share login or payment credentials.</li></ul>'
+
 DEFAULT_CONTENT = {
     "hero": {
         "headline": "Challenging",
@@ -41,6 +43,11 @@ DEFAULT_CONTENT = {
         "subscribeHeading": "Get market insights & product updates in your inbox",
         "socials": {"facebook": "", "x": "", "youtube": "", "linkedin": "", "instagram": ""},
     },
+    "platformDetails": {
+        "legalName": "Omnivest Technologies", "brand": "Omnivest", "cin": "", "registeredAddress": "",
+        "supportEmail": "support@omnivest.in", "supportPhone": "", "grievanceOfficer": "", "grievanceEmail": "support@omnivest.in",
+    },
+    "investorCharter": CHARTER_HTML,
     "subscriptionTerms": (
         "<h3>Omnivest platform terms for paid model portfolios</h3>"
         "<p>Omnivest Technologies (“Omnivest”) operates omnivest.in, a platform where SEBI-registered research analysts "
@@ -165,7 +172,8 @@ DEFAULT_CONTENT = {
     },
 }
 
-ALLOWED_KEYS = ("hero", "stats", "trust", "testimonials", "footer", "partnerTerms", "partnerPage", "performanceDisclaimer", "subscriptionTerms")
+ALLOWED_KEYS = ("hero", "stats", "trust", "testimonials", "footer", "partnerTerms", "partnerPage", "performanceDisclaimer", "subscriptionTerms",
+                "platformDetails", "investorCharter")
 
 
 def build_router(db: AsyncIOMotorDatabase) -> APIRouter:

@@ -10,17 +10,22 @@ payments.create_order refuses to price an order until both exist for the listing
 from __future__ import annotations
 
 import hashlib
+import hmac
 import html
+import os
 import re
+import secrets
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
+from fastapi.concurrency import run_in_threadpool
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 import phone_auth
 from auth import build_current_user_dep
+from content import DEFAULT_CONTENT as CONTENT_DEFAULTS
 
 CONSENTS = "consents"
 PAN_RE = re.compile(r"^[A-Z]{5}[0-9]{4}[A-Z]$")
@@ -81,32 +86,53 @@ async def terms_for(db: AsyncIOMotorDatabase, pid: str) -> Optional[Dict[str, An
     mgr = await db.managers.find_one({"user_id": listing.get("owner_id"), "active": True}, {"_id": 0}) or {}
     usr = await db.users.find_one({"id": listing.get("owner_id")}, {"_id": 0, "analyst_profile": 1, "name": 1, "email": 1}) or {}
     prof = usr.get("analyst_profile") or {}
-    content = await db.site_content.find_one({"key": "home"}, {"_id": 0, "subscriptionTerms": 1}) or {}
-    platform = content.get("subscriptionTerms")
-    if not platform:
-        from content import DEFAULT_CONTENT as CONTENT_DEFAULTS
-        platform = CONTENT_DEFAULTS.get("subscriptionTerms", "")
+    content = await db.site_content.find_one({"key": "home"}, {"_id": 0, "subscriptionTerms": 1, "platformDetails": 1, "investorCharter": 1}) or {}
+    platform = content.get("subscriptionTerms") or CONTENT_DEFAULTS.get("subscriptionTerms", "")
+    pd = {**CONTENT_DEFAULTS.get("platformDetails", {}), **(content.get("platformDetails") or {})}
+    charter = content.get("investorCharter") or CONTENT_DEFAULTS.get("investorCharter", "")
+    # the approved partner application is the licence-holder record (what smallcase prints under "License Holder Details")
+    app = await db.partner_applications.find_one({"$or": [{"phone": usr.get("phone")}, {"email": usr.get("email")}], "status": "approved"},
+                                                 {"_id": 0}, sort=[("created_at", -1)]) or {} if (usr.get("phone") or usr.get("email")) else {}
+
+    def officer(v):
+        if isinstance(v, dict):
+            return ", ".join(str(x) for x in [v.get("name"), v.get("email"), v.get("phone")] if x)
+        return str(v or "")
+
     partner = {
         "name": prof.get("displayName") or mgr.get("name") or listing.get("owner_name") or usr.get("name") or "",
-        "firm": mgr.get("firm", ""), "sebiReg": prof.get("sebiReg") or mgr.get("sebi_reg", ""),
-        "email": usr.get("email") or "", "website": mgr.get("website", ""),
+        "firm": mgr.get("firm", ""), "sebiReg": prof.get("sebiReg") or mgr.get("sebi_reg", "") or app.get("sebi_reg", ""),
+        "email": usr.get("email") or app.get("email") or "", "website": mgr.get("website", "") or app.get("website", ""),
+        "registeredName": app.get("registered_name", ""), "phone": app.get("phone", "") or usr.get("phone", ""),
+        "raasbNo": app.get("raasb_no", ""), "registeredAddress": app.get("registered_address", ""),
+        "complianceOfficer": officer(app.get("compliance_officer")), "principalOfficer": officer(app.get("principal_officer")),
+        "applicantType": app.get("applicant_type", ""),
     }
     plans = ", ".join(f"{p.get('months')} month{'s' if int(p.get('months') or 0) > 1 else ''} ₹{int(p.get('price') or 0):,}" for p in (listing.get("plans") or []))
     e = html.escape
-    partner_html = (
-        f"<h3>Research analyst</h3><table class=\"terms-kv\">"
-        f"<tr><th>Name</th><td>{e(partner['name'])}</td></tr>"
-        f"<tr><th>Firm</th><td>{e(partner['firm'] or '—')}</td></tr>"
-        f"<tr><th>SEBI registration</th><td>{e(partner['sebiReg'] or '—')}</td></tr>"
-        f"<tr><th>Email</th><td>{e(partner['email'] or '—')}</td></tr>"
-        f"<tr><th>Model portfolio</th><td>{e(listing.get('name') or '')}</td></tr>"
-        f"<tr><th>Plans</th><td>{e(plans or '—')}</td></tr></table>"
-        "<p>The research analyst named above prepares and maintains this model portfolio and its updates, and is registered with "
-        "SEBI as a Research Analyst. The analyst does not handle your funds or securities and does not guarantee returns.</p>"
-    )
-    doc_html = partner_html + platform
+    rows = [("Model portfolio", listing.get("name") or ""), ("Plans", plans or "—"), ("Research analyst", partner["name"]),
+            ("Licence holder", partner["registeredName"] or partner["firm"] or "—"), ("Brand / firm", partner["firm"] or "—"),
+            ("SEBI registration no.", partner["sebiReg"] or "—"), ("Registration category", "Research Analyst"),
+            ("Supervisory body (RAASB)", f"BSE · membership {partner['raasbNo']}" if partner["raasbNo"] else "BSE"),
+            ("Support", " · ".join(x for x in [partner["email"], partner["phone"]] if x) or "—"),
+            ("Compliance officer", partner["complianceOfficer"] or "—"), ("Principal officer", partner["principalOfficer"] or "—"),
+            ("Registered address", partner["registeredAddress"] or "—")]
+    partner_html = ("<h3>Research analyst (licence holder details)</h3><table class=\"terms-kv\">"
+                    + "".join(f"<tr><th>{e(k)}</th><td>{e(str(v))}</td></tr>" for k, v in rows) + "</table>"
+                    "<p>The research analyst named above prepares and maintains this model portfolio and its updates, and is registered with "
+                    "SEBI as a Research Analyst. The analyst does not handle your funds or securities and does not guarantee returns. "
+                    "Registration granted by SEBI, membership of RAASB and certification from NISM in no way guarantee performance of the "
+                    "intermediary or provide any assurance of returns to investors.</p>")
+    prow = [("Legal name", pd.get("legalName") or "—"), ("Brand", pd.get("brand") or "Omnivest"), ("CIN", pd.get("cin") or "—"),
+            ("Registered address", pd.get("registeredAddress") or "—"),
+            ("Support", " · ".join(x for x in [pd.get("supportEmail"), pd.get("supportPhone")] if x) or "—"),
+            ("Grievance officer", " · ".join(x for x in [pd.get("grievanceOfficer"), pd.get("grievanceEmail")] if x) or "—")]
+    platform_html = ("<h3>Platform and merchant of record</h3><table class=\"terms-kv\">"
+                     + "".join(f"<tr><th>{e(k)}</th><td>{e(str(v))}</td></tr>" for k, v in prow) + "</table>" + platform)
+    doc_html = partner_html + platform_html
     version = f"{TERMS_TEMPLATE_VERSION}-{hashlib.sha256(doc_html.encode('utf-8')).hexdigest()[:12]}"
-    return {"portfolio_id": pid, "portfolio_name": listing.get("name"), "partner": partner, "html": doc_html, "version": version, "paid": listing.get("subscription") == "Paid"}
+    return {"portfolio_id": pid, "portfolio_name": listing.get("name"), "partner": partner, "html": doc_html, "version": version,
+            "paid": listing.get("subscription") == "Paid", "charter_html": charter}
 
 
 async def current_consent(db: AsyncIOMotorDatabase, user_id: str, pid: str, version: str) -> Optional[dict]:
@@ -125,6 +151,46 @@ async def readiness(db: AsyncIOMotorDatabase, user: dict, pid: str) -> Dict[str,
         missing.append("terms")
     return {"missing": missing, "billing": fresh.get("billing"), "terms_version": terms["version"] if terms else None,
             "consent": {"id": consent["id"], "terms_version": consent["terms_version"], "accepted_at": _iso(consent.get("accepted_at"))} if consent else None}
+
+
+CONSENT_OTPS = "consent_otps"
+
+
+async def send_consent_code(db: AsyncIOMotorDatabase, user: dict, phone: str, listing_name: str) -> Dict[str, Any]:
+    """Own 6-digit code with the listing named in the SMS (Twilio Messages, TWILIO_FROM or TWILIO_MESSAGING_SERVICE_SID).
+    Falls back to Twilio Verify's standard template when only Verify is configured; demo mode uses the demo code."""
+    if phone_auth.DEMO_MODE:
+        return {"demo": True, "channel": "demo"}
+    sender = os.environ.get("TWILIO_MESSAGING_SERVICE_SID") or os.environ.get("TWILIO_FROM")
+    if not (sender and phone_auth._client):
+        r = await phone_auth.issue_otp(phone)
+        return {"demo": r.get("demo", False), "channel": "verify"}
+    code = f"{secrets.randbelow(900000) + 100000}"
+    await db[CONSENT_OTPS].update_one({"user_id": user["id"]}, {"$set": {"user_id": user["id"], "phone": phone, "code_hash": hashlib.sha256(code.encode()).hexdigest(),
+                                                                         "expires_at": _now() + timedelta(minutes=10), "attempts": 0, "sent_at": _now()}}, upsert=True)
+    body = f"{code} is your OTP to confirm the Terms of Service for {listing_name} on Omnivest. Please read the Terms of Service before you confirm with OTP."
+    kwargs = {"messaging_service_sid": sender} if sender.startswith("MG") else {"from_": sender}
+    try:
+        await run_in_threadpool(lambda: phone_auth._client.messages.create(to=phone, body=body, **kwargs))
+    except Exception as ex:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=f"Couldn't send the code: {ex}")
+    return {"demo": False, "channel": "sms"}
+
+
+async def check_consent_code(db: AsyncIOMotorDatabase, user: dict, phone: str, code: str) -> bool:
+    if phone_auth.DEMO_MODE:
+        return code == phone_auth.DEMO_CODE
+    row = await db[CONSENT_OTPS].find_one({"user_id": user["id"]})
+    if row and row.get("expires_at") and (row["expires_at"].replace(tzinfo=timezone.utc) if row["expires_at"].tzinfo is None else row["expires_at"]) > _now():
+        if int(row.get("attempts") or 0) >= 5:
+            return False
+        ok = hmac.compare_digest(row.get("code_hash", ""), hashlib.sha256(code.encode()).hexdigest())
+        if ok:
+            await db[CONSENT_OTPS].delete_one({"user_id": user["id"]})
+        else:
+            await db[CONSENT_OTPS].update_one({"user_id": user["id"]}, {"$inc": {"attempts": 1}})
+        return ok
+    return await phone_auth.check_otp(phone, code)
 
 
 def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
@@ -158,13 +224,16 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         return await readiness(db, user, portfolio_id)
 
     @router.post("/checkout/consent/request")
-    async def consent_request(user: dict = Depends(require_user)):
-        """A one-time code to the investor's own mobile is the signature on the terms."""
+    async def consent_request(payload: dict = Body(default={}), user: dict = Depends(require_user)):
+        """A one-time code to the investor's own mobile is the signature on the terms. The SMS names the listing:
+        "<code> is your OTP to confirm the Terms of Service for <listing> on Omnivest. Please read the Terms of Service before you confirm with OTP."
+        """
         phone = user.get("phone")
         if not phone:
             raise HTTPException(status_code=422, detail="Your account has no mobile number to send the code to.")
-        r = await phone_auth.issue_otp(phone)
-        return {"ok": True, "demo": r.get("demo", False), "phone_hint": f"{phone[:3]}•••••{phone[-3:]}"}
+        listing = await db.analyst_portfolios.find_one({"id": (payload.get("portfolio_id") or "").strip()}, {"_id": 0, "name": 1}) or {}
+        r = await send_consent_code(db, user, phone, listing.get("name") or "this model portfolio")
+        return {"ok": True, "demo": r.get("demo", False), "phone_hint": f"{phone[:3]}•••••{phone[-3:]}", "channel": r.get("channel")}
 
     @router.post("/checkout/consent/confirm")
     async def consent_confirm(request: Request, payload: dict = Body(...), user: dict = Depends(require_user)):
@@ -176,7 +245,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             raise HTTPException(status_code=404, detail="Portfolio not found")
         if version != terms["version"]:
             raise HTTPException(status_code=409, detail="The terms changed while you were reading. Please review the latest version.")
-        if not re.match(r"^\d{4,10}$", code) or not await phone_auth.check_otp(user.get("phone") or "", code):
+        if not re.match(r"^\d{4,10}$", code) or not await check_consent_code(db, user, user.get("phone") or "", code):
             raise HTTPException(status_code=401, detail="That code is not right. Request a new one and try again.")
         existing = await current_consent(db, user["id"], pid, version)
         if existing:

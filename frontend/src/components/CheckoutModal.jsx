@@ -29,6 +29,7 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
   const [errors, setErrors] = useState([]);
   const [payCfg, setPayCfg] = useState(null);
   const [result, setResult] = useState(null);     // { kind: 'paid' | 'interest', expires_at }
+  const [charterOpen, setCharterOpen] = useState(false);
 
   // load what is already on file, so a returning investor skips straight to payment
   useEffect(() => {
@@ -70,7 +71,7 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
   };
   const sendOtp = async () => {
     setBusy(true);
-    try { const { data } = await axios.post(`${API}/checkout/consent/request`, {}, h); setOtpSent(data); toast.success(data.demo ? 'Demo mode: use code 123456' : `Code sent to ${data.phone_hint}`); }
+    try { const { data } = await axios.post(`${API}/checkout/consent/request`, { portfolio_id: basket.id }, h); setOtpSent(data); toast.success(data.demo ? 'Demo mode: use code 123456' : `Code sent to ${data.phone_hint}`); }
     catch (err) { toast.error(err?.response?.data?.detail || 'Could not send the code'); }
     finally { setBusy(false); }
   };
@@ -192,6 +193,14 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
                     </div>
                   )}
                   <div className="text-[12px] text-[#667085]">Version {terms.version}. A copy of what you signed stays in your account.</div>
+                  {terms.charter_html && (
+                    <div className="rounded-lg border border-[#E8E1F0] bg-white">
+                      <button type="button" onClick={() => setCharterOpen((o) => !o)} className="w-full h-11 px-3 flex items-center justify-between text-[13px] font-semibold text-[#0F1729]" data-testid="charter-toggle">
+                        <span>Investor Charter (SEBI) — your rights and the analyst's duties</span><ChevronRight className={`h-4 w-4 text-[#98A2B3] transition-transform ${charterOpen ? 'rotate-90' : ''}`} />
+                      </button>
+                      {charterOpen && <div className="terms-doc max-h-56 overflow-y-auto border-t border-[#EEF1F6] p-3 text-[13px] leading-relaxed text-[#334155]" dangerouslySetInnerHTML={{ __html: terms.charter_html }} />}
+                    </div>
+                  )}
                 </div>
               ) : <div className="text-[13px] text-[#526071]">Loading terms…</div>}
             </Row>
