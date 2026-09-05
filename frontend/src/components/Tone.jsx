@@ -28,14 +28,18 @@ export function Badge({ tone = 'neutral', icon = null, children, className = '',
 }
 
 /** Low / Medium / High volatility, coloured and iconed the way investors already read it on smallcase and Groww. */
-export function VolatilityBadge({ level, pct, className = '' }) {
+export function VolatilityBadge({ level, pct, className = '', compact = false }) {
   if (!level) return null;
   const map = {
-    Low: { tone: 'pos', icon: <Leaf className="h-3 w-3" aria-hidden="true" />, label: 'Low volatility' },
-    Medium: { tone: 'warn', icon: <Flame className="h-3 w-3" aria-hidden="true" />, label: 'Med. volatility' },
-    High: { tone: 'neg', icon: <ShieldAlert className="h-3 w-3" aria-hidden="true" />, label: 'High volatility' },
+    Low: { tone: 'pos', icon: <Leaf className="h-3.5 w-3.5" aria-hidden="true" />, label: 'Low volatility', short: 'Low' },
+    Medium: { tone: 'warn', icon: <Flame className="h-3.5 w-3.5" aria-hidden="true" />, label: 'Med. volatility', short: 'Med.' },
+    High: { tone: 'neg', icon: <ShieldAlert className="h-3.5 w-3.5" aria-hidden="true" />, label: 'High volatility', short: 'High' },
   };
   const m = map[level] || map.Medium;
+  if (compact) {
+    // icon + one word, no fill: reads as a value in a metric column (the smallcase treatment)
+    return <span data-testid="volatility-badge" className={`inline-flex items-center gap-1 text-[15px] font-bold ${TONES[m.tone].text} ${className}`}>{m.icon}{m.short}</span>;
+  }
   return <Badge tone={m.tone} icon={m.icon} className={className} testid="volatility-badge">{m.label}{pct ? <span className="num font-medium opacity-80"> · {pct}%</span> : null}</Badge>;
 }
 
@@ -64,7 +68,7 @@ export function Metric({ label, value, sub, tone, size = 'md', align = 'left', c
   const val = size === 'lg' ? 'text-[26px] sm:text-[30px]' : size === 'sm' ? 'text-[15px]' : 'text-[18px]';
   return (
     <div data-testid={testid} className={`min-w-0 ${align === 'right' ? 'text-right' : ''} ${className}`}>
-      <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#667085] leading-4">{label}</div>
+      <div className="text-[13px] text-[#667085] leading-4 whitespace-nowrap truncate">{label}</div>
       <div className={`num mt-0.5 font-bold leading-tight ${val} ${t}`}>{value}</div>
       {sub ? <div className="mt-0.5 text-[12px] text-[#667085] leading-4">{sub}</div> : null}
     </div>

@@ -47,46 +47,43 @@ function PortfolioRow({ b, i, saved, onSave }) {
   const isNew = !!(c && !useCagr && (c.launched_days_ago ?? 0) <= 30);
   const stocks = (b.constituents || []).length;
   const kind = (b.constituents || []).every((x) => x.type === 'ETF') && stocks ? 'ETFs' : 'stocks';
+  const strategy = (b.strategy || 'thematic').replace('-', ' ');
   return (
-    <div className={`relative surface lift rise rise-${Math.min(i + 1, 6)} ${b.featured ? 'border-[#D8C7F1] ring-1 ring-[#EDE9FE]' : ''}`} data-testid="explore-row">
-      {/* The whole row is one link; the bookmark sits beside it, never inside it. */}
-      <Link to={`/model-portfolios/${b.id}`} data-testid="explore-card" className="block p-4 sm:p-5 pr-14 sm:pr-16 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6C2BD9] rounded-2xl">
-        <div className="grid gap-x-3 gap-y-4 sm:gap-x-4 grid-cols-[52px_minmax(0,1fr)] sm:grid-cols-[64px_minmax(0,1fr)] lg:grid-cols-[64px_minmax(0,1fr)_auto] lg:items-center">
-          {/* one cover element at every width (the journey test and screen readers see exactly one) */}
+    // Flat list row (smallcase pattern): whitespace and one separator do the work; no box inside a box.
+    <div className={`relative rise rise-${Math.min(i + 1, 6)} border-b border-[#EEF1F6] last:border-b-0 ${b.featured ? 'bg-[#FBF9FF]' : ''}`} data-testid="explore-row">
+      <Link to={`/model-portfolios/${b.id}`} data-testid="explore-card" className="block py-5 pr-12 sm:px-4 sm:-mx-4 sm:rounded-2xl sm:hover:bg-[#FAFAFE] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6C2BD9]">
+        <div className="grid gap-x-3.5 grid-cols-[52px_minmax(0,1fr)] sm:grid-cols-[64px_minmax(0,1fr)] lg:grid-cols-[64px_minmax(0,1fr)_auto] lg:items-center lg:gap-x-6">
           <div className="self-start">
             {b.cover ? <CoverArt cover={b.cover} name={b.name} size={52} radius={14} className="sm:!h-16 sm:!w-16" /> : <span className="h-[52px] w-[52px] sm:h-16 sm:w-16 rounded-2xl grad-card text-white grid place-items-center text-lg font-bold">{b.name.slice(0, 2).toUpperCase()}</span>}
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-[17px] sm:text-[18px] font-bold text-[#0F1729] leading-snug">{b.name}</h3>
-              {b.featured && <Badge tone="brand" icon={<Sparkles className="h-3 w-3" aria-hidden="true" />}>Featured</Badge>}
+            <div className="flex items-center gap-2 min-w-0">
+              <h3 className="text-[17px] sm:text-[18px] font-bold text-[#0F1729] leading-snug truncate">{b.name}</h3>
+              {b.featured && <Sparkles className="h-4 w-4 shrink-0 text-[#6C2BD9]" aria-label="Featured" />}
+            </div>
+            {/* one quiet meta line + at most one chip, like the reference */}
+            <div className="mt-1 flex items-center gap-2 flex-wrap text-[13px] text-[#526071]">
+              <span className="truncate">by {b.managerName} · {stocks} {kind} · {strategy}</span>
+              <AccessBadge paid={b.subscription === 'Paid'} perMonth={perMonth(b)} />
               {isNew && <Badge tone="info">New</Badge>}
             </div>
-            <div className="text-[13px] text-[#526071] mt-0.5">by {b.managerName}</div>
-            <p className="mt-2.5 text-[14px] text-[#526071] leading-relaxed line-clamp-2">{b.subtitle}</p>
-            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-              <Badge tone="neutral">{stocks} {kind}</Badge>
-              <Badge tone="neutral">{(b.strategy || 'thematic').replace('-', ' ')}</Badge>
-              {(b.tags || []).slice(0, 2).map((t) => <Badge key={t} tone="info">{t}</Badge>)}
-              <AccessBadge paid={b.subscription === 'Paid'} perMonth={perMonth(b)} />
-            </div>
+            <p className="mt-2.5 text-[15px] text-[#3F4B5C] leading-relaxed line-clamp-2">{b.subtitle}</p>
           </div>
-          {/* Same three metrics, same order, on every row — the eye learns where to look. */}
-          <div className="col-span-2 lg:col-span-1 grid grid-cols-3 gap-3 lg:gap-6 lg:w-[360px] pt-3 lg:pt-0 border-t lg:border-t-0 border-[#EEF1F6]">
-            <Metric label="Min. amount" value={INR(b.minAmount)} sub={c ? "today's prices" : 'to start'} size="sm" testid="row-min" />
+          {/* Three numbers, short labels, no captions: the same three in the same place on every row */}
+          <div className="col-span-2 lg:col-span-1 grid grid-cols-3 gap-3 mt-4 lg:mt-0 lg:w-[340px]">
+            <Metric label="Min. amount" value={INR(b.minAmount)} size="sm" testid="row-min" />
             <Metric label={useCagr ? 'CAGR' : 'Since launch'} size="sm" testid="row-return"
-              value={c ? (b.headline === null ? <span className="text-[#5320A8]">New</span> : <Delta value={b.headline} />) : <span className="text-[#667085]">—</span>}
-              sub={c ? launchedLabel(c.launched_days_ago) : 'computing'} />
+              value={c ? (b.headline === null ? <span className="text-[#5320A8]">New</span> : <Delta value={b.headline} />) : <span className="text-[#667085]">—</span>} />
             <div className="min-w-0">
-              <div className="t-label leading-4">Volatility</div>
-              <div className="mt-1">{b.volatility ? <VolatilityBadge level={b.volatility} /> : <span className="text-[13px] text-[#667085]">after 20 days</span>}</div>
+              <div className="text-[13px] text-[#667085] leading-4 whitespace-nowrap">Volatility</div>
+              <div className="mt-1">{b.volatility ? <VolatilityBadge level={b.volatility} compact /> : <span className="text-[15px] font-bold text-[#98A2B3]" title="Shown after 20 trading days">—</span>}</div>
             </div>
           </div>
         </div>
       </Link>
       <button type="button" onClick={() => onSave(b.id)} aria-pressed={saved} aria-label={saved ? 'Remove from saved' : 'Save for later'}
-        className={`absolute top-3 right-3 h-10 w-10 grid place-items-center rounded-full transition-colors ${saved ? 'text-[#5320A8] bg-[#F1E7FE]' : 'text-[#667085] hover:text-[#5320A8] hover:bg-[#F7F4FB]'}`} data-testid="save-btn">
-        <Bookmark className="h-[18px] w-[18px]" fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
+        className={`absolute top-4 right-0 sm:right-1 h-10 w-10 grid place-items-center rounded-full transition-colors ${saved ? 'text-[#5320A8]' : 'text-[#98A2B3] hover:text-[#5320A8]'}`} data-testid="save-btn">
+        <Bookmark className="h-5 w-5" fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
       </button>
     </div>
   );
@@ -217,11 +214,11 @@ export default function ModelPortfolios() {
   return (
     <div>
       <section className="grad-hero border-b border-[#E6E8F0]">
-        <div className="container-x py-10 sm:py-14">
-          <div className="eyebrow">Model portfolios</div>
-          <h1 className="mt-3 t-h1 sm:t-display">Invest in ideas, <span className="text-[#6C2BD9]">not just stocks</span></h1>
-          <p className="mt-4 t-lead max-w-2xl">Curated baskets of stocks and ETFs, built and rebalanced by SEBI-registered managers. Buy the whole idea in one click.</p>
-          <div className="mt-6 max-w-xl relative">
+        <div className="container-x py-6 sm:py-14">
+          <div className="eyebrow hidden sm:inline-flex">Model portfolios</div>
+          <h1 className="text-[26px] leading-tight font-bold tracking-tight sm:mt-3 sm:t-display">Invest in ideas, <span className="text-[#6C2BD9]">not just stocks</span></h1>
+          <p className="hidden sm:block mt-4 t-lead max-w-2xl">Curated baskets of stocks and ETFs, built and rebalanced by SEBI-registered managers. Buy the whole idea in one click.</p>
+          <div className="mt-4 sm:mt-6 max-w-xl relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[#667085]" aria-hidden="true" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, theme, tag or manager" aria-label="Search model portfolios"
               className="w-full h-12 rounded-full border border-[#E6E8F0] bg-white pl-11 pr-4 text-[15px] outline-none focus:border-[#6C2BD9] focus:ring-2 focus:ring-[#EDE9FE] transition-shadow" data-testid="explore-search" />
@@ -269,7 +266,7 @@ export default function ModelPortfolios() {
               </label>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-2 sm:mt-3" data-testid="explore-list">
               {list.map((b, i) => <PortfolioRow key={b.id} b={b} i={i} saved={saved.has(b.id)} onSave={toggleSave} />)}
             </div>
 
