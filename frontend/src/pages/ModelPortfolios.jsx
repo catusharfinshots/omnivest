@@ -51,7 +51,7 @@ function PortfolioRow({ b, i, saved, onSave }) {
   return (
     // Flat list row (smallcase pattern): whitespace and one separator do the work; no box inside a box.
     <div className={`relative rise rise-${Math.min(i + 1, 6)} border-b border-[#EEF1F6] last:border-b-0 ${b.featured ? 'bg-[#FBF9FF]' : ''}`} data-testid="explore-row">
-      <Link to={`/model-portfolios/${b.id}`} data-testid="explore-card" className="block py-5 pr-12 sm:px-4 sm:-mx-4 sm:rounded-2xl sm:hover:bg-[#FAFAFE] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6C2BD9]">
+      <Link to={`/model-portfolios/${b.id}`} data-testid="explore-card" className="block py-5 lg:py-4 pr-12 sm:px-4 sm:-mx-4 sm:rounded-2xl sm:hover:bg-[#FAFAFE] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6C2BD9]">
         <div className="grid gap-x-3.5 grid-cols-[52px_minmax(0,1fr)] sm:grid-cols-[64px_minmax(0,1fr)] lg:grid-cols-[64px_minmax(0,1fr)_auto] lg:items-center lg:gap-x-6">
           <div className="self-start">
             {b.cover ? <CoverArt cover={b.cover} name={b.name} size={52} radius={14} className="sm:!h-16 sm:!w-16" /> : <span className="h-[52px] w-[52px] sm:h-16 sm:w-16 rounded-2xl grad-card text-white grid place-items-center text-lg font-bold">{b.name.slice(0, 2).toUpperCase()}</span>}
@@ -62,12 +62,12 @@ function PortfolioRow({ b, i, saved, onSave }) {
               {b.featured && <Sparkles className="h-4 w-4 shrink-0 text-[#6C2BD9]" aria-label="Featured" />}
             </div>
             {/* one quiet meta line + at most one chip, like the reference */}
-            <div className="mt-1 flex items-center gap-2 flex-wrap text-[13px] text-[#526071]">
+            <div className="mt-0.5 flex items-center gap-2 flex-wrap text-[13px] text-[#526071]">
               <span className="truncate">by {b.managerName} · {stocks} {kind} · {strategy}</span>
               <AccessBadge paid={b.subscription === 'Paid'} perMonth={perMonth(b)} />
               {isNew && <Badge tone="info">New</Badge>}
             </div>
-            <p className="mt-2.5 text-[15px] text-[#3F4B5C] leading-relaxed line-clamp-2">{b.subtitle}</p>
+            <p className="mt-1.5 text-[15px] text-[#3F4B5C] leading-relaxed line-clamp-2">{b.subtitle}</p>
           </div>
           {/* Three numbers, short labels, no captions: the same three in the same place on every row */}
           <div className="col-span-2 lg:col-span-1 grid grid-cols-3 gap-3 mt-4 lg:mt-0 lg:w-[340px]">
@@ -101,7 +101,7 @@ function RailGroup({ title, children }) {
 function Pill({ active, onClick, children, testid }) {
   return (
     <button type="button" onClick={onClick} data-testid={testid} aria-pressed={active}
-      className={`shrink-0 h-10 sm:h-9 rounded-full px-3.5 text-[13px] font-semibold transition-colors whitespace-nowrap ${active ? 'bg-[#6C2BD9] text-white' : 'bg-white border border-[#E6E8F0] text-[#334155] hover:border-[#6C2BD9] hover:text-[#6C2BD9]'}`}>
+      className={`inline-flex items-center gap-1.5 shrink-0 h-10 sm:h-9 rounded-full px-3.5 text-[13px] font-semibold transition-colors whitespace-nowrap ${active ? 'bg-[#6C2BD9] text-white' : 'bg-white border border-[#E6E8F0] text-[#334155] hover:border-[#6C2BD9] hover:text-[#6C2BD9]'}`}>
       {children}
     </button>
   );
@@ -213,20 +213,19 @@ export default function ModelPortfolios() {
 
   return (
     <div>
-      <section className="grad-hero border-b border-[#E6E8F0]">
-        <div className="container-x py-6 sm:py-14">
-          <div className="eyebrow hidden sm:inline-flex">Model portfolios</div>
-          <h1 className="text-[26px] leading-tight font-bold tracking-tight sm:mt-3 sm:t-display">Invest in ideas, <span className="text-[#6C2BD9]">not just stocks</span></h1>
-          <p className="hidden sm:block mt-4 t-lead max-w-2xl">Curated baskets of stocks and ETFs, built and rebalanced by SEBI-registered managers. Buy the whole idea in one click.</p>
-          <div className="mt-4 sm:mt-6 max-w-xl relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[#667085]" aria-hidden="true" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, theme, tag or manager" aria-label="Search model portfolios"
-              className="w-full h-12 rounded-full border border-[#E6E8F0] bg-white pl-11 pr-4 text-[15px] outline-none focus:border-[#6C2BD9] focus:ring-2 focus:ring-[#EDE9FE] transition-shadow" data-testid="explore-search" />
+      {/* No marketing hero here (that is the home page): a browsing page opens on search and listings, like the reference. */}
+      <section className="border-b border-[#E6E8F0] bg-white">
+        <div className="container-x py-4 sm:py-5">
+          <h1 className="sm:sr-only text-[22px] leading-tight font-bold tracking-tight">Model portfolios</h1>
+          <div className="mt-3 sm:mt-0 relative">
+            <Search className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-[#667085]" aria-hidden="true" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search model portfolios, themes or managers" aria-label="Search model portfolios"
+              className="w-full h-12 sm:h-14 rounded-xl border border-[#E6E8F0] bg-white pl-12 sm:pl-14 pr-4 text-[15px] sm:text-[17px] outline-none focus:border-[#6C2BD9] focus:ring-2 focus:ring-[#EDE9FE] transition-shadow" data-testid="explore-search" />
           </div>
         </div>
       </section>
 
-      <section className="container-x py-6 sm:py-10">
+      <section className="container-x py-5 sm:py-6">
         <div className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
           {/* Desktop rail */}
           <aside className="hidden lg:block sticky top-24 self-start">
