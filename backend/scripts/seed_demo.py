@@ -73,8 +73,17 @@ def seed():
             {"symbol": "DEMOB", "name": "Demo Beta Ltd", "exchange": "NSE", "type": "Stock", "weight": 30},
             {"symbol": "DEMOC", "name": "Demo Gamma Ltd", "exchange": "NSE", "type": "Stock", "weight": 20}]
     # the older listing is paid, so the gate audits the locked (subscribers-only) state of a listing page
+    sections = [
+        {"key": "universe", "title": "Defining the universe", "body": "<p>All NSE-listed companies with a market cap above ₹1,000 crore and at least three years of listing history.</p>"},
+        {"key": "research", "title": "Research", "body": "<p>We read annual reports and concall transcripts, build a five-year model for every candidate and speak to two industry participants before adding a name.</p>"},
+        {"key": "screening", "title": "Constituent screening", "body": "<p>ROCE above 15% for three years, net debt to equity under 0.5, promoter pledge below 10%. No companies with pending regulatory action.</p>"},
+        {"key": "weighting", "title": "Weighting", "body": "<p>Conviction-weighted: highest-conviction names at 15%, others at 5–10%, no stock above 20%.</p>"},
+        {"key": "rebalance", "title": "Rebalance", "body": "<p>Reviewed quarterly. Between reviews a stock is sold only on a governance issue, a profit warning or a 25% breach of its weight.</p>"},
+        {"key": "risk", "title": "Risk management", "body": "<p>Maximum 20% in one stock and 35% in one sector. A stock that falls 30% from purchase is reviewed within a week.</p>"},
+    ]
     p_old = mk("Compounders 3", "Three quality compounders held for the long run.", cons, "NIFTY 500", subscription="Paid",
-               plans=[{"months": 1, "price": 499}, {"months": 3, "price": 1299}, {"months": 6, "price": 2399}, {"months": 12, "price": 3999}])
+               plans=[{"months": 1, "price": 499}, {"months": 3, "price": 1299}, {"months": 6, "price": 2399}, {"months": 12, "price": 3999}],
+               methodology="", methodologySections=sections)
     p_new = mk("Fresh Momentum", "Just launched — momentum leaders across sectors.", [{**cons[0], "weight": 50}, {**cons[1], "weight": 50}], "NIFTY 50")
     p_draft = requests.post(f"{API}/analyst/portfolios", json={"name": "Draft Basket", "subtitle": "Still being built.", "benchmark": "NIFTY 50",
                                                               "strategy": "thematic", "risk": "Medium", "minAmount": 5000, "rebalanceFreq": "Quarterly",

@@ -173,7 +173,9 @@ test.describe('Partner', () => {
       await page.getByTestId('next-step-btn').click();
       // story
       await page.locator('[data-testid=form-rationale] [contenteditable]').fill('Water is the scarcest input in India. We own the enablers.');
-      await page.locator('[data-testid=form-methodology] [contenteditable]').fill('Equal weight, reviewed quarterly.');
+      // methodology is structured now: the two required sections
+      await page.getByTestId('method-universe-input').fill('All NSE-listed companies above 1,000 crore market cap.');
+      await page.getByTestId('method-research-input').fill('Annual reports, concalls and channel checks before adding a name.');
       await page.getByPlaceholder('Long-term capital growth via…').fill('Long-term growth');
       await page.getByPlaceholder('Investors with a 3+ year horizon who…').fill('Investors with a 3+ year horizon');
       await page.locator('textarea').last().fill('Sector concentration; regulatory delays.');

@@ -103,6 +103,32 @@ export default function ListingSettingsAdmin({ token }) {
         )}
       </section>
 
+      {/* Methodology sections partners must fill (rendered to investors as icon cards) */}
+      {rules && (
+        <section className="surface p-6" data-testid="methodology-sections-admin">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div className="text-sm font-semibold">Methodology sections</div>
+              <div className="text-xs text-[#6B6480] mt-0.5">Every listing's methodology is split into these titled sections, in this order. Required ones gate submission. Icons: globe, search, filter, scale, repeat, shield, list.</div>
+            </div>
+            <button type="button" onClick={() => set('methodology_sections', [...(rules.methodology_sections || []), { key: `section${(rules.methodology_sections || []).length + 1}`, title: '', icon: 'list', required: false, helper: '', example: '' }])} className="btn-ghost text-xs">+ Add section</button>
+          </div>
+          <div className="mt-4 space-y-2">
+            {(rules.methodology_sections || []).map((s, i) => (
+              <div key={i} className="grid md:grid-cols-[110px_1fr_1fr_90px_80px_auto] gap-2 items-center rounded-lg border border-[#EEF1F6] p-2 text-sm">
+                <input value={s.key} onChange={(e) => set('methodology_sections', rules.methodology_sections.map((x, j) => (j === i ? { ...x, key: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') } : x)))} placeholder="key" className="h-9 rounded-lg border border-[#E8E1F0] px-2 font-mono text-xs" />
+                <input value={s.title} onChange={(e) => set('methodology_sections', rules.methodology_sections.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} placeholder="Title" className="h-9 rounded-lg border border-[#E8E1F0] px-2" />
+                <input value={s.helper || ''} onChange={(e) => set('methodology_sections', rules.methodology_sections.map((x, j) => (j === i ? { ...x, helper: e.target.value } : x)))} placeholder="Helper shown to partners" className="h-9 rounded-lg border border-[#E8E1F0] px-2" />
+                <input value={s.icon || ''} onChange={(e) => set('methodology_sections', rules.methodology_sections.map((x, j) => (j === i ? { ...x, icon: e.target.value } : x)))} placeholder="icon" className="h-9 rounded-lg border border-[#E8E1F0] px-2 text-xs" />
+                <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" className="h-4 w-4 accent-[#6C2BD9]" checked={!!s.required} onChange={(e) => set('methodology_sections', rules.methodology_sections.map((x, j) => (j === i ? { ...x, required: e.target.checked } : x)))} /> Required</label>
+                <button type="button" onClick={() => set('methodology_sections', rules.methodology_sections.filter((_, j) => j !== i))} className="text-xs text-[#B91C1C] hover:underline">Remove</button>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 text-xs text-[#6B6480]">Saved with the rules above (Save rules).</div>
+        </section>
+      )}
+
       {/* Commercial terms */}
       {rules && (
         <section className="surface p-6">

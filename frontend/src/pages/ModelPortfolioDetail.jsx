@@ -6,6 +6,8 @@ import { getBasket, getManager } from '../mock';
 import Seo from '../components/Seo';
 import InvestFlow from '../components/InvestFlow';
 import ShareButton from '../components/ShareButton';
+import ShareRow from '../components/ShareRow';
+import { BookOpen, FlaskConical, FileText } from 'lucide-react';
 import PerformanceSection from '../components/listing/PerformanceSection';
 import RebalanceTimeline from '../components/listing/RebalanceTimeline';
 import HoldingsSection from '../components/listing/HoldingsSection';
@@ -58,6 +60,10 @@ export default function ModelPortfolioDetail() {
   const [interestSent, setInterestSent] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [aboutSub, setAboutSub] = useState(null);      // desktop side list opens straight into Methodology / Factsheet
+  const [methodDefs, setMethodDefs] = useState([]);
+  useEffect(() => { axios.get(`${API}/listing-rules`).then(({ data }) => setMethodDefs(data?.methodology_sections || [])).catch(() => {}); }, []);
+  const openAbout = (sub = null) => { setAboutSub(sub); setAboutOpen(true); };
 
   useEffect(() => { axios.get(`${API}/content`).then(({ data }) => setDisclaimer(data?.performanceDisclaimer || '')).catch(() => {}); }, []);
 
@@ -228,9 +234,23 @@ export default function ModelPortfolioDetail() {
                 {/* The face of Overview (smallcase pattern): the one-liner, Read more, and the manager's video. Everything longer lives in the About sheet. */}
                 <div className="flex items-start gap-4" data-testid="overview-face">
                   <div className="min-w-0 flex-1">
-                    <ReadMore lines={2} className="text-[15px] sm:text-[16px] leading-relaxed text-[#334155]" testid="pitch-read-more" onMore={() => setAboutOpen(true)} always>
+                    <ReadMore lines={2} className="text-[15px] sm:text-[16px] leading-relaxed text-[#334155]" testid="pitch-read-more" onMore={() => openAbout(null)} always>
                       {basket.subtitle || plain(rationaleHtml) || 'About this portfolio'}
                     </ReadMore>
+                    <div className="mt-3"><ShareRow shortCode={isDb ? basket.id.replace(/-/g, '').slice(0, 8) : undefined} path={`/model-portfolios/${basket.id}`} title={`${basket.name} | Omnivest`} text={`Check out ${basket.name} on Omnivest.`} onShare={(ch) => track('share_click', { portfolio_id: basket.id, channel: ch })} /></div>
+                  </div>
+                  {/* desktop: the reference's side list — Blog · Methodology · Factsheet with one-line descriptions */}
+                  <div className="hidden lg:flex flex-col gap-3 w-64 shrink-0" data-testid="overview-links">
+                    {[
+                      { icon: BookOpen, label: 'Blog', sub: `Read more about ${basket.name}`, onClick: () => { if (manager?.website && /^https?:/.test(manager.website)) window.open(manager.website, '_blank', 'noreferrer'); else setTab('Updates'); } },
+                      { icon: FlaskConical, label: 'Methodology', sub: 'Know how this portfolio was created', onClick: () => openAbout('methodology') },
+                      { icon: FileText, label: 'Factsheet', sub: 'Key points of this portfolio', onClick: () => openAbout('factsheet') },
+                    ].map((l) => (
+                      <button key={l.label} type="button" onClick={l.onClick} className="flex items-start gap-3 text-left group" data-testid={`overview-link-${l.label.toLowerCase()}`}>
+                        <span className="h-9 w-9 shrink-0 rounded-full bg-[#EFF6FF] text-[#1D4ED8] grid place-items-center"><l.icon className="h-4 w-4" /></span>
+                        <span className="min-w-0"><span className="block text-[14px] font-semibold text-[#1D4ED8] group-hover:underline">{l.label}</span><span className="block text-[12px] text-[#526071] leading-4">{l.sub}</span></span>
+                      </button>
+                    ))}
                   </div>
                   {embed && (
                     <button type="button" onClick={() => setVideoOpen(true)} aria-label="Play the intro video" className="relative shrink-0 h-[72px] w-[72px] sm:h-20 sm:w-20 rounded-full p-[3px] bg-gradient-to-br from-[#6C2BD9] to-[#12B79A]" data-testid="intro-video">
@@ -384,7 +404,7 @@ export default function ModelPortfolioDetail() {
         </div>
       </div>, document.body)}
 
-      <AboutSheet open={aboutOpen} onClose={() => setAboutOpen(false)} basket={basket}
+      <AboutSheet open={aboutOpen} onClose={() => setAboutOpen(false)} basket={basket} methodologyDefs={methodDefs} initialSub={aboutSub}
         blogHref={manager?.website && /^https?:/.test(manager.website) ? manager.website : null} onBlog={() => { setAboutOpen(false); setTab('Updates'); }}
         onFactsheet={basket.factsheet_pdf?.locked ? () => { setAboutOpen(false); onSubscribe(); } : `${API}/portfolios/${basket.id}/factsheet${token ? `?auth=${encodeURIComponent(token)}` : ''}`} />
       {isDb && (

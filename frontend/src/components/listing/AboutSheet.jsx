@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, FlaskConical, FileText, Lock, BookOpen, ArrowLeft, Download } from 'lucide-react';
+import MethodologyView from './MethodologyView';
 
 // One sheet frame for all three (About, Methodology, Factsheet): bottom sheet on phones, centred on larger screens,
 // slides up on open, portaled to <body>. Defined at module level — never inside a render.
@@ -40,8 +41,9 @@ function Chip({ icon, label, onClick, href, testid }) {
  *   chips Blog · Methodology · Factsheet, then Overview and Investment rationale only.
  * Methodology and Factsheet are their own sheets, opened from the chips.
  */
-export default function AboutSheet({ open, onClose, basket, onFactsheet, blogHref, onBlog }) {
-  const [sub, setSub] = useState(null);   // null | 'methodology' | 'factsheet'
+export default function AboutSheet({ open, onClose, basket, onFactsheet, blogHref, onBlog, methodologyDefs = [], initialSub = null }) {
+  const [sub, setSub] = useState(initialSub);   // null | 'methodology' | 'factsheet'
+  useEffect(() => { if (open) setSub(initialSub); }, [open, initialSub]);
   useEffect(() => {
     if (!open) { setSub(null); return undefined; }
     const prev = document.body.style.overflow;
@@ -61,16 +63,16 @@ export default function AboutSheet({ open, onClose, basket, onFactsheet, blogHre
 
   if (sub === 'methodology') {
     return (
-      <Sheet title="Methodology" onClose={onClose} onBack={() => setSub(null)} testid="methodology-sheet">
+      <Sheet title="Methodology" onClose={onClose} onBack={initialSub ? null : () => setSub(null)} testid="methodology-sheet">
         <div className="px-4 py-4">
-          {methodology ? <div className="rich-text text-[15px] leading-relaxed text-[#475569]" dangerouslySetInnerHTML={{ __html: methodology }} /> : <p className="text-[15px] text-[#667085]">The manager hasn't described the methodology yet.</p>}
+          <MethodologyView sections={basket.methodologySections || []} defs={methodologyDefs} legacyHtml={(basket.methodologySections || []).length ? '' : methodology} updatedAt={basket.methodology_updated_at} />
         </div>
       </Sheet>
     );
   }
   if (sub === 'factsheet') {
     return (
-      <Sheet title="Factsheet" onClose={onClose} onBack={() => setSub(null)} testid="factsheet-sheet">
+      <Sheet title="Factsheet" onClose={onClose} onBack={initialSub ? null : () => setSub(null)} testid="factsheet-sheet">
         <div className="px-4 py-4">
           {hasPdf && (locked
             ? <button type="button" onClick={onFactsheet} className="btn-primary w-full mb-4" data-testid="factsheet-sheet-locked"><Lock className="h-4 w-4" /> Subscribe to download the PDF factsheet</button>

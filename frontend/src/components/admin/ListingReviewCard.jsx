@@ -83,7 +83,7 @@ export default function ListingReviewCard({ p, onReview, onAction }) {
           <div className="text-xs text-[#6B6480] mt-0.5">by {p.owner_name || '—'} · {p.subtitle || 'No pitch'} · {p.constituents?.length || 0} holdings · {p.benchmark || 'NIFTY 50'} · {p.strategy} · {p.rebalanceFreq || 'Quarterly'}</div>
           {(p.tags || []).length > 0 && <div className="mt-1 flex items-center gap-1 text-[12px] text-[#6B6480]"><Tag className="h-3 w-3" /> {p.tags.join(' · ')}</div>}
           <div className="text-xs text-[#6B6480] mt-1 line-clamp-2"><b className="text-[#1A1030]">Rationale:</b> {plain(p.rationale) || 'none'}</div>
-          <div className="text-xs text-[#6B6480] mt-0.5 line-clamp-2"><b className="text-[#1A1030]">Methodology:</b> {plain(p.methodology) || 'none'}</div>
+          <div className="text-xs text-[#6B6480] mt-0.5 line-clamp-2"><b className="text-[#1A1030]">Methodology:</b> {(p.methodologySections || []).length ? `${p.methodologySections.filter((s) => plain(s.body)).length} section${p.methodologySections.length === 1 ? '' : 's'} — ${p.methodologySections.map((s) => s.title).join(', ')}` : (plain(p.methodology) ? 'free text (old format)' : 'none')}</div>
           <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-[#667085]">
             <span>{p.factsheet_pdf ? '✓ Factsheet PDF' : '– No factsheet PDF'}</span>
             <span>{p.videoUrl ? '✓ Intro video' : '– No video'}</span>

@@ -44,10 +44,49 @@ RULE_DEFAULTS: Dict[str, Any] = {
     "platform_fee_pct": 0,           # Omnivest's share of subscription revenue
     "founding_partner_until": "",    # ISO date; empty = open-ended founding window
     "min_plan_price": 99,
+    # The structured methodology every listing follows (the smallcase pattern). Partners fill each section in plain
+    # words; the investor page renders them with these icons in this order. Admin can rename/reorder/add under Listing settings.
+    "methodology_sections": [
+        {"key": "universe", "title": "Defining the universe", "icon": "globe", "required": True,
+         "helper": "Which stocks are even considered — exchange, size, liquidity, sectors in or out.",
+         "example": "All NSE-listed companies with a market cap above ₹1,000 crore and at least 3 years of listing history."},
+        {"key": "research", "title": "Research", "icon": "search", "required": True,
+         "helper": "How ideas are found and checked — sources, meetings, models, what you read.",
+         "example": "We read annual reports and concall transcripts, build a five-year model for each candidate and speak to two industry participants before adding a name."},
+        {"key": "screening", "title": "Constituent screening", "icon": "filter", "required": False,
+         "helper": "The rules a stock must pass to get in, and what disqualifies it.",
+         "example": "ROCE above 15% for three years, net debt to equity under 0.5, promoter pledge below 10%. No companies with pending regulatory action."},
+        {"key": "weighting", "title": "Weighting", "icon": "scale", "required": False,
+         "helper": "How much each stock gets and why — equal weight, conviction, caps.",
+         "example": "Conviction-weighted: highest-conviction names at 15%, others at 5–10%, no stock above 20%."},
+        {"key": "rebalance", "title": "Rebalance", "icon": "repeat", "required": False,
+         "helper": "How often you review, and what triggers a change between reviews.",
+         "example": "Reviewed quarterly. Between reviews a stock is sold only on a governance issue, a profit warning or a 25% breach of its weight."},
+        {"key": "risk", "title": "Risk management", "icon": "shield", "required": False,
+         "helper": "Position caps, exit rules, drawdown limits, cash policy.",
+         "example": "Maximum 20% in one stock and 35% in one sector. A stock that falls 30% from purchase is reviewed within a week."},
+    ],
 }
 RULE_TYPES = {"min_constituents": int, "max_constituents": int, "max_weight_pct": int, "max_tags": int, "max_subtitle_words": int,
               "factsheet_pdf_required": bool, "allow_video": bool, "plan_durations": list, "platform_fee_pct": float,
-              "founding_partner_until": str, "min_plan_price": int}
+              "founding_partner_until": str, "min_plan_price": int, "methodology_sections": list}
+
+
+def clean_sections(raw) -> List[Dict[str, Any]]:
+    """Admin-supplied section definitions: key, title, helper, example, icon, required. Unknown fields dropped."""
+    out: List[Dict[str, Any]] = []
+    seen = set()
+    for s in raw or []:
+        if not isinstance(s, dict):
+            continue
+        key = str(s.get("key") or "").strip().lower()[:32]
+        title = str(s.get("title") or "").strip()[:60]
+        if not key or not title or key in seen:
+            continue
+        seen.add(key)
+        out.append({"key": key, "title": title, "icon": str(s.get("icon") or "list")[:24], "required": bool(s.get("required")),
+                    "helper": str(s.get("helper") or "").strip()[:200], "example": str(s.get("example") or "").strip()[:400]})
+    return out[:10]
 
 
 async def load_rules(db: AsyncIOMotorDatabase) -> Dict[str, Any]:
@@ -57,7 +96,10 @@ async def load_rules(db: AsyncIOMotorDatabase) -> Dict[str, Any]:
     for k, t in RULE_TYPES.items():
         if k in doc and doc[k] is not None:
             try:
-                out[k] = t(doc[k]) if t is not list else [int(x) for x in doc[k] if int(x) > 0]
+                if k == "methodology_sections":
+                    out[k] = clean_sections(doc[k]) or list(RULE_DEFAULTS[k])
+                else:
+                    out[k] = t(doc[k]) if t is not list else [int(x) for x in doc[k] if int(x) > 0]
             except Exception:  # noqa: BLE001
                 pass
     if not out["plan_durations"]:
@@ -121,7 +163,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             v = payload[k]
             try:
                 if t is list:
-                    v = sorted({int(x) for x in v if int(x) > 0})
+                    v = clean_sections(v) if k == "methodology_sections" else sorted({int(x) for x in v if int(x) > 0})
                     if not v:
                         raise ValueError
                 elif t is bool:

@@ -7,6 +7,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import InstrumentPicker from './InstrumentPicker';
 import RichTextEditor from './RichTextEditor';
+import MethodologyBuilder from './MethodologyBuilder';
 import ListingPreview from './ListingPreview';
 import CoverPicker from './CoverPicker';
 
@@ -14,7 +15,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export const BLANK = {
   name: '', subtitle: '', strategy: 'thematic', tags: [], benchmark: 'NIFTY 50',
-  rationale: '', methodology: '', videoUrl: '', rebalanceFreq: 'Quarterly',
+  rationale: '', methodology: '', methodologySections: [], videoUrl: '', rebalanceFreq: 'Quarterly',
   subscription: 'Free', plans: [],
   factsheet: { objective: '', whoShouldInvest: '', riskFactors: '', pdfName: '' },
   constituents: [{ symbol: '', name: '', exchange: 'NSE', type: 'Stock', weight: 0 }],
@@ -77,7 +78,7 @@ export default function ListingForm({ token, initial, options, rules, managerNam
     if (!p) return BLANK;
     return {
       ...BLANK, ...p,
-      tags: p.tags || [], plans: p.plans || [],
+      tags: p.tags || [], plans: p.plans || [], methodologySections: p.methodologySections || [],
       factsheet: { ...BLANK.factsheet, ...(p.factsheet || {}) },
       constituents: p.constituents?.length ? p.constituents.map((c) => ({ exchange: 'NSE', ...c })) : BLANK.constituents,
     };
@@ -133,7 +134,7 @@ export default function ListingForm({ token, initial, options, rules, managerNam
       if (editingId) saved = (await axios.put(`${API}/analyst/portfolios/${editingId}`, payload(), auth)).data.portfolio;
       else { saved = (await axios.post(`${API}/analyst/portfolios`, payload(), auth)).data.portfolio; setEditingId(saved.id); }
       dirty.current = false;
-      setForm((f) => ({ ...f, factsheet_pdf: saved.factsheet_pdf || f.factsheet_pdf, rationale: saved.rationale ?? f.rationale, methodology: saved.methodology ?? f.methodology, cover: saved.cover || f.cover }));
+      setForm((f) => ({ ...f, factsheet_pdf: saved.factsheet_pdf || f.factsheet_pdf, rationale: saved.rationale ?? f.rationale, methodology: saved.methodology ?? f.methodology, methodologySections: saved.methodologySections ?? f.methodologySections, cover: saved.cover || f.cover }));
       if (!quiet) toast.success('Saved as draft');
       onSaved && onSaved(saved);
       loadPerf(saved.id);
@@ -320,8 +321,15 @@ export default function ListingForm({ token, initial, options, rules, managerNam
                 <Field label="Investment rationale" required hint="Why this idea, why now, what you expect to happen. This is the section investors read most — headings and bullets welcome.">
                   <RichTextEditor testId="form-rationale" value={form.rationale} onChange={(v) => patch('rationale', v)} minHeight={220} placeholder="The thesis in your own words…" />
                 </Field>
-                <Field label="Methodology" required hint="How stocks are selected, weighted and when you rebalance.">
-                  <RichTextEditor testId="form-methodology" value={form.methodology} onChange={(v) => patch('methodology', v)} minHeight={140} placeholder="Selection rules, weighting logic, review cadence…" />
+                <Field label="Methodology" required hint="Six short sections, shown to investors as titled cards with icons. The first two are required.">
+                  {(rules?.methodology_sections || []).length ? (
+                    <MethodologyBuilder value={form.methodologySections} onChange={(v) => patch('methodologySections', v)} defs={rules.methodology_sections} rebalanceFreq={form.rebalanceFreq} />
+                  ) : (
+                    <RichTextEditor testId="form-methodology" value={form.methodology} onChange={(v) => patch('methodology', v)} minHeight={140} placeholder="Selection rules, weighting logic, review cadence…" />
+                  )}
+                  {!!(form.methodology && !(form.methodologySections || []).some((s) => (s.body || '').trim())) && (
+                    <div className="mt-2 text-[12px] text-[#9A4A05] bg-[#FFFBEB] border border-[#FDE68A] rounded-lg px-3 py-2">Your earlier free-text methodology is still shown to investors as one "Approach" card. Fill the sections above to replace it.</div>
+                  )}
                 </Field>
                 <div className="grid md:grid-cols-2 gap-4">
                   <Field label="Objective (one line)" required><Input value={form.factsheet.objective} onChange={(e) => patch('factsheet', { ...form.factsheet, objective: e.target.value })} className="h-10" placeholder="Long-term capital growth via…" /></Field>

@@ -66,7 +66,8 @@ class PortfolioIn(BaseModel):
     tags: List[str] = []
     benchmark: str = "NIFTY 50"
     rationale: str = ""          # rich text (sanitised HTML)
-    methodology: str = ""        # rich text (sanitised HTML)
+    methodology: str = ""        # legacy rich text (sanitised HTML) — kept for old listings and old clients
+    methodologySections: Optional[List[dict]] = None   # [{key, title, body}] in the admin-defined order
     videoUrl: str = ""           # optional YouTube / Vimeo link
     rebalanceFreq: str = "Quarterly"
     subscription: str = "Free"
@@ -90,6 +91,26 @@ def _normalise(doc: dict, existing: Optional[dict] = None) -> dict:
     normalise_cover(doc, existing)
     doc["rationale"] = sanitize_html(doc.get("rationale"))
     doc["methodology"] = sanitize_html(doc.get("methodology"))
+    # Structured methodology: sanitise each section, drop empties, cap length; keep a legacy HTML rendering
+    # so older clients and the share card keep working. Stamp the "last reviewed" date when the text changed.
+    secs = []
+    for sec in (doc.get("methodologySections") or [])[:10]:
+        if not isinstance(sec, dict):
+            continue
+        key = str(sec.get("key") or "").strip().lower()[:32]
+        title = str(sec.get("title") or "").strip()[:60]
+        body = sanitize_html(sec.get("body") or "")
+        if key and title and plain_text(body):
+            secs.append({"key": key, "title": title, "body": body})
+    if secs:
+        doc["methodologySections"] = secs
+        doc["methodology"] = "".join(f"<h4>{s['title']}</h4>{s['body']}" for s in secs)
+    elif doc.get("methodologySections") is not None:
+        doc["methodologySections"] = []
+    prev = (existing or {}).get("methodologySections") if existing else None
+    prev_html = (existing or {}).get("methodology") if existing else None
+    if (secs and secs != prev) or (not secs and doc["methodology"] and doc["methodology"] != prev_html):
+        doc["methodology_updated_at"] = _now()
     doc["tags"] = [t.strip() for t in (doc.get("tags") or []) if isinstance(t, str) and t.strip()][:10]
     doc["videoUrl"] = (doc.get("videoUrl") or "").strip()
     plans = [{"months": int(p.get("months") or 0), "price": int(p.get("price") or 0)} for p in (doc.get("plans") or []) if isinstance(p, dict)]
@@ -166,7 +187,12 @@ def _validate_complete(doc: dict, rules: Optional[dict] = None) -> List[str]:
         e.append("Intro video must be a YouTube or Vimeo link." if r["allow_video"] else "Intro videos are not enabled.")
     if not plain_text(doc.get("rationale")):
         e.append("Investment rationale is required.")
-    if not plain_text(doc.get("methodology")):
+    secs = {s.get("key"): s for s in (doc.get("methodologySections") or [])}
+    if secs:
+        for rule_sec in r.get("methodology_sections") or []:
+            if rule_sec.get("required") and not plain_text((secs.get(rule_sec["key"]) or {}).get("body")):
+                e.append(f"Methodology: '{rule_sec['title']}' is required.")
+    elif not plain_text(doc.get("methodology")):
         e.append("Methodology is required.")
     fs = doc.get("factsheet") or {}
     for k, label in (("objective", "objective"), ("whoShouldInvest", "who should invest"), ("riskFactors", "risk factors")):
