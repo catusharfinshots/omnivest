@@ -17,6 +17,7 @@ import { Badge, VolatilityBadge, AccessBadge, Metric } from '../components/Tone'
 import { useAuth } from '../context/AuthContext';
 import CheckoutModal from '../components/CheckoutModal';
 import ReadMore from '../components/ReadMore';
+import KeyFacts from '../components/listing/KeyFacts';
 import AboutSheet from '../components/listing/AboutSheet';
 import { createPortal } from 'react-dom';
 import { usePortfolio } from '../context/PortfolioContext';
@@ -275,18 +276,7 @@ export default function ModelPortfolioDetail() {
                 </div>
 
                 {/* Key facts */}
-                <div className="surface p-5" data-testid="key-facts">
-                  <h3 className="text-base font-semibold flex items-center gap-2"><Target className="h-4 w-4 text-[#6C2BD9]" /> Key facts</h3>
-                  <dl className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                    {basket.factsheet?.objective && <div><dt className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Objective</dt><dd className="text-[#475569] mt-0.5">{basket.factsheet.objective}</dd></div>}
-                    <div><dt className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Launched</dt><dd className="text-[#475569] mt-0.5">{basket.launch_date ? nice(basket.launch_date) : '—'}{perf?.start_date ? ` · bought at ${nice(perf.start_date)} close` : ''}</dd></div>
-                    <div><dt className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Rebalance</dt><dd className="text-[#475569] mt-0.5">{basket.rebalanceFreq || 'Quarterly'}{(basket.versions || []).length > 1 ? ` · ${basket.versions.length - 1} so far` : ''}</dd></div>
-                    <div><dt className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Benchmark</dt><dd className="text-[#475569] mt-0.5">{benchLabel}</dd></div>
-                    <div><dt className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Constituents</dt><dd className="text-[#475569] mt-0.5">{holdingsCount} {basket.holdings_kind || (basket.constituents.length && basket.constituents.every((c) => c.type === 'ETF') ? 'ETFs' : 'stocks & ETFs')}</dd></div>
-                    {pm?.max_drawdown_pct !== null && pm?.max_drawdown_pct !== undefined && <div><dt className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Max drawdown</dt><dd className="text-[#475569] mt-0.5">{pct(pm.max_drawdown_pct)} since launch</dd></div>}
-                    {basket.factsheet?.whoShouldInvest && <div className="sm:col-span-2"><dt className="text-[12px] uppercase tracking-wider text-[#667085] font-semibold">Who should invest</dt><dd className="text-[#475569] mt-0.5">{basket.factsheet.whoShouldInvest}</dd></div>}
-                  </dl>
-                </div>
+                <KeyFacts basket={basket} perf={perf} benchLabel={benchLabel} holdingsCount={holdingsCount} />
 
                 {basket.factsheet?.riskFactors && (
                   <div className="surface p-5 border-[#FDE68A] bg-[#FFFBEB]/40" data-testid="risk-factors">
