@@ -246,6 +246,11 @@ export default function ModelPortfolioDetail() {
                     </button>
                   )}
                 </div>
+                <div className="lg:hidden rounded-xl border border-[#EEF1F6] bg-[#FAFAFE] px-4 py-3 space-y-1.5 text-[13px] text-[#526071]" data-testid="trust-lines">
+                  <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[#0B7F4A]" /> Stocks stay in your own demat account</div>
+                  <div className="flex items-center gap-2"><Repeat className="h-4 w-4 text-[#6C2BD9]" /> {basket.rebalanceFreq || 'Quarterly'} review</div>
+                  <div className="flex items-center gap-2"><Layers className="h-4 w-4 text-[#6C2BD9]" /> {holdingsCount} constituents{locked ? ' · names unlock on subscribing' : ''}</div>
+                </div>
                 <div className="grid sm:grid-cols-3 gap-3">
                   <button onClick={() => setMethodOpen(true)} className="surface p-4 text-left hover:border-[#D8C7F1] transition-all group">
                     <FlaskConical className="h-5 w-5 text-[#6C2BD9]" />
@@ -334,8 +339,8 @@ export default function ModelPortfolioDetail() {
           </div>
         </div>
 
-        {/* Sticky invest box */}
-        <div className="lg:col-span-4">
+        {/* Sticky invest box — desktop only. Phones use the pinned action bar; plans are chosen inside the checkout. */}
+        <div className="hidden lg:block lg:col-span-4">
           <div className="surface p-6 lg:sticky lg:top-24" data-testid="invest-box">
             <div className="flex items-center gap-1.5 text-xs text-[#526071]"><span>Minimum investment amount</span><Info className="h-3.5 w-3.5" /></div>
             <div className="num mt-1 text-3xl font-bold text-[#0F1729]">{INR(minAmount)}</div>

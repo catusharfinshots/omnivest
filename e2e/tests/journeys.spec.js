@@ -61,7 +61,7 @@ test.describe('Investor', () => {
     // phones show the three-figure strip and a fixed action bar; desktop shows the stat tiles
     await expect(page.getByTestId(testInfo.project.name === 'desktop' ? 'stat-tiles' : 'figure-strip')).toBeVisible();
     if (testInfo.project.name !== 'desktop') await expect(page.getByTestId('mobile-cta-btn')).toBeVisible();
-    await expect(page.getByTestId('invest-box')).toBeVisible();
+    else await expect(page.getByTestId('invest-box')).toBeVisible();   // phones: no side card, the pinned bar is the action
     await expect(page.getByTestId('performance-disclaimer')).toBeVisible();
   });
 
@@ -75,9 +75,10 @@ test.describe('Investor', () => {
     else await page.getByTestId('mobtab-login').click();
     await otpLogin(page, phone, { name: 'Typing Investor' });
     await page.goto(`/model-portfolios/${paid.id}`);
-    await expect(page.getByTestId('invest-box')).toBeVisible();
+    await expect(page.getByTestId(testInfo.project.name === 'desktop' ? 'invest-box' : 'mobile-cta-btn')).toBeVisible();
     await page.waitForTimeout(800);
-    await page.getByTestId('invest-box').getByTestId('subscribe-btn').click();
+    if (testInfo.project.name === 'desktop') await page.getByTestId('invest-box').getByTestId('subscribe-btn').click();
+    else await page.getByTestId('mobile-cta-btn').click();
     await expect(page.getByTestId('billing-form')).toBeVisible();
     // Type the way a person does — one key at a time. A remounting form drops focus after the first letter
     // (the bug Tushar recorded on his iPhone); fill() would never catch it.
