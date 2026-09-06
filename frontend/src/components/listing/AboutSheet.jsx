@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, FlaskConical, FileText, Lock, UserRound } from 'lucide-react';
+import { X, FlaskConical, FileText, Lock, UserRound, BookOpen } from 'lucide-react';
 
 function Section({ title, children, testid }) {
   return (
@@ -22,7 +22,7 @@ function Chip({ icon, label, onClick, href, testid }) {
  * text in one scrollable sheet (overview, rationale, methodology, who should invest, key risks).
  * Bottom sheet on phones, centred dialog on larger screens. Portaled to <body>.
  */
-export default function AboutSheet({ open, onClose, basket, manager, onFactsheet, onManager }) {
+export default function AboutSheet({ open, onClose, basket, manager, onFactsheet, onManager, blogHref, onBlog }) {
   useEffect(() => {
     if (!open) return undefined;
     const prev = document.body.style.overflow;
@@ -46,6 +46,7 @@ export default function AboutSheet({ open, onClose, basket, manager, onFactsheet
           <button type="button" onClick={onClose} aria-label="Close" className="h-10 w-10 grid place-items-center rounded-full hover:bg-[#F5F6FA] text-[#526071]"><X className="h-5 w-5" /></button>
         </div>
         <div className="px-4 pt-3 pb-1 flex gap-2 overflow-x-auto no-scrollbar">
+          {blogHref ? <Chip icon={<BookOpen className="h-4 w-4" />} label="Blog" href={blogHref} testid="about-blog-chip" /> : <Chip icon={<BookOpen className="h-4 w-4" />} label="Blog" onClick={onBlog} testid="about-blog-chip" />}
           {methodology && <Chip icon={<FlaskConical className="h-4 w-4" />} label="Methodology" onClick={() => document.getElementById('about-methodology')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} testid="about-methodology-chip" />}
           {hasPdf && (locked
             ? <Chip icon={<Lock className="h-4 w-4" />} label="Factsheet" onClick={onFactsheet} testid="about-factsheet-chip" />

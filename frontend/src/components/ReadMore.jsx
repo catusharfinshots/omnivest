@@ -24,7 +24,7 @@ export default function ReadMore({ lines = 3, className = '', children, testid =
       </div>
       {(overflows || open || (always && onMore)) && (
         <button type="button" onClick={() => (onMore ? onMore() : setOpen((o) => !o))} className="mt-1 text-[14px] font-semibold text-[#5320A8] hover:underline" data-testid={testid}>
-          {open ? 'Show less' : 'Read more'}
+          {open ? 'Show less ▴' : 'Read more ▾'}
         </button>
       )}
     </div>

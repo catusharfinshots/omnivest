@@ -21,8 +21,7 @@ import { usePortfolio } from '../context/PortfolioContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, TrendingUp, TrendingDown, ShieldCheck, Repeat, Layers, FileText, FlaskConical,
-  Heart, ChevronRight, Award, Info, PlayCircle, Eye, Lock, Sparkles, AlertTriangle, Target,
+  ArrowLeft, TrendingUp, TrendingDown, ShieldCheck, Repeat, Layers, Heart, ChevronRight, Award, Info, PlayCircle, Eye, Lock, Sparkles, AlertTriangle, Target,
 } from 'lucide-react';
 
 const TABS = ['Overview', 'Stocks & weights', 'Updates'];
@@ -30,6 +29,7 @@ const INR = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const DURATION = { 1: 'month', 3: 'quarter', 6: 'half-year', 12: 'year' };
 const pct = (v) => (v === null || v === undefined ? '—' : `${v > 0 ? '+' : ''}${Number(v).toFixed(1)}%`);
+const plain = (html) => (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 const nice = (iso) => (iso ? new Date(`${String(iso).slice(0, 10)}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 const videoEmbed = (url) => {
   if (!url) return null;
@@ -195,9 +195,6 @@ export default function ModelPortfolioDetail() {
               <div className="hidden sm:block mt-1 text-[12px] text-[#526071]">{perfOk ? `${launchedLabel} · computed from exchange data` : (perf?.status === 'unavailable' ? 'Market data reconnecting' : 'Computing from exchange data…')}</div>
             </div>
           </div>
-          {basket.subtitle && (
-            <ReadMore lines={2} className="mt-2.5 sm:mt-3 text-[14px] sm:text-[15px] text-[#475569] max-w-2xl" testid="pitch-read-more" onMore={() => setAboutOpen(true)}>{basket.subtitle}</ReadMore>
-          )}
           {/* phones: the three figures the reference shows, in one quiet strip */}
           <div className="sm:hidden mt-4 grid grid-cols-3 divide-x divide-[#EEF1F6] rounded-xl border border-[#E6E8F0] bg-white" data-testid="figure-strip">
             <div className="px-3 py-2.5"><div className="text-[12px] text-[#667085]">Min. amount</div><div className="num text-[16px] font-bold text-[#0F1729] mt-0.5">{INR(minAmount)}</div></div>
@@ -217,12 +214,6 @@ export default function ModelPortfolioDetail() {
               </div>
             ))}
           </div>
-          {disclaimer && (
-            <div className="mt-2 flex items-start gap-1.5 text-[12px] leading-relaxed text-[#667085]" data-testid="performance-disclaimer">
-              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-              <ReadMore lines={1} className="min-w-0 flex-1" testid="disclaimer-read-more">{disclaimer}</ReadMore>
-            </div>
-          )}
 
           {/* Tabs */}
           <div className="mt-4 sm:mt-8 border-b border-[#E6E8F0] flex gap-6 -mx-5 px-5 sm:mx-0 sm:px-0 overflow-x-auto no-scrollbar" data-testid="listing-tabs">
@@ -234,53 +225,34 @@ export default function ModelPortfolioDetail() {
           <div className="mt-6">
             {tab === 'Overview' && (
               <div className="space-y-4 sm:space-y-6">
-                <div className="grid md:grid-cols-[1fr_auto] gap-5 items-start">
-                  <div className="min-w-0">
-                    <h3 className="text-[16px] sm:text-lg font-semibold">Investment rationale</h3>
-                    {rationaleHtml ? (
-                      <ReadMore lines={6} className="mt-2" testid="rationale-read-more" onMore={() => setAboutOpen(true)} always={!!(basket.methodology || basket.factsheet?.riskFactors || basket.factsheet?.whoShouldInvest || basket.factsheet?.objective)}><div className="rich-text text-[14px] sm:text-[15px] text-[#475569]" data-testid="rationale" dangerouslySetInnerHTML={{ __html: rationaleHtml }} /></ReadMore>
-                    ) : <p className="mt-2 text-sm text-[#667085]">The manager hasn't added a rationale yet.</p>}
+                {/* The face of Overview (smallcase pattern): the one-liner, Read more, and the manager's video. Everything longer lives in the About sheet. */}
+                <div className="flex items-start gap-4" data-testid="overview-face">
+                  <div className="min-w-0 flex-1">
+                    <ReadMore lines={2} className="text-[15px] sm:text-[16px] leading-relaxed text-[#334155]" testid="pitch-read-more" onMore={() => setAboutOpen(true)} always>
+                      {basket.subtitle || plain(rationaleHtml) || 'About this portfolio'}
+                    </ReadMore>
                   </div>
                   {embed && (
-                    <button type="button" onClick={() => setVideoOpen(true)} className="relative h-24 w-24 md:h-28 md:w-28 rounded-2xl grad-card text-white grid place-items-center shrink-0 shadow-[0_12px_30px_-16px_rgba(108,43,217,0.6)] hover:scale-[1.03] transition-transform" data-testid="intro-video">
-                      <PlayCircle className="h-10 w-10" />
-                      <span className="absolute bottom-2 text-[12px] font-bold uppercase tracking-wider">Intro video</span>
+                    <button type="button" onClick={() => setVideoOpen(true)} aria-label="Play the intro video" className="relative shrink-0 h-[72px] w-[72px] sm:h-20 sm:w-20 rounded-full p-[3px] bg-gradient-to-br from-[#6C2BD9] to-[#12B79A]" data-testid="intro-video">
+                      <span className="h-full w-full rounded-full bg-white grid place-items-center overflow-hidden">
+                        {manager?.logo && /^https?:/.test(manager.logo) ? <img src={manager.logo} alt="" className="h-full w-full object-cover" /> : <span className="text-[18px] font-bold text-[#5320A8]">{(manager?.name || basket.name).slice(0, 2).toUpperCase()}</span>}
+                      </span>
+                      <span className="absolute -bottom-0.5 -right-0.5 h-7 w-7 rounded-full bg-[#1D4ED8] text-white grid place-items-center ring-2 ring-white"><PlayCircle className="h-4 w-4" /></span>
                     </button>
                   )}
                 </div>
+                {isDb && <PerformanceSection perf={perf} name={basket.name} />}
+                {disclaimer && (
+                  <div className="flex items-start gap-1.5 text-[12px] leading-relaxed text-[#667085]" data-testid="performance-disclaimer">
+                    <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <ReadMore lines={1} className="min-w-0 flex-1" testid="disclaimer-read-more">{disclaimer}</ReadMore>
+                  </div>
+                )}
                 <div className="lg:hidden rounded-xl border border-[#EEF1F6] bg-[#FAFAFE] px-4 py-3 space-y-1.5 text-[13px] text-[#526071]" data-testid="trust-lines">
                   <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[#0B7F4A]" /> Stocks stay in your own demat account</div>
                   <div className="flex items-center gap-2"><Repeat className="h-4 w-4 text-[#6C2BD9]" /> {basket.rebalanceFreq || 'Quarterly'} review</div>
                   <div className="flex items-center gap-2"><Layers className="h-4 w-4 text-[#6C2BD9]" /> {holdingsCount} constituents{locked ? ' · names unlock on subscribing' : ''}</div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <button onClick={() => setMethodOpen(true)} className="surface p-4 text-left hover:border-[#D8C7F1] transition-all group">
-                    <FlaskConical className="h-5 w-5 text-[#6C2BD9]" />
-                    <div className="mt-3 text-sm font-semibold group-hover:text-[#6C2BD9]">Methodology</div>
-                    <div className="text-xs text-[#526071]">How this portfolio is built and rebalanced</div>
-                  </button>
-                  {basket.factsheet_pdf?.locked ? (
-                    <button type="button" onClick={onSubscribe} className="surface p-4 text-left hover:border-[#D8C7F1] transition-all group" data-testid="factsheet-locked">
-                      <Lock className="h-5 w-5 text-[#096B3E]" />
-                      <div className="mt-3 text-sm font-semibold group-hover:text-[#6C2BD9]">Factsheet</div>
-                      <div className="text-xs text-[#526071]">PDF for subscribers — includes holdings</div>
-                    </button>
-                  ) : basket.factsheet_pdf ? (
-                    <a data-testid="factsheet-download" href={`${API}/portfolios/${basket.id}/factsheet${token ? `?auth=${encodeURIComponent(token)}` : ''}`} target="_blank" rel="noreferrer" onClick={() => track('factsheet_download', { portfolio_id: basket.id })} className="surface p-4 hover:border-[#D8C7F1] transition-all group block">
-                      <FileText className="h-5 w-5 text-[#6C2BD9]" />
-                      <div className="mt-3 text-sm font-semibold group-hover:text-[#6C2BD9]">Factsheet</div>
-                      <div className="text-xs text-[#526071]">Download the PDF factsheet</div>
-                    </a>
-                  ) : (
-                    <div className="surface p-4 opacity-70">
-                      <FileText className="h-5 w-5 text-[#667085]" />
-                      <div className="mt-3 text-sm font-semibold text-[#526071]">Factsheet</div>
-                      <div className="text-xs text-[#667085]">Not attached yet</div>
-                    </div>
-                  )}
-                </div>
-
-                {isDb && <PerformanceSection perf={perf} name={basket.name} />}
 
                 {/* Key facts */}
                 <div className="surface p-5" data-testid="key-facts">
@@ -392,8 +364,17 @@ export default function ModelPortfolioDetail() {
       <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-[#E6E8F0] bg-white/95 backdrop-blur-md px-4 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))]" data-testid="mobile-cta">
         <div className="flex items-center gap-3">
           <div className="min-w-0">
-            <div className="text-[12px] text-[#667085] leading-4">{paid && !access.unlocked && plan ? `${plan.months}-month plan` : 'Min. amount'}</div>
-            <div className="num text-[17px] font-bold text-[#0F1729] leading-5">{paid && !access.unlocked && plan ? INR(plan.price) : INR(minAmount)}</div>
+            {paid && !access.unlocked && plan ? (
+              <>
+                <div className="text-[12px] text-[#526071] leading-4">Get access for <b className="num text-[#0F1729]">{INR(plan.price)}</b>/{plan.months}m</div>
+                <button type="button" onClick={onSubscribe} className="text-[12px] font-semibold text-[#5320A8] leading-4 mt-0.5">See all plans &amp; benefits</button>
+              </>
+            ) : (
+              <>
+                <div className="text-[12px] text-[#667085] leading-4">Min. amount</div>
+                <div className="num text-[17px] font-bold text-[#0F1729] leading-5">{INR(minAmount)}</div>
+              </>
+            )}
           </div>
           {paid && !access.unlocked ? (
             <button onClick={onSubscribe} className="btn-primary flex-1 h-12 rounded-xl text-[15px]" data-testid="mobile-cta-btn"><Lock className="h-4 w-4" /> Subscribe now</button>
@@ -404,6 +385,7 @@ export default function ModelPortfolioDetail() {
       </div>, document.body)}
 
       <AboutSheet open={aboutOpen} onClose={() => setAboutOpen(false)} basket={basket} manager={manager}
+        blogHref={manager?.website && /^https?:/.test(manager.website) ? manager.website : null} onBlog={() => { setAboutOpen(false); setTab('Updates'); }}
         onFactsheet={basket.factsheet_pdf?.locked ? () => { setAboutOpen(false); onSubscribe(); } : `${API}/portfolios/${basket.id}/factsheet${token ? `?auth=${encodeURIComponent(token)}` : ''}`}
         onManager={() => { setAboutOpen(false); if (manager?.id) navigate(`/manager/${manager.id}`); }} />
       {isDb && (
