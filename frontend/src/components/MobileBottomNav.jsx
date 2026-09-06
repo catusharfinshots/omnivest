@@ -25,6 +25,9 @@ export default function MobileBottomNav() {
   };
   const doLogout = () => { logout(); navigate('/'); };
 
+  // A listing page carries its own fixed action bar (Subscribe / Invest), like smallcase; no tab bar underneath it.
+  if (/^\/model-portfolios\/[^/]+/.test(pathname)) return null;
+
   return (
     <nav
       data-testid="mobile-bottom-nav"

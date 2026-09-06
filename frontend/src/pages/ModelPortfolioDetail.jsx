@@ -14,6 +14,8 @@ import CoverArt from '../components/CoverArt';
 import { Badge, VolatilityBadge, AccessBadge, Metric } from '../components/Tone';
 import { useAuth } from '../context/AuthContext';
 import CheckoutModal from '../components/CheckoutModal';
+import ReadMore from '../components/ReadMore';
+import { createPortal } from 'react-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { toast } from 'sonner';
@@ -157,30 +159,30 @@ export default function ModelPortfolioDetail() {
       )}
       {/* Header band */}
       <section className="grad-hero border-b border-[#E6E8F0]">
-        <div className="container-x pt-6 pb-8">
+        <div className="container-x pt-3 pb-4 sm:pt-6 sm:pb-8">
           <div className="flex items-center justify-between gap-4">
-            <button onClick={() => navigate('/model-portfolios')} className="inline-flex items-center gap-1.5 text-sm text-[#526071] hover:text-[#6C2BD9]"><ArrowLeft className="h-4 w-4" /> All model portfolios</button>
+            <button onClick={() => navigate('/model-portfolios')} aria-label="All model portfolios" className="inline-flex items-center gap-1.5 h-10 -ml-2 px-2 rounded-lg text-sm text-[#526071] hover:text-[#6C2BD9]"><ArrowLeft className="h-5 w-5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">All model portfolios</span></button>
             <ShareButton path={`/model-portfolios/${basket.id}`} shortCode={isDb ? basket.id.replace(/-/g, '').slice(0, 8) : undefined} title={`${basket.name} | Omnivest`} text={`Check out ${basket.name} on Omnivest.`} onShare={() => track('share_click', { portfolio_id: basket.id })} />
           </div>
-          <div className="mt-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
+          <div className="mt-2 sm:mt-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-6">
             <div className="flex items-start gap-3 sm:gap-4 min-w-0">
-              {basket.cover ? <CoverArt cover={basket.cover} name={basket.name} size={56} radius={16} className="sm:!h-16 sm:!w-16" /> : <span className="h-14 w-14 shrink-0 rounded-2xl grad-card text-white grid place-items-center text-lg font-bold">{basket.name.slice(0, 2).toUpperCase()}</span>}
+              {basket.cover ? <CoverArt cover={basket.cover} name={basket.name} size={48} radius={14} className="sm:!h-16 sm:!w-16" /> : <span className="h-12 w-12 sm:h-16 sm:w-16 shrink-0 rounded-2xl grad-card text-white grid place-items-center text-lg font-bold">{basket.name.slice(0, 2).toUpperCase()}</span>}
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{basket.name}</h1>
+                  <h1 className="text-[20px] leading-tight sm:text-3xl font-bold tracking-tight">{basket.name}</h1>
                   {basket.featured && <span className="chip-brand text-[12px]"><Sparkles className="h-3 w-3" /> Featured</span>}
                 </div>
-                <button onClick={() => manager?.id && navigate(`/manager/${manager.id}`)} className="mt-1 text-sm text-[#526071] hover:text-[#6C2BD9]">by {manager?.name}{manager?.sebiReg && manager.sebiReg !== '—' ? ` · SEBI ${manager.sebiReg}` : ''}</button>
-                <p className="mt-2 text-[15px] text-[#475569] max-w-2xl">{basket.subtitle}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Badge tone="neutral" icon={<Layers className="h-3 w-3" aria-hidden="true" />}>{(basket.strategy || 'thematic').replace('-', ' ')}</Badge>
-                  {(basket.tags || []).map((t) => <Badge key={t} tone="info">{t}</Badge>)}
-                  <VolatilityBadge level={vol} />
+                <button onClick={() => manager?.id && navigate(`/manager/${manager.id}`)} className="mt-0.5 sm:mt-1 text-[13px] sm:text-sm text-[#526071] hover:text-[#6C2BD9]">by {manager?.name}{manager?.sebiReg && manager.sebiReg !== '—' ? ` · SEBI ${manager.sebiReg}` : ''}</button>
+                {/* phones: one row, access + volatility only — strategy and tags live in Key facts */}
+                <div className="mt-1.5 sm:mt-3 flex flex-wrap gap-1.5 sm:gap-2">
                   <AccessBadge paid={paid} perMonth={paid && plan ? plan.price / (plan.months || 1) : null} />
+                  <VolatilityBadge level={vol} />
+                  <span className="hidden sm:inline-flex"><Badge tone="neutral" icon={<Layers className="h-3 w-3" aria-hidden="true" />}>{(basket.strategy || 'thematic').replace('-', ' ')}</Badge></span>
+                  {(basket.tags || []).map((t) => <span key={t} className="hidden sm:inline-flex"><Badge tone="info">{t}</Badge></span>)}
                 </div>
               </div>
             </div>
-            <div className="shrink-0 flex items-center justify-between gap-3 rounded-2xl bg-white/70 border border-[#EEE8F7] px-4 py-3 sm:block sm:bg-transparent sm:border-0 sm:p-0 sm:text-right" data-testid="header-cagr">
+            <div className="hidden sm:block shrink-0 sm:text-right" data-testid="header-cagr">
               <div>
                 <div className="text-xs text-[#526071]">{perfOk ? (useCagr ? 'CAGR' : 'Since launch') : 'Performance'}</div>
                 <div className="text-[12px] text-[#526071] sm:hidden">{perfOk ? launchedLabel : ''}</div>
@@ -191,23 +193,37 @@ export default function ModelPortfolioDetail() {
               <div className="hidden sm:block mt-1 text-[12px] text-[#526071]">{perfOk ? `${launchedLabel} · computed from exchange data` : (perf?.status === 'unavailable' ? 'Market data reconnecting' : 'Computing from exchange data…')}</div>
             </div>
           </div>
+          {basket.subtitle && (
+            <ReadMore lines={2} className="mt-2.5 sm:mt-3 text-[14px] sm:text-[15px] text-[#475569] max-w-2xl" testid="pitch-read-more">{basket.subtitle}</ReadMore>
+          )}
+          {/* phones: the three figures the reference shows, in one quiet strip */}
+          <div className="sm:hidden mt-4 grid grid-cols-3 divide-x divide-[#EEF1F6] rounded-xl border border-[#E6E8F0] bg-white" data-testid="figure-strip">
+            <div className="px-3 py-2.5"><div className="text-[12px] text-[#667085]">Min. amount</div><div className="num text-[16px] font-bold text-[#0F1729] mt-0.5">{INR(minAmount)}</div></div>
+            <div className="px-3 py-2.5"><div className="text-[12px] text-[#667085]">{useCagr ? 'CAGR' : 'Since launch'}</div><div className={`num text-[16px] font-bold mt-0.5 ${headline !== null && headline < 0 ? 'text-[#B91C1C]' : headline !== null ? 'text-[#0B7F4A]' : 'text-[#5320A8]'}`}>{perfOk ? headlineText : '—'}</div></div>
+            <div className="px-3 py-2.5"><div className="text-[12px] text-[#667085]">Volatility</div><div className="mt-0.5">{vol ? <VolatilityBadge level={vol} compact /> : <span className="text-[16px] font-bold text-[#98A2B3]">—</span>}</div></div>
+          </div>
         </div>
       </section>
 
-      <div className="container-x py-8 grid lg:grid-cols-12 gap-8">
+      <div className="container-x py-4 sm:py-8 grid lg:grid-cols-12 gap-6 sm:gap-8 pb-28 lg:pb-8">
         <div className="lg:col-span-8 min-w-0">
-          {/* Stat tiles */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3" data-testid="stat-tiles">
+          {/* Stat tiles (sm+); phones use the figure strip in the header */}
+          <div className="hidden sm:grid grid-cols-2 sm:grid-cols-4 gap-3" data-testid="stat-tiles">
             {stats.map((s, i) => (
               <div key={s.label} className={`surface p-4 rise rise-${i + 1}`}>
                 <Metric label={s.label} value={s.value} sub={s.sub} tone={s.bad || s.tone === 'bad' ? 'neg' : s.good || s.tone === 'good' ? 'pos' : s.tone === 'warn' ? 'warn' : undefined} />
               </div>
             ))}
           </div>
-          {disclaimer && <div className="mt-2 flex items-start gap-1.5 text-[12px] leading-relaxed text-[#667085]" data-testid="performance-disclaimer"><Info className="h-3.5 w-3.5 mt-0.5 shrink-0" /> <span>{disclaimer}</span></div>}
+          {disclaimer && (
+            <div className="mt-2 flex items-start gap-1.5 text-[12px] leading-relaxed text-[#667085]" data-testid="performance-disclaimer">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <ReadMore lines={1} className="min-w-0 flex-1" testid="disclaimer-read-more">{disclaimer}</ReadMore>
+            </div>
+          )}
 
           {/* Tabs */}
-          <div className="mt-8 border-b border-[#E6E8F0] flex gap-6" data-testid="listing-tabs">
+          <div className="mt-4 sm:mt-8 border-b border-[#E6E8F0] flex gap-6 -mx-5 px-5 sm:mx-0 sm:px-0 overflow-x-auto no-scrollbar" data-testid="listing-tabs">
             {TABS.map((t) => (
               <button key={t} onClick={() => setTab(t)} className={`pb-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${tab === t ? 'border-[#6C2BD9] text-[#6C2BD9]' : 'border-transparent text-[#526071] hover:text-[#0F1729]'}`}>{t}</button>
             ))}
@@ -215,11 +231,13 @@ export default function ModelPortfolioDetail() {
 
           <div className="mt-6">
             {tab === 'Overview' && (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <div className="grid md:grid-cols-[1fr_auto] gap-5 items-start">
                   <div className="min-w-0">
-                    <h3 className="text-lg font-semibold">Investment rationale</h3>
-                    {rationaleHtml ? <div className="rich-text mt-2 text-[15px] text-[#475569]" data-testid="rationale" dangerouslySetInnerHTML={{ __html: rationaleHtml }} /> : <p className="mt-2 text-sm text-[#667085]">The manager hasn't added a rationale yet.</p>}
+                    <h3 className="text-[16px] sm:text-lg font-semibold">Investment rationale</h3>
+                    {rationaleHtml ? (
+                      <ReadMore lines={6} className="mt-2" testid="rationale-read-more"><div className="rich-text text-[14px] sm:text-[15px] text-[#475569]" data-testid="rationale" dangerouslySetInnerHTML={{ __html: rationaleHtml }} /></ReadMore>
+                    ) : <p className="mt-2 text-sm text-[#667085]">The manager hasn't added a rationale yet.</p>}
                   </div>
                   {embed && (
                     <button type="button" onClick={() => setVideoOpen(true)} className="relative h-24 w-24 md:h-28 md:w-28 rounded-2xl grad-card text-white grid place-items-center shrink-0 shadow-[0_12px_30px_-16px_rgba(108,43,217,0.6)] hover:scale-[1.03] transition-transform" data-testid="intro-video">
@@ -366,6 +384,22 @@ export default function ModelPortfolioDetail() {
           </div>
         </div>
       </div>
+
+      {/* Phones: the primary action never scrolls away. Portaled to <body>: the page wrapper is transformed, which would trap position:fixed. */}
+      {typeof document !== 'undefined' && createPortal(
+      <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-[#E6E8F0] bg-white/95 backdrop-blur-md px-4 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))]" data-testid="mobile-cta">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0">
+            <div className="text-[12px] text-[#667085] leading-4">{paid && !access.unlocked && plan ? `${plan.months}-month plan` : 'Min. amount'}</div>
+            <div className="num text-[17px] font-bold text-[#0F1729] leading-5">{paid && !access.unlocked && plan ? INR(plan.price) : INR(minAmount)}</div>
+          </div>
+          {paid && !access.unlocked ? (
+            <button onClick={onSubscribe} className="btn-primary flex-1 h-12 rounded-xl text-[15px]" data-testid="mobile-cta-btn"><Lock className="h-4 w-4" /> Subscribe now</button>
+          ) : (
+            <button onClick={onInvest} className="btn-invest flex-1 h-12 rounded-xl text-[15px]" data-testid="mobile-cta-btn">Invest now</button>
+          )}
+        </div>
+      </div>, document.body)}
 
       {isDb && (
         <CheckoutModal open={checkoutOpen} onClose={() => setCheckoutOpen(false)} basket={basket} plan={plan} setPlan={setPlan} token={token} user={user}

@@ -49,7 +49,7 @@ test.describe('Investor', () => {
     for (const u of users.documents || []) if (u.phone === `+91${phone}`) await request.delete(`${API}/admin/db/users/${u.id}`, { headers: { Authorization: `Bearer ${tok}` } });
   });
 
-  test('explore shows live listings with covers and opens a listing page', async ({ page, request }) => {
+  test('explore shows live listings with covers and opens a listing page', async ({ page, request }, testInfo) => {
     const list = await (await request.get(`${API}/portfolios`)).json();
     test.skip(!list.portfolios?.length, 'no live listings on this environment');
     await page.goto('/model-portfolios');
@@ -58,7 +58,9 @@ test.describe('Investor', () => {
     await expect(card.locator('[data-theme], img').first()).toBeVisible();
     await card.click();
     await expect(page).toHaveURL(/\/model-portfolios\//);
-    await expect(page.getByTestId('stat-tiles')).toBeVisible();
+    // phones show the three-figure strip and a fixed action bar; desktop shows the stat tiles
+    await expect(page.getByTestId(testInfo.project.name === 'desktop' ? 'stat-tiles' : 'figure-strip')).toBeVisible();
+    if (testInfo.project.name !== 'desktop') await expect(page.getByTestId('mobile-cta-btn')).toBeVisible();
     await expect(page.getByTestId('invest-box')).toBeVisible();
     await expect(page.getByTestId('performance-disclaimer')).toBeVisible();
   });
