@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Check, ChevronRight, Lock, X, ShieldCheck, FileText, CreditCard, Loader2 } from 'lucide-react';
@@ -51,6 +52,18 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
   const [payCfg, setPayCfg] = useState(null);
   const [result, setResult] = useState(null);     // { kind: 'paid' | 'interest', expires_at }
   const [charterOpen, setCharterOpen] = useState(false);
+  const firstFieldRef = useRef(null);
+
+  // While open: the page behind must not scroll, and the first field of the current step gets focus.
+  useEffect(() => {
+    if (!open) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [open]);
+  useEffect(() => {
+    if (open && firstFieldRef.current) firstFieldRef.current.focus({ preventScroll: true });
+  }, [open, step]);
 
   // load what is already on file, so a returning investor skips straight to payment
   useEffect(() => {
@@ -78,7 +91,7 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, token, basket?.id]);
 
-  if (!open) return null;
+  if (!open || typeof document === 'undefined') return null;
   const paid = basket.subscription === 'Paid';
   const plans = basket.plans || [];
 
@@ -126,8 +139,8 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
     } finally { setBusy(false); }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[#0F1729]/50 p-0 sm:p-4" role="dialog" aria-modal="true" aria-label={`Subscribing to ${basket.name}`} data-testid="checkout-modal">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-[#0F1729]/55 p-0 sm:p-4" role="dialog" aria-modal="true" aria-label={`Subscribing to ${basket.name}`} data-testid="checkout-modal" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-[#F5F6FA] shadow-2xl">
         <div className="sticky top-0 bg-[#F5F6FA]/95 backdrop-blur px-4 h-14 flex items-center justify-between border-b border-[#EEF1F6]">
           <div className="min-w-0"><div className="text-[12px] text-[#667085]">Subscribing to</div><div className="font-bold text-[#0F1729] truncate">{basket.name}</div></div>
@@ -160,7 +173,7 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
               <form onSubmit={saveBilling} className="space-y-3" data-testid="billing-form">
                 <div className="text-[13px] text-[#526071]">Used for your invoice and the client record the research analyst must keep. Saved once, reused next time.</div>
                 <label className="block text-[13px] text-[#526071]">PAN
-                  <input value={billing.pan} onChange={(e) => setBilling({ ...billing, pan: e.target.value.toUpperCase() })} placeholder="ABCDE1234F" maxLength={10} className="mt-1 w-full h-11 rounded-lg border border-[#E8E1F0] px-3 text-[15px] uppercase tracking-wider" data-testid="billing-pan" required />
+                  <input ref={step === 'billing' ? firstFieldRef : null} value={billing.pan} onChange={(e) => setBilling({ ...billing, pan: e.target.value.toUpperCase() })} placeholder="ABCDE1234F" maxLength={10} className="mt-1 w-full h-11 rounded-lg border border-[#E8E1F0] px-3 text-[15px] uppercase tracking-wider" data-testid="billing-pan" required />
                 </label>
                 <label className="block text-[13px] text-[#526071]">Name as per PAN
                   <input value={billing.pan_name} onChange={(e) => setBilling({ ...billing, pan_name: e.target.value })} className="mt-1 w-full h-11 rounded-lg border border-[#E8E1F0] px-3 text-[15px]" data-testid="billing-name" required />
@@ -231,5 +244,5 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
         )}
       </div>
     </div>
-  );
+  , document.body);
 }
