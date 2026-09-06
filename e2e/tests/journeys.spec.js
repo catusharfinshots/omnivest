@@ -62,6 +62,39 @@ test.describe('Investor', () => {
     await expect(page.getByTestId('invest-box')).toBeVisible();
     await expect(page.getByTestId('performance-disclaimer')).toBeVisible();
   });
+
+  test('checkout form keeps focus while typing on a paid listing', async ({ page, request }, testInfo) => {
+    const list = await (await request.get(`${API}/portfolios`)).json();
+    const paid = (list.portfolios || []).find((p) => p.subscription === 'Paid');
+    test.skip(!paid, 'no paid listing on this environment');
+    const phone = `9${rnd()}`;
+    await page.goto('/');
+    if (testInfo.project.name === 'desktop') await page.getByTestId('nav-get-started').click();
+    else await page.getByTestId('mobtab-login').click();
+    await otpLogin(page, phone, { name: 'Typing Investor' });
+    await page.goto(`/model-portfolios/${paid.id}`);
+    await expect(page.getByTestId('invest-box')).toBeVisible();
+    await page.waitForTimeout(800);
+    await page.getByTestId('invest-box').getByTestId('subscribe-btn').click();
+    await expect(page.getByTestId('billing-form')).toBeVisible();
+    // Type the way a person does — one key at a time. A remounting form drops focus after the first letter
+    // (the bug Tushar recorded on his iPhone); fill() would never catch it.
+    const name = page.getByTestId('billing-name');
+    await name.click(); await name.fill('');
+    for (const ch of 'Tushar') {
+      await page.keyboard.type(ch, { delay: 40 });
+      expect(await name.evaluate((el) => document.activeElement === el), `focus lost after typing "${ch}"`).toBe(true);
+    }
+    await expect(name).toHaveValue('Tushar');
+    const pan = page.getByTestId('billing-pan');
+    await pan.click(); await pan.fill('');
+    for (const ch of 'abcde1234f') { await page.keyboard.type(ch, { delay: 30 }); expect(await pan.evaluate((el) => document.activeElement === el)).toBe(true); }
+    await expect(pan).toHaveValue('ABCDE1234F');
+    // cleanup
+    const tok = await adminToken(request);
+    const users = await (await request.get(`${API}/admin/db/users`, { params: { q: `+91${phone}` }, headers: { Authorization: `Bearer ${tok}` } })).json();
+    for (const u of users.documents || []) if (u.phone === `+91${phone}`) await request.delete(`${API}/admin/db/users/${u.id}`, { headers: { Authorization: `Bearer ${tok}` } });
+  });
 });
 
 test.describe('Partner', () => {

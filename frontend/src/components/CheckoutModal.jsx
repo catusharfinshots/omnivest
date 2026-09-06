@@ -11,6 +11,27 @@ const nice = (iso) => (iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'n
 const STEPS = ['plan', 'billing', 'terms', 'pay'];
 const LABEL = { plan: 'Select a plan', billing: 'Billing information', terms: 'Sign terms of service', pay: 'Complete payment' };
 
+// Defined at module level on purpose: a component created inside the render function is a new type on
+// every keystroke, which makes React remount the step and drop focus (the iPhone keyboard kept closing).
+function StepRow({ k, step, done, plan, billing, result, setStep, children }) {
+  const idx = STEPS.indexOf(k), cur = STEPS.indexOf(step);
+  const isDone = done[k] && k !== step;
+  const reachable = idx <= cur || done[k];
+  return (
+    <div className={`rounded-xl border ${k === step ? 'border-[#D8C7F1] bg-white' : 'border-[#EEF1F6] bg-[#FAFAFE]'}`} data-testid={`step-${k}`}>
+      <button type="button" disabled={!reachable || !!result} onClick={() => reachable && setStep(k)} className="w-full flex items-center gap-3 px-4 h-12 text-left">
+        <span className={`h-6 w-6 rounded-full grid place-items-center text-[12px] font-bold ${isDone ? 'bg-[#0B7F4A] text-white' : k === step ? 'bg-[#6C2BD9] text-white' : 'bg-[#E6E8F0] text-[#526071]'}`}>{isDone ? <Check className="h-3.5 w-3.5" /> : idx + 1}</span>
+        <span className={`text-[14px] font-semibold ${k === step ? 'text-[#0F1729]' : 'text-[#526071]'}`}>{LABEL[k]}</span>
+        {isDone && k === 'plan' && plan && <span className="ml-auto text-[13px] text-[#526071]">{plan.months} month{plan.months > 1 ? 's' : ''} · {INR(plan.price)}</span>}
+        {isDone && k === 'billing' && <span className="ml-auto text-[13px] text-[#526071] num">{billing.pan}</span>}
+        {isDone && k === 'terms' && <span className="ml-auto text-[13px] text-[#0B7F4A]">Signed</span>}
+        {!isDone && k !== step && reachable && <ChevronRight className="ml-auto h-4 w-4 text-[#98A2B3]" />}
+      </button>
+      {k === step && !result && <div className="px-4 pb-4 border-t border-[#EEF1F6] pt-4">{children}</div>}
+    </div>
+  );
+}
+
 /**
  * The smallcase-style subscription flow, as one modal:
  *   plan → billing details (PAN, name, DOB, state) → terms signed with a mobile OTP → payment.
@@ -105,25 +126,6 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
     } finally { setBusy(false); }
   };
 
-  const Row = ({ k, children }) => {
-    const idx = STEPS.indexOf(k), cur = STEPS.indexOf(step);
-    const isDone = done[k] && k !== step;
-    const reachable = idx <= cur || done[k];
-    return (
-      <div className={`rounded-xl border ${k === step ? 'border-[#D8C7F1] bg-white' : 'border-[#EEF1F6] bg-[#FAFAFE]'}`} data-testid={`step-${k}`}>
-        <button type="button" disabled={!reachable || !!result} onClick={() => reachable && setStep(k)} className="w-full flex items-center gap-3 px-4 h-12 text-left">
-          <span className={`h-6 w-6 rounded-full grid place-items-center text-[12px] font-bold ${isDone ? 'bg-[#0B7F4A] text-white' : k === step ? 'bg-[#6C2BD9] text-white' : 'bg-[#E6E8F0] text-[#526071]'}`}>{isDone ? <Check className="h-3.5 w-3.5" /> : idx + 1}</span>
-          <span className={`text-[14px] font-semibold ${k === step ? 'text-[#0F1729]' : 'text-[#526071]'}`}>{LABEL[k]}</span>
-          {isDone && k === 'plan' && plan && <span className="ml-auto text-[13px] text-[#526071]">{plan.months} month{plan.months > 1 ? 's' : ''} · {INR(plan.price)}</span>}
-          {isDone && k === 'billing' && <span className="ml-auto text-[13px] text-[#526071] num">{billing.pan}</span>}
-          {isDone && k === 'terms' && <span className="ml-auto text-[13px] text-[#0B7F4A]">Signed</span>}
-          {!isDone && k !== step && reachable && <ChevronRight className="ml-auto h-4 w-4 text-[#98A2B3]" />}
-        </button>
-        {k === step && !result && <div className="px-4 pb-4 border-t border-[#EEF1F6] pt-4">{children}</div>}
-      </div>
-    );
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[#0F1729]/50 p-0 sm:p-4" role="dialog" aria-modal="true" aria-label={`Subscribing to ${basket.name}`} data-testid="checkout-modal">
       <div className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-[#F5F6FA] shadow-2xl">
@@ -141,7 +143,7 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
           </div>
         ) : (
           <div className="p-4 space-y-2">
-            <Row k="plan">
+            <StepRow step={step} done={done} plan={plan} billing={billing} result={result} setStep={setStep} k="plan">
               <div className="grid grid-cols-2 gap-2" data-testid="checkout-plans">
                 {plans.map((p) => (
                   <button key={p.months} type="button" onClick={() => { setPlan(p); setDone((d) => ({ ...d, plan: true })); setStep(!done.billing ? 'billing' : !done.terms ? 'terms' : 'pay'); }}
@@ -152,9 +154,9 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
                   </button>
                 ))}
               </div>
-            </Row>
+            </StepRow>
 
-            <Row k="billing">
+            <StepRow step={step} done={done} plan={plan} billing={billing} result={result} setStep={setStep} k="billing">
               <form onSubmit={saveBilling} className="space-y-3" data-testid="billing-form">
                 <div className="text-[13px] text-[#526071]">Used for your invoice and the client record the research analyst must keep. Saved once, reused next time.</div>
                 <label className="block text-[13px] text-[#526071]">PAN
@@ -177,9 +179,9 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
                 {errors.length > 0 && <ul className="text-[13px] text-[#B91C1C] list-disc pl-5">{errors.map((e) => <li key={e}>{e}</li>)}</ul>}
                 <button type="submit" disabled={busy} className="btn-primary w-full disabled:opacity-60" data-testid="billing-continue">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Continue</button>
               </form>
-            </Row>
+            </StepRow>
 
-            <Row k="terms">
+            <StepRow step={step} done={done} plan={plan} billing={billing} result={result} setStep={setStep} k="terms">
               {terms ? (
                 <div className="space-y-3" data-testid="terms-step">
                   <div className="text-[13px] text-[#526071]">Please read the terms for this model portfolio. You sign them with a one-time code sent to your mobile.</div>
@@ -203,9 +205,9 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
                   )}
                 </div>
               ) : <div className="text-[13px] text-[#526071]">Loading terms…</div>}
-            </Row>
+            </StepRow>
 
-            <Row k="pay">
+            <StepRow step={step} done={done} plan={plan} billing={billing} result={result} setStep={setStep} k="pay">
               {plan && (
                 <div className="space-y-3" data-testid="pay-step">
                   <div className="rounded-lg bg-white border border-[#E8E1F0] p-3 text-[14px]">
@@ -224,7 +226,7 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
                   <div className="text-[12px] text-[#667085] text-center">UPI, cards and net banking · secured by Razorpay</div>
                 </div>
               )}
-            </Row>
+            </StepRow>
           </div>
         )}
       </div>
