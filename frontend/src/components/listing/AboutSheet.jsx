@@ -2,6 +2,21 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, FlaskConical, FileText, Lock, UserRound } from 'lucide-react';
 
+function Section({ title, children, testid }) {
+  return (
+    <section className="mt-5 first:mt-0" data-testid={testid}>
+      <h3 className="text-[15px] font-bold text-[#0F1729]">{title}</h3>
+      <div className="mt-1.5 text-[15px] leading-relaxed text-[#475569]">{children}</div>
+    </section>
+  );
+}
+
+function Chip({ icon, label, onClick, href, testid }) {
+  const cls = 'inline-flex shrink-0 items-center gap-2 h-10 pl-1.5 pr-3.5 rounded-full border border-[#E6E8F0] bg-white text-[14px] font-semibold text-[#1D4ED8] hover:border-[#C7DBFE] whitespace-nowrap';
+  const inner = <><span className="h-7 w-7 shrink-0 rounded-full bg-[#EFF6FF] grid place-items-center">{icon}</span>{label}</>;
+  return href ? <a href={href} target="_blank" rel="noreferrer" className={cls} data-testid={testid}>{inner}</a> : <button type="button" onClick={onClick} className={cls} data-testid={testid}>{inner}</button>;
+}
+
 /**
  * "About this portfolio" — what smallcase opens from Read more: quick links across the top, then every long
  * text in one scrollable sheet (overview, rationale, methodology, who should invest, key risks).
@@ -23,18 +38,6 @@ export default function AboutSheet({ open, onClose, basket, manager, onFactsheet
   const fs = basket.factsheet || {};
   const locked = !!basket.factsheet_pdf?.locked;
   const hasPdf = !!basket.factsheet_pdf;
-  const Section = ({ title, children, testid }) => (
-    <section className="mt-5 first:mt-0" data-testid={testid}>
-      <h3 className="text-[15px] font-bold text-[#0F1729]">{title}</h3>
-      <div className="mt-1.5 text-[15px] leading-relaxed text-[#475569]">{children}</div>
-    </section>
-  );
-  const Chip = ({ icon, label, onClick, href, testid }) => {
-    const cls = 'inline-flex shrink-0 items-center gap-2 h-10 pl-1.5 pr-3.5 rounded-full border border-[#E6E8F0] bg-white text-[14px] font-semibold text-[#1D4ED8] hover:border-[#C7DBFE] whitespace-nowrap';
-    const inner = <><span className="h-7 w-7 shrink-0 rounded-full bg-[#EFF6FF] grid place-items-center">{icon}</span>{label}</>;
-    return href ? <a href={href} target="_blank" rel="noreferrer" className={cls} data-testid={testid}>{inner}</a> : <button type="button" onClick={onClick} className={cls} data-testid={testid}>{inner}</button>;
-  };
-
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-[#0F1729]/55 p-0 sm:p-4" role="dialog" aria-modal="true" aria-label={`About ${basket.name}`} data-testid="about-sheet" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full sm:max-w-xl max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl">
