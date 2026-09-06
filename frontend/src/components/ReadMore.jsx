@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
  * Clamp long content to a few lines with a "Read more" link (the smallcase pattern), and show
  * everything on tap. The link appears only when the content actually overflows.
  */
-export default function ReadMore({ lines = 3, className = '', children, testid = 'read-more' }) {
+export default function ReadMore({ lines = 3, className = '', children, testid = 'read-more', onMore, always = false }) {
   const ref = useRef(null);
   const [open, setOpen] = useState(false);
   const [overflows, setOverflows] = useState(false);
@@ -22,8 +22,8 @@ export default function ReadMore({ lines = 3, className = '', children, testid =
       <div ref={ref} style={open ? undefined : { display: '-webkit-box', WebkitLineClamp: lines, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
         {children}
       </div>
-      {(overflows || open) && (
-        <button type="button" onClick={() => setOpen((o) => !o)} className="mt-1 text-[14px] font-semibold text-[#5320A8] hover:underline" data-testid={testid}>
+      {(overflows || open || (always && onMore)) && (
+        <button type="button" onClick={() => (onMore ? onMore() : setOpen((o) => !o))} className="mt-1 text-[14px] font-semibold text-[#5320A8] hover:underline" data-testid={testid}>
           {open ? 'Show less' : 'Read more'}
         </button>
       )}

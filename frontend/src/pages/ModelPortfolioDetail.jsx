@@ -15,13 +15,14 @@ import { Badge, VolatilityBadge, AccessBadge, Metric } from '../components/Tone'
 import { useAuth } from '../context/AuthContext';
 import CheckoutModal from '../components/CheckoutModal';
 import ReadMore from '../components/ReadMore';
+import AboutSheet from '../components/listing/AboutSheet';
 import { createPortal } from 'react-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { toast } from 'sonner';
 import {
   ArrowLeft, TrendingUp, TrendingDown, ShieldCheck, Repeat, Layers, FileText, FlaskConical,
-  Heart, ChevronRight, Award, Info, PlayCircle, Eye, Lock, Sparkles, AlertTriangle, Target, Users,
+  Heart, ChevronRight, Award, Info, PlayCircle, Eye, Lock, Sparkles, AlertTriangle, Target,
 } from 'lucide-react';
 
 const TABS = ['Overview', 'Stocks & weights', 'Updates'];
@@ -56,6 +57,7 @@ export default function ModelPortfolioDetail() {
   const [plan, setPlan] = useState(null);
   const [interestSent, setInterestSent] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   useEffect(() => { axios.get(`${API}/content`).then(({ data }) => setDisclaimer(data?.performanceDisclaimer || '')).catch(() => {}); }, []);
 
@@ -194,7 +196,7 @@ export default function ModelPortfolioDetail() {
             </div>
           </div>
           {basket.subtitle && (
-            <ReadMore lines={2} className="mt-2.5 sm:mt-3 text-[14px] sm:text-[15px] text-[#475569] max-w-2xl" testid="pitch-read-more">{basket.subtitle}</ReadMore>
+            <ReadMore lines={2} className="mt-2.5 sm:mt-3 text-[14px] sm:text-[15px] text-[#475569] max-w-2xl" testid="pitch-read-more" onMore={() => setAboutOpen(true)}>{basket.subtitle}</ReadMore>
           )}
           {/* phones: the three figures the reference shows, in one quiet strip */}
           <div className="sm:hidden mt-4 grid grid-cols-3 divide-x divide-[#EEF1F6] rounded-xl border border-[#E6E8F0] bg-white" data-testid="figure-strip">
@@ -236,7 +238,7 @@ export default function ModelPortfolioDetail() {
                   <div className="min-w-0">
                     <h3 className="text-[16px] sm:text-lg font-semibold">Investment rationale</h3>
                     {rationaleHtml ? (
-                      <ReadMore lines={6} className="mt-2" testid="rationale-read-more"><div className="rich-text text-[14px] sm:text-[15px] text-[#475569]" data-testid="rationale" dangerouslySetInnerHTML={{ __html: rationaleHtml }} /></ReadMore>
+                      <ReadMore lines={6} className="mt-2" testid="rationale-read-more" onMore={() => setAboutOpen(true)} always={!!(basket.methodology || basket.factsheet?.riskFactors || basket.factsheet?.whoShouldInvest || basket.factsheet?.objective)}><div className="rich-text text-[14px] sm:text-[15px] text-[#475569]" data-testid="rationale" dangerouslySetInnerHTML={{ __html: rationaleHtml }} /></ReadMore>
                     ) : <p className="mt-2 text-sm text-[#667085]">The manager hasn't added a rationale yet.</p>}
                   </div>
                   {embed && (
@@ -251,7 +253,7 @@ export default function ModelPortfolioDetail() {
                   <div className="flex items-center gap-2"><Repeat className="h-4 w-4 text-[#6C2BD9]" /> {basket.rebalanceFreq || 'Quarterly'} review</div>
                   <div className="flex items-center gap-2"><Layers className="h-4 w-4 text-[#6C2BD9]" /> {holdingsCount} constituents{locked ? ' · names unlock on subscribing' : ''}</div>
                 </div>
-                <div className="grid sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => setMethodOpen(true)} className="surface p-4 text-left hover:border-[#D8C7F1] transition-all group">
                     <FlaskConical className="h-5 w-5 text-[#6C2BD9]" />
                     <div className="mt-3 text-sm font-semibold group-hover:text-[#6C2BD9]">Methodology</div>
@@ -276,11 +278,6 @@ export default function ModelPortfolioDetail() {
                       <div className="text-xs text-[#667085]">Not attached yet</div>
                     </div>
                   )}
-                  <button onClick={() => setTab('Updates')} className="surface p-4 text-left hover:border-[#D8C7F1] transition-all group">
-                    <Users className="h-5 w-5 text-[#6C2BD9]" />
-                    <div className="mt-3 text-sm font-semibold group-hover:text-[#6C2BD9]">Updates</div>
-                    <div className="text-xs text-[#526071]">Rebalance notes and market views</div>
-                  </button>
                 </div>
 
                 {isDb && <PerformanceSection perf={perf} name={basket.name} />}
@@ -406,6 +403,9 @@ export default function ModelPortfolioDetail() {
         </div>
       </div>, document.body)}
 
+      <AboutSheet open={aboutOpen} onClose={() => setAboutOpen(false)} basket={basket} manager={manager}
+        onFactsheet={basket.factsheet_pdf?.locked ? () => { setAboutOpen(false); onSubscribe(); } : `${API}/portfolios/${basket.id}/factsheet${token ? `?auth=${encodeURIComponent(token)}` : ''}`}
+        onManager={() => { setAboutOpen(false); if (manager?.id) navigate(`/manager/${manager.id}`); }} />
       {isDb && (
         <CheckoutModal open={checkoutOpen} onClose={() => setCheckoutOpen(false)} basket={basket} plan={plan} setPlan={setPlan} token={token} user={user}
           onSubscribed={() => { setInterestSent(true); reloadListing(); }} />
