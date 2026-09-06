@@ -224,3 +224,8 @@ code {
 .terms-doc table.terms-kv { width: 100%; border-collapse: collapse; margin: 4px 0 8px; }
 .terms-doc table.terms-kv th { text-align: left; font-weight: 600; color: #526071; padding: 3px 8px 3px 0; width: 38%; vertical-align: top; }
 .terms-doc table.terms-kv td { padding: 3px 0; color: #0F1729; }
+
+/* Sheets (About / Methodology / Factsheet / checkout) slide up when they open */
+.sheet-in { animation: sheet-in .28s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes sheet-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .sheet-in { animation: none; } }

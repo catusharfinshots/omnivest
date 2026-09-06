@@ -384,10 +384,9 @@ export default function ModelPortfolioDetail() {
         </div>
       </div>, document.body)}
 
-      <AboutSheet open={aboutOpen} onClose={() => setAboutOpen(false)} basket={basket} manager={manager}
+      <AboutSheet open={aboutOpen} onClose={() => setAboutOpen(false)} basket={basket}
         blogHref={manager?.website && /^https?:/.test(manager.website) ? manager.website : null} onBlog={() => { setAboutOpen(false); setTab('Updates'); }}
-        onFactsheet={basket.factsheet_pdf?.locked ? () => { setAboutOpen(false); onSubscribe(); } : `${API}/portfolios/${basket.id}/factsheet${token ? `?auth=${encodeURIComponent(token)}` : ''}`}
-        onManager={() => { setAboutOpen(false); if (manager?.id) navigate(`/manager/${manager.id}`); }} />
+        onFactsheet={basket.factsheet_pdf?.locked ? () => { setAboutOpen(false); onSubscribe(); } : `${API}/portfolios/${basket.id}/factsheet${token ? `?auth=${encodeURIComponent(token)}` : ''}`} />
       {isDb && (
         <CheckoutModal open={checkoutOpen} onClose={() => setCheckoutOpen(false)} basket={basket} plan={plan} setPlan={setPlan} token={token} user={user}
           onSubscribed={() => { setInterestSent(true); reloadListing(); }} />
