@@ -12,6 +12,8 @@ Collections:
 """
 from __future__ import annotations
 
+import asyncio
+
 import os
 import logging
 from datetime import datetime, timezone, timedelta
@@ -126,7 +128,14 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             }},
             upsert=True,
         )
-        return {"ok": True, "kite_user": data.get("user_name") or data.get("user_id"), "login_time": str(data.get("login_time"))}
+        # fresh session: bring every listing that is behind up to the latest close, without a second click
+        try:
+            import performance as perf_engine
+            if perf_engine.ENGINE is not None:
+                asyncio.create_task(perf_engine.ENGINE.refresh_all("kite reconnect"))
+        except Exception as e:  # noqa: BLE001
+            logger.warning("post-reconnect refresh not started: %s", e)
+        return {"ok": True, "kite_user": data.get("user_name") or data.get("user_id"), "login_time": str(data.get("login_time")), "refreshing": True}
 
     @router.get("/admin/kite/market/status")
     async def market_status(user: dict = Depends(require_admin)):

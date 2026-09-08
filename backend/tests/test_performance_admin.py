@@ -139,6 +139,7 @@ def test_launch_correction_and_recompute():
         assert d["launch"] == {"launch_date": lp.isoformat(), "launch_price_date": lp.isoformat()}
         assert d["audit"]["before"]["launch_date"] == pe.ist_today().isoformat() and d["audit"]["reason"].startswith("Approved on a holiday")
         ov = requests.get(f"{API}/admin/performance/overview", headers=h, timeout=60).json()
+        assert "scheduler" in ov   # automatic-refresh state (last run, next run) is part of Engine health
         assert any(a["portfolio_id"] == pid and a["after"]["launch_date"] == lp.isoformat() for a in ov["audit"])
         me = next(r for r in ov["listings"] if r["id"] == pid)
         assert me["launch_date"] == lp.isoformat() and len(me["launch_history"]) == 1

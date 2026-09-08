@@ -2,6 +2,7 @@ from fastapi import FastAPI, APIRouter
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+import asyncio
 import os
 import logging
 from pathlib import Path
@@ -189,6 +190,12 @@ async def on_startup():
         await seed_faqs(db)
     except Exception as e:  # noqa: BLE001
         logger.warning("FAQ seeding skipped: %s", e)
+    try:
+        import performance as perf_engine
+        if perf_engine.ENGINE is not None and os.environ.get("ENGINE_SCHEDULER", "true").lower() != "false":
+            asyncio.create_task(perf_engine.ENGINE.scheduler())
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Engine scheduler not started: %s", e)
 
 
 @app.on_event("shutdown")

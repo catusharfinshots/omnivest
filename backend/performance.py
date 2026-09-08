@@ -487,7 +487,62 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 out[pid] = s
         return out
 
-    ENGINE = SimpleNamespace(compute=compute, refresh_bg=_refresh_bg, is_stale=_is_stale, summaries=summaries)
+    RUNS_ID = "engine_runs"
+
+    async def refresh_all(reason: str, only_stale: bool = True) -> dict:
+        """Recompute every live listing (or only the stale ones). Called after a Kite reconnect, by the
+        15:45 IST scheduler, and by the admin's Recompute all. The last run is shown in Engine health."""
+        ids = [d["id"] async for d in portfolios.find({"status": {"$in": ["approved", "paused"]}}, {"_id": 0, "id": 1})]
+        done, skipped, failed = 0, 0, []
+        for pid in ids:
+            try:
+                if only_stale and not _is_stale(await perf_col.find_one({"_id": pid}, {"series": 0, "benchmarks": 0})):
+                    skipped += 1
+                    continue
+                await compute(pid)
+                done += 1
+            except Exception as e:  # noqa: BLE001
+                failed.append({"id": pid, "error": str(e)[:200]})
+        run = {"at": _now(), "at_ist": datetime.now(IST).isoformat(), "reason": reason, "computed": done, "skipped": skipped,
+               "failed": failed, "kite_connected": await _client() is not None}
+        await db.app_settings.update_one({"_id": RUNS_ID}, {"$set": {"last": run}, "$push": {"history": {"$each": [run], "$slice": -30}}}, upsert=True)
+        logger.info("engine refresh_all(%s): computed=%s skipped=%s failed=%s", reason, done, skipped, len(failed))
+        return run
+
+    def _next_slot(now: datetime) -> datetime:
+        """Next scheduled moment in IST: 08:30 (session check) or 15:45 (post-close refresh) on weekdays."""
+        slots = [time(8, 30), time(15, 45)]
+        d = now.date()
+        for _ in range(8):
+            if d.weekday() < 5:
+                for t in slots:
+                    cand = datetime.combine(d, t, tzinfo=IST)
+                    if cand > now:
+                        return cand
+            d = d + timedelta(days=1)
+        return now + timedelta(hours=6)
+
+    async def scheduler():
+        """Runs forever inside the server: refreshes after each close and flags an expired Kite session each morning."""
+        await asyncio.sleep(20)   # let the server finish starting
+        while True:
+            try:
+                now = datetime.now(IST)
+                nxt = _next_slot(now)
+                await db.app_settings.update_one({"_id": RUNS_ID}, {"$set": {"next_run_ist": nxt.isoformat()}}, upsert=True)
+                await asyncio.sleep(max(5, (nxt - now).total_seconds()))
+                if nxt.time() >= time(15, 0):
+                    await refresh_all("scheduled 15:45 IST")
+                else:
+                    connected = await _client() is not None
+                    await db.app_settings.update_one({"_id": RUNS_ID}, {"$set": {"morning_check": {"at_ist": datetime.now(IST).isoformat(), "kite_connected": connected}}}, upsert=True)
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:  # noqa: BLE001
+                logger.warning("engine scheduler: %s", e)
+                await asyncio.sleep(300)
+
+    ENGINE = SimpleNamespace(compute=compute, refresh_bg=_refresh_bg, is_stale=_is_stale, summaries=summaries, refresh_all=refresh_all, scheduler=scheduler)
 
     # ---------------- public ----------------
     @router.get("/performance/benchmarks")
@@ -577,14 +632,17 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         "engine_version": ENGINE_VERSION, "purchase_price": "last NSE close available at approval (before 15:35 IST or weekend → previous trading day)",
         "cagr_after_days": 365, "volatility_after_trading_days": 20, "volatility_bands": {"Low": "< 12% annualised", "Medium": "12–20%", "High": "> 20%"},
         "windows": WINDOWS, "returns_basis": "price returns from exchange closes — bonus/split adjusted, dividends, brokerage and taxes excluded",
-        "benchmarks": BENCHMARKS, "history_days": HISTORY_DAYS, "refresh": "automatic after each market close (page views trigger it); approval triggers the first compute",
+        "benchmarks": BENCHMARKS, "history_days": HISTORY_DAYS, "refresh": "automatic: after each Kite reconnect, at 15:45 IST every trading day, and on page views when behind; approval triggers the first compute",
     }
 
     @router.get("/admin/performance/overview")
     async def admin_overview(_: dict = Depends(require_admin)):
         data = await _engine_rows()
         audit = await db.audit_log.find({"type": "launch_date_change"}, {"_id": 0}).sort("at", -1).to_list(20)
-        return {**data, "kite": await _kite_status(), "policy": POLICY, "audit": audit, "now_ist": datetime.now(IST).isoformat()}
+        runs = await db.app_settings.find_one({"_id": RUNS_ID}, {"_id": 0, "last": 1, "next_run_ist": 1, "morning_check": 1}) or {}
+        if isinstance((runs.get("last") or {}).get("at"), datetime):
+            runs["last"]["at"] = _iso_utc(runs["last"]["at"])
+        return {**data, "kite": await _kite_status(), "policy": POLICY, "audit": audit, "now_ist": datetime.now(IST).isoformat(), "scheduler": runs}
 
     @router.get("/admin/performance/alerts")
     async def admin_alerts(_: dict = Depends(require_admin)):
@@ -635,14 +693,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     @router.post("/admin/performance/recompute")
     async def admin_recompute(_: dict = Depends(require_admin)):
         live = await _client() is not None
-        ids = [d["id"] async for d in portfolios.find({"status": {"$in": ["approved", "pending"]}}, {"_id": 0, "id": 1})]
-        done, failed = 0, []
-        for pid in ids:
-            try:
-                await compute(pid)
-                done += 1
-            except Exception as e:  # noqa: BLE001
-                failed.append({"id": pid, "error": str(e)[:200]})
+        run = await refresh_all("admin recompute all", only_stale=False)
+        done, failed = run["computed"], run["failed"]
         return {"ok": True, "computed": done, "failed": failed, "market_data": "live" if live else "cached",
                 "note": None if live else "Kite market-data session not connected — recomputed from cached prices; connect it in the Market data tab for today's closes."}
 

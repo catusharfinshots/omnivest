@@ -92,6 +92,12 @@ export default function PerformanceEngineAdmin({ token, disclaimer, onDisclaimer
           <div>
             <div className="text-sm font-semibold flex items-center gap-2"><Activity className="h-4 w-4 text-[#6C2BD9]" /> Engine health</div>
             <div className="text-xs text-[#6B6480] mt-0.5">Are the numbers on the site right today? Checked {nice(ov.now_ist)} IST.</div>
+            {ov.scheduler && (
+              <div className="text-xs text-[#526071] mt-1" data-testid="engine-scheduler">
+                <b className="text-[#1A1030]">Auto-refresh:</b> {ov.scheduler.last ? `last run ${nice(ov.scheduler.last.at_ist)} IST (${ov.scheduler.last.reason}: ${ov.scheduler.last.computed} recomputed${ov.scheduler.last.failed?.length ? `, ${ov.scheduler.last.failed.length} failed` : ''})` : 'no run yet'}
+                {ov.scheduler.next_run_ist ? ` · next ${nice(ov.scheduler.next_run_ist)} IST` : ''} · also runs the moment Kite is reconnected
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setShowPolicy((v) => !v)} className="btn-ghost text-xs inline-flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5" /> Rules (read-only)</button>
