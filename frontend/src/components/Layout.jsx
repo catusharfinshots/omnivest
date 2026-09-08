@@ -12,7 +12,7 @@ const PAGE_META = {
   '/aif': { t: 'Alternative Investment Funds', d: 'Explore curated Alternative Investment Funds (AIFs) on Omnivest.' },
   '/advisory': { t: 'Advisory', d: 'Personalised, SEBI-registered investment advisory on Omnivest.' },
   '/faq': { t: 'FAQ', d: 'Answers to common questions about investing with Omnivest.' },
-  '/terms': { t: 'Terms of Service', d: 'The rules for using Omnivest: what the platform does, partners' responsibilities, subscriptions, risk and grievance redressal.' },
+  '/terms': { t: 'Terms of Service', d: "The rules for using Omnivest: what the platform does, partners' responsibilities, subscriptions, risk and grievance redressal." },
   '/privacy': { t: 'Privacy Policy', d: 'What Omnivest collects, why, who it is shared with, how long it is kept and your rights.' },
   '/refunds': { t: 'Refund Policy', d: 'Omnivest subscription fees are non-refundable once access starts; the narrow exceptions and how to ask.' },
   '/contact': { t: 'Contact', d: 'Reach Omnivest support, our grievance officer, and the three-step complaint process.' },
