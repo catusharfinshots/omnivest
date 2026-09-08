@@ -29,6 +29,7 @@ def _sig(secret, msg):
 
 def test_checkout_creates_subscription_and_unlocks():
     cfg = requests.get(f"{API}/payments/config", timeout=30).json()
+    assert cfg.get("mode") in ("mock", "test", "live", "off")
     if cfg.get("mode") != "mock":
         pytest.skip("server is not in RAZORPAY_MODE=mock")
     h = _admin()
@@ -93,3 +94,14 @@ def test_checkout_creates_subscription_and_unlocks():
                 if row.get("portfolio_id") == pid:
                     requests.delete(f"{API}/admin/db/{coll}/{row['id']}", headers=h, timeout=30)
         _cleanup(h, app_id, user_id, firm, [pid] if pid else [])
+
+
+def test_mode_label_reflects_key_type():
+    """A Razorpay test key must never be reported as live (Tushar reads this in the admin/checkout)."""
+    import sys, os as _os
+    sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
+    from payments import _mode
+    assert _mode({"mock": True, "enabled": True, "key_id": "rzp_test_mock"}) == "mock"
+    assert _mode({"mock": False, "enabled": False, "key_id": ""}) == "off"
+    assert _mode({"mock": False, "enabled": True, "key_id": "rzp_test_abc"}) == "test"
+    assert _mode({"mock": False, "enabled": True, "key_id": "rzp_live_abc"}) == "live"

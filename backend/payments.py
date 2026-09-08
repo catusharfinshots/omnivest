@@ -42,6 +42,15 @@ def _cfg() -> Dict[str, Any]:
             "enabled": bool(mock or (key_id and secret))}
 
 
+def _mode(c: Dict[str, Any]) -> str:
+    """mock (local/CI) | test (Razorpay test key: no real money) | live | off (no keys yet)."""
+    if c["mock"]:
+        return "mock"
+    if not c["enabled"]:
+        return "off"
+    return "test" if c["key_id"].startswith("rzp_test_") else "live"
+
+
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -59,7 +68,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     @router.get("/payments/config")
     async def config():
         c = _cfg()
-        return {"enabled": c["enabled"], "key_id": c["key_id"] if c["enabled"] else None, "mode": "mock" if c["mock"] else ("live" if c["enabled"] else "off")}
+        return {"enabled": c["enabled"], "key_id": c["key_id"] if c["enabled"] else None, "mode": _mode(c)}
 
     @router.post("/payments/orders")
     async def create_order(payload: dict = Body(...), user: dict = Depends(require_user)):
@@ -99,7 +108,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                "portfolio_name": listing.get("name"), "plan_months": months, "amount": amount_paise, "currency": "INR",
                "consent": ready["consent"], "status": "created", "created_at": _now()}
         await orders.insert_one(dict(doc))
-        return {"order_id": order_id, "amount": amount_paise, "currency": "INR", "key_id": c["key_id"], "mode": "mock" if c["mock"] else "live",
+        return {"order_id": order_id, "amount": amount_paise, "currency": "INR", "key_id": c["key_id"], "mode": _mode(c),
                 "name": "Omnivest", "description": f"{listing.get('name')} · {months} month{'s' if months > 1 else ''}",
                 "prefill": {"name": user.get("name", ""), "email": user.get("email") or "", "contact": user.get("phone") or ""},
                 "notes": {"portfolio_id": pid, "plan_months": str(months)}}

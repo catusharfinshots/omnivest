@@ -237,6 +237,7 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
                     </>
                   )}
                   <div className="text-[12px] text-[#667085] text-center">UPI, cards and net banking · secured by Razorpay</div>
+                  {payCfg?.mode === 'test' && <div className="rounded-lg bg-[#FEF3C7] text-[#9A4A05] text-[12px] px-3 py-2 text-center" data-testid="pay-test-mode">Test mode: no real money moves. Use Razorpay's test card or UPI id.</div>}
                 </div>
               )}
             </StepRow>
