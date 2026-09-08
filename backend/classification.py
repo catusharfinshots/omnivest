@@ -104,6 +104,17 @@ def is_stale(doc: Optional[dict], now: Optional[datetime] = None, max_age_days: 
     return (now or datetime.now(timezone.utc)) - fa > timedelta(days=max_age_days)
 
 
+async def head(db: AsyncIOMotorDatabase) -> Optional[dict]:
+    """The membership doc without the (large) symbols map, with `count` derived when an older
+    save never stored it, so the admin console never reads "0 symbols" for loaded data."""
+    docs = await db.app_settings.aggregate([
+        {"$match": {"_id": DOC_ID}},
+        {"$addFields": {"count": {"$ifNull": ["$count", {"$size": {"$objectToArray": {"$ifNull": ["$symbols", {}]}}}]}}},
+        {"$project": {"symbols": 0}},
+    ]).to_list(1)
+    return docs[0] if docs else None
+
+
 async def load(db: AsyncIOMotorDatabase) -> Optional[dict]:
     doc = await db.app_settings.find_one({"_id": DOC_ID})
     _CACHE.clear()
@@ -157,7 +168,7 @@ async def auto_refresh(db: AsyncIOMotorDatabase, reason: str, force: bool = Fals
     """Scheduler entry point: fetch when the data is missing or older than AUTO_MAX_AGE_DAYS.
     Records the outcome under `auto` so the admin console shows what happened, and recomputes live
     listings when index membership actually changed (their cap/sector split depends on it)."""
-    doc = await db.app_settings.find_one({"_id": DOC_ID}, {"symbols": 0})
+    doc = await head(db)
     if not force and not is_stale(doc):
         if not _CACHE:
             await load(db)
@@ -202,7 +213,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
 
     @router.get("/admin/classification/status")
     async def status_ep(_: dict = Depends(require_admin)):
-        return status(await col.find_one({"_id": DOC_ID}, {"symbols": 0}))
+        return status(await head(db))
 
     @router.post("/admin/classification/refresh")
     async def refresh(_: dict = Depends(require_admin)):
@@ -210,7 +221,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         run = await auto_refresh(db, "admin fetch", force=True)
         if not run.get("ok"):
             raise HTTPException(status_code=502, detail="NSE did not serve any list from this server. Upload the CSVs instead (they are on nseindia.com under Indices > constituent lists).")
-        doc = await col.find_one({"_id": DOC_ID}, {"symbols": 0})
+        doc = await head(db)
         return {"ok": True, "fetched": run.get("fetched") or {}, "errors": run.get("errors") or [], "changed": run.get("changed", 0), **status(doc)}
 
     @router.post("/admin/classification/upload")

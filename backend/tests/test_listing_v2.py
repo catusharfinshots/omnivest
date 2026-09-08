@@ -190,3 +190,35 @@ def test_classification_staleness_rule():
     assert not cls.is_stale({"fetched_at": now - timedelta(days=6)}, now)
     assert cls.is_stale({"fetched_at": now - timedelta(days=8)}, now)
     assert cls.is_stale({"fetched_at": (now - timedelta(days=8)).replace(tzinfo=None)}, now)   # Mongo returns naive UTC
+
+
+def test_classification_head_derives_count_for_older_docs():
+    """A doc saved before `count` existed must still report the real symbol count (not 0)."""
+    import asyncio, os as _os, sys
+    sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
+    from motor.motor_asyncio import AsyncIOMotorClient
+    import classification as cls
+    try:  # local runs: same DB the preview backend uses; CI sets MONGO_URL/DB_NAME directly
+        from dotenv import load_dotenv
+        load_dotenv(_os.path.join(_os.path.dirname(__file__), "..", ".env"))
+    except Exception:  # noqa: BLE001
+        pass
+
+    async def run():
+        client = AsyncIOMotorClient(_os.environ.get("MONGO_URL", "mongodb://localhost:27017"))
+        db = client[_os.environ.get("DB_NAME", "omnivest")]
+        col = db.app_settings
+        before = await col.find_one({"_id": cls.DOC_ID}, {"count": 1})
+        try:
+            await col.update_one({"_id": cls.DOC_ID}, {"$unset": {"count": ""}})
+            h = await cls.head(db)
+            full = await col.find_one({"_id": cls.DOC_ID}, {"symbols": 1})
+            assert h is not None and "symbols" not in h
+            assert h["count"] == len((full or {}).get("symbols") or {}) and h["count"] >= 1
+            assert cls.status(h)["symbols"] == h["count"]
+        finally:
+            if before and before.get("count") is not None:
+                await col.update_one({"_id": cls.DOC_ID}, {"$set": {"count": before["count"]}})
+        client.close()
+
+    asyncio.run(run())
