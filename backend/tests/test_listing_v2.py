@@ -175,3 +175,18 @@ def test_classification_endpoint():
     assert up.status_code == 200 and up.json()["rows"] == 1, up.text
     c = requests.get(f"{API}/instruments/classify", params={"symbols": "TESTMICROX"}, timeout=30).json()["symbols"]["TESTMICROX"]
     assert c["cap"] == "Micro" and c["industry"] == "Chemicals"
+    st = requests.get(f"{API}/admin/classification/status", headers=h, timeout=30).json()
+    assert st["loaded"] and st["symbols"] >= 1, st          # regression: status once reported 0 symbols (projection dropped the map)
+    assert st["stale"] is False and "auto_policy" in st and "auto" in st
+
+
+def test_classification_staleness_rule():
+    import sys, os as _os
+    sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
+    from datetime import datetime, timedelta, timezone
+    import classification as cls
+    now = datetime(2026, 9, 9, tzinfo=timezone.utc)
+    assert cls.is_stale(None, now) and cls.is_stale({}, now)
+    assert not cls.is_stale({"fetched_at": now - timedelta(days=6)}, now)
+    assert cls.is_stale({"fetched_at": now - timedelta(days=8)}, now)
+    assert cls.is_stale({"fetched_at": (now - timedelta(days=8)).replace(tzinfo=None)}, now)   # Mongo returns naive UTC

@@ -157,15 +157,23 @@ export default function ListingSettingsAdmin({ token }) {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <div className="text-sm font-semibold flex items-center gap-2"><Database className="h-4 w-4 text-[#6C2BD9]" /> Market-cap & sector data</div>
-            <div className="text-xs text-[#6B6480] mt-0.5">NSE index constituent lists power the holdings distribution on every listing. Refresh after each index reshuffle (NSE rebalances in March and September).</div>
+            <div className="text-xs text-[#6B6480] mt-0.5">NSE index constituent lists power the holdings distribution on every listing. They refresh on their own; the button forces it now.</div>
           </div>
           <button onClick={refreshCls} disabled={clsBusy} className="btn-outline text-xs" data-testid="classification-refresh">{clsBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />} Fetch from NSE</button>
         </div>
         <div className="mt-4 grid sm:grid-cols-3 gap-3">
           <div className="rounded-xl bg-[#F8FAFC] p-4"><div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">Status</div><div className={`mt-1 text-lg font-bold ${cls?.loaded ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>{cls?.loaded ? 'Loaded' : 'Not loaded'}</div><div className="text-[12px] text-[#667085]">{cls?.loaded ? `${cls.symbols} symbols · ${cls.source === 'nse' ? 'fetched from NSE' : 'uploaded CSVs'}` : 'Listings show "Other" until loaded'}</div></div>
-          <div className="rounded-xl bg-[#F8FAFC] p-4"><div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">Last updated</div><div className="mt-1 text-lg font-bold text-[#1A1030]">{nice(cls?.fetched_at)}</div></div>
+          <div className="rounded-xl bg-[#F8FAFC] p-4"><div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">Last updated</div><div className="mt-1 text-lg font-bold text-[#1A1030]">{nice(cls?.fetched_at)}</div>{cls?.loaded && <div className={`text-[12px] ${cls.stale ? 'text-[#9A4A05]' : 'text-[#667085]'}`}>{cls.stale ? 'older than a week; next morning check re-fetches' : 'current'}</div>}</div>
           <div className="rounded-xl bg-[#F8FAFC] p-4"><div className="text-[12px] font-bold uppercase tracking-wider text-[#667085]">Lists</div><div className="mt-1 text-[12px] text-[#4B4560] space-y-0.5">{LIST_KINDS.map(([k, l]) => <div key={k} className="flex justify-between"><span>{l.split(' →')[0]}</span><b>{cls?.lists?.[k] ?? '—'}</b></div>)}</div></div>
         </div>
+        {cls && (
+          <div className="mt-3 text-xs text-[#526071]" data-testid="classification-auto">
+            <b className="text-[#1A1030]">Auto-fetch:</b> {cls.auto_policy}.{' '}
+            {cls.auto ? (cls.auto.ok
+              ? `Last automatic run ${nice(cls.auto.at)} (${cls.auto.reason}): ${Object.values(cls.auto.fetched || {}).reduce((a, b) => a + b, 0)} rows${cls.auto.changed ? `, ${cls.auto.changed} symbols changed, listings recomputed` : ', no change'}${cls.auto.errors?.length ? `, ${cls.auto.errors.length} list(s) failed` : ''}.`
+              : <span className="text-[#B91C1C]">Last automatic run {nice(cls.auto.at)} failed: {(cls.auto.errors || []).join('; ')}. It retries next morning; upload the CSVs if it keeps failing.</span>) : 'No automatic run yet.'}
+          </div>
+        )}
         <div className="mt-4 flex items-center gap-2 flex-wrap text-xs">
           <span className="text-[#6B6480]">If NSE blocks the server, upload the CSV from nseindia.com → Indices → constituent lists:</span>
           <select value={uploadKind} onChange={(e) => setUploadKind(e.target.value)} className="h-8 rounded-lg border border-[#E8E1F0] px-2 text-xs bg-white">{LIST_KINDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>

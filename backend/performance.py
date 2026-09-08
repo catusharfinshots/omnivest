@@ -522,9 +522,19 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             d = d + timedelta(days=1)
         return now + timedelta(hours=6)
 
+    async def _nse_lists(reason: str):
+        """Keep the NSE index membership (market-cap bucket + industry per symbol) fresh without a click."""
+        try:
+            import classification
+            await classification.auto_refresh(db, reason)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("nse lists auto-refresh (%s): %s", reason, e)
+
     async def scheduler():
-        """Runs forever inside the server: refreshes after each close and flags an expired Kite session each morning."""
+        """Runs forever inside the server: refreshes after each close, flags an expired Kite session each morning,
+        and keeps the NSE index lists (cap/sector data) current."""
         await asyncio.sleep(20)   # let the server finish starting
+        await _nse_lists("server start")
         while True:
             try:
                 now = datetime.now(IST)
@@ -536,6 +546,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 else:
                     connected = await _client() is not None
                     await db.app_settings.update_one({"_id": RUNS_ID}, {"$set": {"morning_check": {"at_ist": datetime.now(IST).isoformat(), "kite_connected": connected}}}, upsert=True)
+                    await _nse_lists("scheduled 08:30 IST")
             except asyncio.CancelledError:
                 raise
             except Exception as e:  # noqa: BLE001
