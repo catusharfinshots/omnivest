@@ -13,7 +13,7 @@ export function LegalTabs({ active }) {
   return (
     <nav className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1" aria-label="Fine print" data-testid="legal-tabs">
       {TABS.map(([slug, label]) => (
-        <Link key={slug} to={`/${slug}`} className={`shrink-0 rounded-full px-3.5 h-9 inline-flex items-center text-[13px] font-semibold transition-colors ${active === slug ? 'bg-[#1A1030] text-white' : 'bg-white border border-[#E8E1F0] text-[#526071] hover:text-[#1A1030]'}`}
+        <Link key={slug} to={`/${slug}`} className={`shrink-0 rounded-full px-3.5 h-11 sm:h-9 inline-flex items-center text-[13px] font-semibold transition-colors ${active === slug ? 'bg-[#1A1030] text-white' : 'bg-white border border-[#E8E1F0] text-[#526071] hover:text-[#1A1030]'}`}
           aria-current={active === slug ? 'page' : undefined}>{label}</Link>
       ))}
     </nav>

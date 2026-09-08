@@ -32,7 +32,7 @@ export default function ContactPage() {
   useEffect(() => {
     document.title = 'Contact | Omnivest';
     window.scrollTo({ top: 0 });
-    axios.get(`${API}/legal`).then(({ data }) => setInfo(data)).catch(() => setInfo({ details: { supportEmail: 'support@omnivest.in', brand: 'Omnivest' }, grievance_html: '' }));
+    axios.get(`${API}/legal`).then(({ data }) => setInfo(data)).catch(() => setInfo({ details: { supportEmail: 'support@omnivest.in', grievanceOfficer: 'Omnivest', grievanceEmail: 'support@omnivest.in', brand: 'Omnivest' }, grievance_html: '' }));
   }, []);
 
   const d = info?.details || {};
@@ -65,10 +65,10 @@ export default function ContactPage() {
       <div className="container-x py-8 sm:py-10 grid lg:grid-cols-[1fr_400px] gap-8 items-start">
         <div className="space-y-6 min-w-0">
           <div className="grid sm:grid-cols-2 gap-3">
-            <Card icon={Mail} label="Support" testid="contact-support"><a href={`mailto:${d.supportEmail}`} className="text-[#5320A8]">{d.supportEmail || '…'}</a></Card>
+            <Card icon={Mail} label="Support" testid="contact-support">{d.supportEmail ? <a href={`mailto:${d.supportEmail}`} className="text-[#5320A8]">{d.supportEmail}</a> : <span className="skeleton inline-block h-4 w-40 rounded" />}</Card>
             {d.supportPhone && <Card icon={Phone} label="Phone" testid="contact-phone"><a href={`tel:${d.supportPhone}`} className="text-[#5320A8]">{d.supportPhone}</a></Card>}
             {d.supportHours && <Card icon={Clock} label="Hours" testid="contact-hours">{d.supportHours}</Card>}
-            <Card icon={UserCheck} label="Grievance officer" testid="contact-grievance">{d.grievanceOfficer || '…'}<div className="text-[13px] font-normal"><a href={`mailto:${d.grievanceEmail}`} className="text-[#5320A8]">{d.grievanceEmail}</a></div></Card>
+            <Card icon={UserCheck} label="Grievance officer" testid="contact-grievance">{d.grievanceOfficer || <span className="skeleton inline-block h-4 w-32 rounded" />}{d.grievanceEmail && <div className="text-[13px] font-normal"><a href={`mailto:${d.grievanceEmail}`} className="text-[#5320A8]">{d.grievanceEmail}</a></div>}</Card>
             {d.registeredAddress && <Card icon={MapPin} label={`${d.legalName || 'Omnivest'}`} testid="contact-address">{d.registeredAddress}</Card>}
           </div>
 
