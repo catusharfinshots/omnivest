@@ -50,6 +50,8 @@ def test_static_route_direct_url(route):
     tags, html = _tags(f"{ORIGIN}{route}")
     _assert_contract(tags)
     assert '<div id="root"' in html
+    title = og.PAGE_META[route][0]
+    assert tags["og:title"].startswith(title), f"{route} serves '{tags['og:title']}' — add the route to scripts/prerender-og.js and render.yaml"
 
 
 def _live_listings():

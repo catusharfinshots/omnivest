@@ -116,6 +116,18 @@ services:
       - type: rewrite
         source: /partner/apply
         destination: /partner/apply/index.html
+      - type: rewrite
+        source: /terms
+        destination: /terms/index.html
+      - type: rewrite
+        source: /privacy
+        destination: /privacy/index.html
+      - type: rewrite
+        source: /refunds
+        destination: /refunds/index.html
+      - type: rewrite
+        source: /contact
+        destination: /contact/index.html
       # SPA fallback: all other paths serve the React app
       - type: rewrite
         source: /*
