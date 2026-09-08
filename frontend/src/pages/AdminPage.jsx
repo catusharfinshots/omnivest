@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, 
 import AboutAdmin from '../components/admin/AboutAdmin';
 import MarketDataAdmin from '../components/admin/MarketDataAdmin';
 import ListingSettingsAdmin from '../components/admin/ListingSettingsAdmin';
+import LegalAdmin from '../components/admin/LegalAdmin';
 import SubscriptionsAdmin from '../components/admin/SubscriptionsAdmin';
 import ListingReviewCard from '../components/admin/ListingReviewCard';
 import PostsModerationAdmin from '../components/admin/PostsModerationAdmin';
@@ -78,7 +79,7 @@ const HEADER = {
   partnerpage: { title: 'Partner page', desc: 'Everything shown on the public partner landing page (/partner) — hero, benefits, steps, requirements and FAQ. Publish to go live.' },
   market: { title: 'Market data (Kite)', desc: 'Connect Zerodha Kite once each trading day to power analyst instrument search, live prices and returns.' },
   database: { title: 'Database', desc: 'Read-only view of your live data. Sensitive fields (passwords, tokens) are redacted.' },
-  settings: { title: 'Site settings', desc: 'Legal disclaimer and contact details.' },
+  settings: { title: 'Site settings', desc: 'Legal pages and company details, share previews, footer and contact, partner terms.' },
 };
 
 const DB_GROUPS = [
@@ -958,6 +959,7 @@ export default function AdminPage() {
               {tab === 'fds' && <EmptyState title="Manage fixed deposits" desc="Add providers, rates, and tenures shown on the FD page." onAdd={()=>{toast.success('New FD row added (mock)'); markDirty();}} />}
               {tab === 'settings' && (<>
                 <SharePreviewAdmin token={token} />
+                <LegalAdmin token={token} />
                 <section className="surface p-6 space-y-5 mt-4" data-testid="settings-panel">
                   <div className="text-sm font-semibold">Footer & contact</div>
                   <div>

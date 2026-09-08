@@ -87,8 +87,9 @@ async def terms_for(db: AsyncIOMotorDatabase, pid: str) -> Optional[Dict[str, An
     usr = await db.users.find_one({"id": listing.get("owner_id")}, {"_id": 0, "analyst_profile": 1, "name": 1, "email": 1}) or {}
     prof = usr.get("analyst_profile") or {}
     content = await db.site_content.find_one({"key": "home"}, {"_id": 0, "subscriptionTerms": 1, "platformDetails": 1, "investorCharter": 1}) or {}
-    platform = content.get("subscriptionTerms") or CONTENT_DEFAULTS.get("subscriptionTerms", "")
-    pd = {**CONTENT_DEFAULTS.get("platformDetails", {}), **(content.get("platformDetails") or {})}
+    import legal as _legal
+    pd = _legal.details_from(content)
+    platform = _legal.fill(content.get("subscriptionTerms") or CONTENT_DEFAULTS.get("subscriptionTerms", ""), pd)
     charter = content.get("investorCharter") or CONTENT_DEFAULTS.get("investorCharter", "")
     # the approved partner application is the licence-holder record (what smallcase prints under "License Holder Details")
     app = await db.partner_applications.find_one({"$or": [{"phone": usr.get("phone")}, {"email": usr.get("email")}], "status": "approved"},
@@ -123,10 +124,15 @@ async def terms_for(db: AsyncIOMotorDatabase, pid: str) -> Optional[Dict[str, An
                     "SEBI as a Research Analyst. The analyst does not handle your funds or securities and does not guarantee returns. "
                     "Registration granted by SEBI, membership of RAASB and certification from NISM in no way guarantee performance of the "
                     "intermediary or provide any assurance of returns to investors.</p>")
-    prow = [("Legal name", pd.get("legalName") or "—"), ("Brand", pd.get("brand") or "Omnivest"), ("CIN", pd.get("cin") or "—"),
-            ("Registered address", pd.get("registeredAddress") or "—"),
-            ("Support", " · ".join(x for x in [pd.get("supportEmail"), pd.get("supportPhone")] if x) or "—"),
-            ("Grievance officer", " · ".join(x for x in [pd.get("grievanceOfficer"), pd.get("grievanceEmail")] if x) or "—")]
+    prow = [("Legal name", pd.get("legalName") or "—"), ("Brand", pd.get("brand") or "Omnivest")]
+    if pd.get("entityType"):
+        prow.append(("Entity", pd["entityType"]))
+    if pd.get("registrationNo"):
+        prow.append(("Registration no.", pd["registrationNo"]))
+    prow += [("Registered address", pd.get("registeredAddress") or "—"),
+             ("Support", " · ".join(x for x in [pd.get("supportEmail"), pd.get("supportPhone")] if x) or "—"),
+             ("Grievance officer", " · ".join(x for x in [pd.get("grievanceOfficer"), pd.get("grievanceEmail")] if x) or "—"),
+             ("Platform policies", "omnivest.in/terms · omnivest.in/privacy · omnivest.in/refunds")]
     platform_html = ("<h3>Platform and merchant of record</h3><table class=\"terms-kv\">"
                      + "".join(f"<tr><th>{e(k)}</th><td>{e(str(v))}</td></tr>" for k, v in prow) + "</table>" + platform)
     doc_html = partner_html + platform_html

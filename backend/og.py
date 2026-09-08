@@ -54,6 +54,10 @@ PAGE_META = {
     "/calculators": ("Calculators", "SIP and returns calculators to plan your investments."),
     "/partner": ("Become a Partner", "Partner with Omnivest as a SEBI-registered research analyst."),
     "/partner/apply": ("Partner Application", "Apply as a SEBI-registered research analyst partner on Omnivest."),
+    "/terms": ("Terms of Service", "The rules for using Omnivest: what the platform does, partners' responsibilities, subscriptions, risk and grievance redressal."),
+    "/privacy": ("Privacy Policy", "What Omnivest collects, why, who it is shared with, how long it is kept and your rights."),
+    "/refunds": ("Refund Policy", "Omnivest subscription fees are non-refundable once access starts; the narrow exceptions and how to ask."),
+    "/contact": ("Contact", "Reach Omnivest support, our grievance officer, and the three-step complaint process."),
 }
 
 # Omnivest palettes (mirrors frontend CoverArt.jsx)

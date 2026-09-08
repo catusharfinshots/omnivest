@@ -43,18 +43,25 @@ DEFAULT_CONTENT = {
         "subscribeHeading": "Get market insights & product updates in your inbox",
         "socials": {"facebook": "", "x": "", "youtube": "", "linkedin": "", "instagram": ""},
     },
+    # One set of company facts: fills Terms / Privacy / Refunds / Contact (legal.py) and the checkout merchant block.
+    # Omnivest is a brand run by Tushar Sukhija as a sole proprietor (9 Sep 2026); no CIN. Address still to be filled in admin.
     "platformDetails": {
-        "legalName": "Omnivest Technologies", "brand": "Omnivest", "cin": "", "registeredAddress": "",
-        "supportEmail": "support@omnivest.in", "supportPhone": "", "grievanceOfficer": "", "grievanceEmail": "support@omnivest.in",
+        "legalName": "Tushar Sukhija (sole proprietor)", "brand": "Omnivest", "entityType": "sole proprietorship", "registrationNo": "",
+        "registeredAddress": "", "supportEmail": "support@omnivest.in", "supportPhone": "", "supportHours": "",
+        "grievanceOfficer": "Tushar Sukhija", "grievanceEmail": "tushar@omnivest.in",
     },
+    # Full legal documents live in legal.py; these keys hold admin overrides ("" = use the built-in text).
+    "legalTerms": "", "legalPrivacy": "", "legalRefunds": "", "legalUpdated": "",
     "investorCharter": CHARTER_HTML,
     "subscriptionTerms": (
         "<h3>Omnivest platform terms for paid model portfolios</h3>"
-        "<p>Omnivest Technologies (“Omnivest”) operates omnivest.in, a platform where SEBI-registered research analysts "
+        "<p>{{legalName}}, trading as {{brand}} (“Omnivest”), operates omnivest.in, a platform where SEBI-registered research analysts "
         "(“Partners”) publish model portfolios. When you subscribe to a paid model portfolio, Omnivest collects the "
         "subscription fee on its own account and grants you access to that portfolio’s constituents, weights, factsheet and "
         "updates for the plan period.</p>"
-        "<ul><li>Research is prepared by the Partner named above, who is solely responsible for it. Omnivest does not provide "
+        "<ul><li>Fees are not refundable once access starts (omnivest.in/refunds). The platform Terms of Service (omnivest.in/terms) "
+        "and Privacy Policy (omnivest.in/privacy) also apply.</li>"
+        "<li>Research is prepared by the Partner named above, who is solely responsible for it. Omnivest does not provide "
         "investment advice and does not execute trades on your behalf; orders are placed by you through your own broker.</li>"
         "<li>Fees are non-refundable once access is granted, except where required by law or where Omnivest withdraws a portfolio "
         "within seven days of your payment, in which case the unused portion is refunded.</li>"
@@ -173,7 +180,7 @@ DEFAULT_CONTENT = {
 }
 
 ALLOWED_KEYS = ("hero", "stats", "trust", "testimonials", "footer", "partnerTerms", "partnerPage", "performanceDisclaimer", "subscriptionTerms",
-                "platformDetails", "investorCharter")
+                "platformDetails", "investorCharter", "legalTerms", "legalPrivacy", "legalRefunds", "legalUpdated")
 
 
 def build_router(db: AsyncIOMotorDatabase) -> APIRouter:

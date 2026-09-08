@@ -21,6 +21,8 @@ import LearnPage from './pages/LearnPage';
 import LearnPost from './pages/LearnPost';
 import DashboardPage from './pages/DashboardPage';
 import BusinessPage from './pages/BusinessPage';
+import LegalPage from './pages/LegalPage';
+import ContactPage from './pages/ContactPage';
 import AdminPage from './pages/AdminPage';
 import PartnerLanding from './pages/PartnerLanding';
 import PartnerApply from './pages/PartnerApply';
@@ -99,6 +101,10 @@ function App() {
               <Route path="/learn/:slug" element={<LearnPost />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/business" element={<BusinessPage />} />
+              <Route path="/terms" element={<LegalPage slug="terms" />} />
+              <Route path="/privacy" element={<LegalPage slug="privacy" />} />
+              <Route path="/refunds" element={<LegalPage slug="refunds" />} />
+              <Route path="/contact" element={<ContactPage />} />
               <Route path="/faq" element={<FAQPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />

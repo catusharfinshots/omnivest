@@ -219,7 +219,7 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
                       <button type="button" onClick={confirmTerms} disabled={busy || code.length < 4} className="btn-primary disabled:opacity-60" data-testid="terms-confirm"><FileText className="h-4 w-4" /> Sign</button>
                     </div>
                   )}
-                  <div className="text-[12px] text-[#667085]">Version {terms.version}. A copy of what you signed stays in your account.</div>
+                  <div className="text-[12px] text-[#667085]">Version {terms.version}. A copy of what you signed stays in your account. Also see the platform <a href="/terms" target="_blank" rel="noreferrer" className="underline">Terms</a>, <a href="/privacy" target="_blank" rel="noreferrer" className="underline">Privacy</a> and <a href="/refunds" target="_blank" rel="noreferrer" className="underline">Refund policy</a>.</div>
                   {terms.charter_html && (
                     <div className="rounded-lg border border-[#E8E1F0] bg-white">
                       <button type="button" onClick={() => setCharterOpen((o) => !o)} className="w-full h-11 px-3 flex items-center justify-between text-[13px] font-semibold text-[#0F1729]" data-testid="charter-toggle">

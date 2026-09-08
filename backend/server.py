@@ -148,6 +148,10 @@ api_router.include_router(build_performance_router(db))
 from classification import build_router as build_classification_router  # noqa: E402
 api_router.include_router(build_classification_router(db))
 
+# Legal pages (Terms / Privacy / Refunds + Contact details), filled from platformDetails
+from legal import build_router as build_legal_router  # noqa: E402
+api_router.include_router(build_legal_router(db))
+
 # Listing updates feed (partner posts, subscriber-only gating, admin moderation)
 from posts import build_router as build_posts_router  # noqa: E402
 api_router.include_router(build_posts_router(db))

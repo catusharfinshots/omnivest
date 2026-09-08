@@ -14,7 +14,7 @@ const LISTING = (() => { try { return fs.readFileSync(path.join(__dirname, '..',
 const ROUTES = [
   '/', '/model-portfolios', '/aif', '/advisory', '/about', '/mutual-funds', '/fixed-deposits', '/collections',
   '/stocks', '/managers', '/calculators', '/calculators/sip', '/learn', '/business', '/faq', '/login', '/signup',
-  '/partner', '/partner/apply', '/brokers/connect',
+  '/partner', '/partner/apply', '/brokers/connect', '/terms', '/privacy', '/refunds', '/contact',
   ...(LISTING ? [LISTING] : []),
 ];
 
