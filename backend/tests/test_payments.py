@@ -60,12 +60,28 @@ def test_checkout_creates_subscription_and_unlocks():
         assert bad.status_code == 400
         assert not requests.get(f"{API}/portfolios/{pid}", headers=inv, timeout=30).json()["portfolio"]["access"]["unlocked"]
 
-        # the real signature (HMAC of order|payment with the key secret) does
+        st = requests.get(f"{API}/payments/orders/{order['order_id']}", headers=inv, timeout=30).json()
+        assert st["status"] in ("created", "signature_failed") and st["subscription"] is None
+        assert requests.get(f"{API}/payments/orders/{order['order_id']}", timeout=30).status_code == 401
+
+        # the real signature (HMAC of order|payment with the key secret) does — and it must survive the real-world
+        # burst: the browser's verify plus Razorpay's payment.captured AND order.paid webhooks in the same second
         payment_id = f"pay_{uuid.uuid4().hex[:14]}"
-        good = requests.post(f"{API}/payments/verify", json={"razorpay_order_id": order["order_id"], "razorpay_payment_id": payment_id,
-                                                              "razorpay_signature": _sig(MOCK_SECRET, f"{order['order_id']}|{payment_id}")}, headers=inv, timeout=30)
-        assert good.status_code == 200, good.text
+        verify_body = {"razorpay_order_id": order["order_id"], "razorpay_payment_id": payment_id, "razorpay_signature": _sig(MOCK_SECRET, f"{order['order_id']}|{payment_id}")}
+        calls = [lambda: requests.post(f"{API}/payments/verify", json=verify_body, headers=inv, timeout=30)] * 2
+        if WEBHOOK_SECRET:
+            for ev in ("payment.captured", "order.paid"):
+                wb = json.dumps({"event": ev, "payload": {"payment": {"entity": {"id": payment_id, "order_id": order["order_id"], "amount": 129900}}}})
+                calls.append(lambda wb=wb: requests.post(f"{API}/payments/webhook", data=wb, headers={"Content-Type": "application/json", "X-Razorpay-Signature": _sig(WEBHOOK_SECRET, wb)}, timeout=30))
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=len(calls)) as ex:
+            results = list(ex.map(lambda f: f(), calls))
+        assert all(r.status_code == 200 for r in results), [(r.status_code, r.text[:120]) for r in results]
+        good = results[0]
         assert good.json()["subscription"]["plan_months"] == 3
+        assert len(requests.get(f"{API}/me/subscriptions", headers=inv, timeout=30).json()["subscriptions"]) == 1, "one payment must never stack two terms"
+        st = requests.get(f"{API}/payments/orders/{order['order_id']}", headers=inv, timeout=30).json()
+        assert st["status"] == "paid" and st["subscription"]["plan_months"] == 3
         d = requests.get(f"{API}/portfolios/{pid}", headers=inv, timeout=30).json()["portfolio"]
         assert d["access"]["unlocked"] and d["access"]["reason"] == "subscriber" and len(d["constituents"]) == 2
         mine = requests.get(f"{API}/me/subscriptions", headers=inv, timeout=30).json()["subscriptions"]

@@ -12,12 +12,13 @@ including signature verification, can be tested without an account. Never set mo
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import json
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 import requests
@@ -113,19 +114,60 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 "prefill": {"name": user.get("name", ""), "email": user.get("email") or "", "contact": user.get("phone") or ""},
                 "notes": {"portfolio_id": pid, "plan_months": str(months)}}
 
+    async def _sub_of(order: dict) -> Optional[dict]:
+        return await db[subs.COLL].find_one({"id": order["subscription_id"]}, {"_id": 0}) if order.get("subscription_id") else None
+
     async def _fulfil(order: dict, payment_id: str, how: str) -> dict:
-        """Idempotent: one subscription per paid order, however many times we hear about it."""
-        if order.get("status") == "paid" and order.get("subscription_id"):
-            return await db[subs.COLL].find_one({"id": order["subscription_id"]}, {"_id": 0})
-        listing = await portfolios.find_one({"id": order["portfolio_id"]}, {"_id": 0, "id": 1, "name": 1})
-        s = await subs.create_subscription(db, order["user_id"], listing, int(order["plan_months"]), order["amount"] / 100.0, "razorpay",
-                                           f"Razorpay {payment_id}", how, payment={"order_id": order["order_id"], "payment_id": payment_id, "amount": order["amount"]},
-                                           consent=order.get("consent"))
-        await orders.update_one({"id": order["id"]}, {"$set": {"status": "paid", "payment_id": payment_id, "paid_at": _now(), "subscription_id": s["id"], "fulfilled_by": how}})
-        await db.audit_log.insert_one({"id": str(uuid.uuid4()), "type": "subscription_paid", "portfolio_id": order["portfolio_id"], "subscription_id": s["id"],
-                                       "user_id": order["user_id"], "plan_months": order["plan_months"], "amount": order["amount"], "payment_id": payment_id,
-                                       "via": how, "at": _now().isoformat()})
-        return s
+        """Exactly one subscription per paid order, however many times and however concurrently we hear about it.
+        Razorpay sends payment.captured AND order.paid within the same second, and the browser's verify races
+        both (seen on 9 Sep 2026: one ₹500 payment became two stacked terms). The first caller claims the order
+        with an atomic update; the others wait for the claimer's subscription id instead of creating their own."""
+        for _ in range(3):
+            if order.get("subscription_id"):
+                return await _sub_of(order)
+            stale = _now() - timedelta(seconds=60)   # a claim older than this belongs to a request that died mid-way
+            claimed = await orders.find_one_and_update(
+                {"id": order["id"], "subscription_id": {"$exists": False},
+                 "$or": [{"fulfilling_at": {"$exists": False}}, {"fulfilling_at": {"$lt": stale}}]},
+                {"$set": {"fulfilling_at": _now(), "fulfilling_by": how}})
+            if claimed is None:
+                for _wait in range(40):   # up to ~10 s: the claimer only has to insert one row
+                    await asyncio.sleep(0.25)
+                    fresh = await orders.find_one({"id": order["id"]}, {"_id": 0})
+                    if fresh and fresh.get("subscription_id"):
+                        return await _sub_of(fresh)
+                    if fresh and not fresh.get("fulfilling_at"):   # the claimer failed and released the order
+                        order = fresh
+                        break
+                else:
+                    raise HTTPException(status_code=503, detail="Your payment is being recorded. Refresh in a moment.")
+                continue
+            try:
+                listing = await portfolios.find_one({"id": order["portfolio_id"]}, {"_id": 0, "id": 1, "name": 1})
+                s = await subs.create_subscription(db, order["user_id"], listing, int(order["plan_months"]), order["amount"] / 100.0, "razorpay",
+                                                   f"Razorpay {payment_id}", how, payment={"order_id": order["order_id"], "payment_id": payment_id, "amount": order["amount"]},
+                                                   consent=order.get("consent"))
+                await orders.update_one({"id": order["id"]}, {"$set": {"status": "paid", "payment_id": payment_id, "paid_at": _now(), "subscription_id": s["id"], "fulfilled_by": how},
+                                                              "$unset": {"fulfilling_at": "", "fulfilling_by": ""}})
+            except Exception:
+                await orders.update_one({"id": order["id"]}, {"$unset": {"fulfilling_at": "", "fulfilling_by": ""}})
+                raise
+            await db.audit_log.insert_one({"id": str(uuid.uuid4()), "type": "subscription_paid", "portfolio_id": order["portfolio_id"], "subscription_id": s["id"],
+                                           "user_id": order["user_id"], "plan_months": order["plan_months"], "amount": order["amount"], "payment_id": payment_id,
+                                           "via": how, "at": _now().isoformat()})
+            return s
+        raise HTTPException(status_code=503, detail="Your payment is being recorded. Refresh in a moment.")
+
+    @router.get("/payments/orders/{order_id}")
+    async def order_status(order_id: str, user: dict = Depends(require_user)):
+        """Lets the browser reconcile after Razorpay's window closes: a retry inside that window is fulfilled by
+        the webhook even though checkout's handler never fired, so the page asks us before saying 'not charged'."""
+        order = await orders.find_one({"order_id": order_id, "user_id": user["id"]}, {"_id": 0})
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        s = await _sub_of(order)
+        return {"order_id": order_id, "status": order.get("status"),
+                "subscription": {"id": s["id"], "plan_months": s["plan_months"], "expires_at": subs._iso(s["expires_at"]), "portfolio_id": s["portfolio_id"]} if s else None}
 
     @router.post("/payments/verify")
     async def verify(payload: dict = Body(...), user: dict = Depends(require_user)):

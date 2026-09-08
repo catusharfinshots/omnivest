@@ -123,10 +123,22 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
     try {
       if (payCfg?.enabled) {
         const { data: order } = await axios.post(`${API}/payments/orders`, { portfolio_id: basket.id, plan_months: plan.months }, h);
-        const resp = await openCheckout(order);
-        const { data } = await axios.post(`${API}/payments/verify`, { ...resp }, h);
-        track('subscribe_paid', { portfolio_id: basket.id, plan: plan.months });
-        setResult({ kind: 'paid', expires_at: data.subscription.expires_at });
+        let resp;
+        try {
+          resp = await openCheckout(order, { onFailed: (m) => toast.error(`${m} — you can retry in the payment window.`) });
+        } catch (closed) {
+          // the window closed without a success callback; the webhook may still have recorded a retried payment
+          const { data: st } = await axios.get(`${API}/payments/orders/${order.order_id}`, h).catch(() => ({ data: {} }));
+          if (!st?.subscription) throw closed;
+          resp = null;
+          track('subscribe_paid', { portfolio_id: basket.id, plan: plan.months, via: 'webhook' });
+          setResult({ kind: 'paid', expires_at: st.subscription.expires_at });
+        }
+        if (resp) {
+          const { data } = await axios.post(`${API}/payments/verify`, { ...resp }, h);
+          track('subscribe_paid', { portfolio_id: basket.id, plan: plan.months });
+          setResult({ kind: 'paid', expires_at: data.subscription.expires_at });
+        }
       } else {
         const { data } = await axios.post(`${API}/portfolios/${basket.id}/subscribe-interest`, { plan_months: plan.months }, h);
         setResult({ kind: 'interest', message: data.message });

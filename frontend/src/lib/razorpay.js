@@ -21,7 +21,7 @@ export function loadRazorpay() {
  * In mock mode (no Razorpay account yet) there is no window: a fake payment id is returned so the
  * server-side verification path can be exercised end to end.
  */
-export async function openCheckout(order, theme = '#6C2BD9') {
+export async function openCheckout(order, { onFailed, theme = '#6C2BD9' } = {}) {
   if (order.mode === 'mock') {
     const payment_id = `pay_mock_${Math.random().toString(36).slice(2, 12)}`;
     return { razorpay_order_id: order.order_id, razorpay_payment_id: payment_id, razorpay_signature: null, mock: true };
@@ -35,7 +35,9 @@ export async function openCheckout(order, theme = '#6C2BD9') {
       handler: (resp) => resolve(resp),
       modal: { ondismiss: () => reject(new Error('Payment window closed')) },
     });
-    rzp.on('payment.failed', (r) => reject(new Error(r?.error?.description || 'Payment failed')));
+    // A failed attempt is not the end: Razorpay keeps its window open with a Retry, and a later success still
+    // calls `handler`. Rejecting here would settle the promise early and lose that success (seen 9 Sep 2026).
+    rzp.on('payment.failed', (r) => onFailed?.(r?.error?.description || 'Payment failed'));
     rzp.open();
   });
 }
