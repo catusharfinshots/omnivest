@@ -25,7 +25,7 @@ from content import DEFAULT_CONTENT
 
 LEGAL_UPDATED_DEFAULT = "2026-09-09"
 TOKENS = ("brand", "legalName", "entityType", "registrationNo", "registeredAddress", "supportEmail", "supportPhone",
-          "supportHours", "grievanceOfficer", "grievanceEmail", "sebiRegistration", "raasbNo")
+          "supportHours", "grievanceOfficer", "grievanceEmail")
 REQUIRED = ("legalName", "registeredAddress", "supportEmail", "grievanceOfficer", "grievanceEmail")
 
 RISK_LINE = ("Investments in securities are subject to market risks. Read all related documents carefully before investing. "
@@ -46,8 +46,7 @@ GRIEVANCE_LADDER = (
 
 TERMS_HTML = (
     "<div class=\"mitc\"><h2 id=\"summary\">Most important terms, in plain language</h2><ul>"
-    "{{#sebiRegistration}}<li>{{brand}} is a technology platform run by {{legalName}}, a SEBI-registered Research Analyst (registration no. {{sebiRegistration}}), who also publishes model portfolios on it. The Platform itself gives no personalised advice.</li>{{/sebiRegistration}}"
-    "{{^sebiRegistration}}<li>{{brand}} is a technology platform run by {{legalName}}. We are not a SEBI-registered adviser or research analyst and we never give investment advice.</li>{{/sebiRegistration}}"
+    "<li>{{brand}} is a technology platform run by {{legalName}}. We are not a SEBI-registered adviser or research analyst and we never give investment advice.</li>"
     "<li>Every model portfolio on {{brand}} is created and maintained by a SEBI-registered research analyst (a \"partner\") whose licence details are printed on the listing and in the terms you sign before paying.</li>"
     "<li>You pay {{brand}} for access to a partner's portfolio for a fixed period. {{brand}} is the merchant of record. Fees are not refundable once access starts (see the Refund policy).</li>"
     "<li>Nothing is invested for you. You place orders yourself, through your own broker, and you keep full control of your money and securities.</li>"
@@ -59,10 +58,6 @@ TERMS_HTML = (
     "<p>{{brand}} (\"we\", \"us\") is the brand under which {{legalName}}{{#entityType}}, a {{entityType}} in India,{{/entityType}} operates the website omnivest.in "
     "and its related applications (together, the \"Platform\").{{#registeredAddress}} Our registered address is {{registeredAddress}}.{{/registeredAddress}}"
     "{{#registrationNo}} Registration: {{registrationNo}}.{{/registrationNo}} You can reach us at {{supportEmail}}.</p>"
-    "{{#sebiRegistration}}<p>{{legalName}} is registered with SEBI as a Research Analyst, registration no. {{sebiRegistration}}"
-    "{{#raasbNo}}, and enlisted with RAASB (BSE) under no. {{raasbNo}}{{/raasbNo}}. Model portfolios published under that registration carry "
-    "its licence-holder details, exactly as portfolios published by other partners carry theirs. Registration granted by SEBI, membership of "
-    "RAASB and certification from NISM in no way guarantee performance or assure returns.</p>{{/sebiRegistration}}"
     "<p>By creating an account, browsing the Platform or subscribing to a model portfolio you agree to these Terms, our "
     "<a href=\"/privacy\">Privacy Policy</a> and our <a href=\"/refunds\">Refund Policy</a>. If you do not agree, please do not use the Platform.</p>"
 
@@ -70,9 +65,7 @@ TERMS_HTML = (
     "<p>The Platform lets SEBI-registered research analysts publish model portfolios (a named list of stocks or ETFs with weights, a methodology "
     "and periodic updates) and lets investors browse them, compare their computed track records, subscribe to paid ones and, optionally, "
     "connect a broker account to place orders themselves.</p>"
-    "<ul><li>{{#sebiRegistration}}The Platform does not give personalised investment advice. Research on the Platform is published by the "
-    "registered research analyst named on each portfolio, which may be {{legalName}} or another partner; no portfolio is an endorsement of another.{{/sebiRegistration}}"
-    "{{^sebiRegistration}}We do not provide investment advice, research or recommendations of our own, and we do not endorse any partner's view.{{/sebiRegistration}}</li>"
+    "<ul><li>We do not provide investment advice, research or recommendations of our own, and we do not endorse any partner's view.</li>"
     "<li>We do not hold, pool or manage your money or securities and we do not execute trades on your behalf. Orders you place through a connected broker are your own instructions to that broker.</li>"
     "<li>We do not guarantee any return, the accuracy of any partner's research, or that a portfolio will suit your circumstances. Speak to your own adviser if you are unsure.</li></ul>"
 

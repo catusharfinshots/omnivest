@@ -13,7 +13,6 @@ const FIELDS = [
   ['supportEmail', 'Support email', 'support@omnivest.in'], ['supportPhone', 'Support phone (optional)', '+91 …'],
   ['supportHours', 'Support hours (optional)', 'Mon–Fri, 10:00–18:00 IST'],
   ['grievanceOfficer', 'Grievance officer', 'Tushar Sukhija'], ['grievanceEmail', 'Grievance officer email', 'tushar@omnivest.in'],
-  ['sebiRegistration', 'SEBI Research Analyst registration no. (INH...)', 'INH000000000'], ['raasbNo', 'RAASB / BSE enlistment no. (optional)', ''],
 ];
 const TOKENS = ['{{legalName}}', '{{brand}}', '{{registeredAddress}}', '{{supportEmail}}', '{{supportPhone}}', '{{grievanceOfficer}}', '{{grievanceEmail}}'];
 

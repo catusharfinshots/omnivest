@@ -49,9 +49,9 @@ DEFAULT_CONTENT = {
         "legalName": "Tushar Sukhija (sole proprietor)", "brand": "Omnivest", "entityType": "sole proprietorship", "registrationNo": "",
         "registeredAddress": "", "supportEmail": "support@omnivest.in", "supportPhone": "", "supportHours": "",
         "grievanceOfficer": "Tushar Sukhija", "grievanceEmail": "tushar@omnivest.in",
-        # Tushar holds a SEBI Research Analyst registration (INH...) in his own name (confirmed 9 Sep 2026); he fills the numbers in admin.
-        "sebiRegistration": "", "raasbNo": "",
     },
+    # Tushar's decision (9 Sep 2026): the PLATFORM is not SEBI-registered; his personal RA licence is only for being a partner.
+    # Do not add platform-level SEBI registration fields or wording without asking him.
     # Full legal documents live in legal.py; these keys hold admin overrides ("" = use the built-in text).
     "legalTerms": "", "legalPrivacy": "", "legalRefunds": "", "legalUpdated": "",
     "investorCharter": CHARTER_HTML,

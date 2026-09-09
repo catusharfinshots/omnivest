@@ -21,6 +21,7 @@ def test_index_and_documents_render_without_placeholders():
     assert [p["slug"] for p in idx["pages"]] == ["terms", "privacy", "refunds"]
     assert idx["details"]["brand"] == "Omnivest" and idx["details"]["supportEmail"] and idx["details"]["grievanceEmail"]
     assert "scores.sebi.gov.in" in idx["grievance_html"] and "{{" not in idx["grievance_html"]
+    assert "We are not a SEBI-registered adviser or research analyst" in requests.get(f"{API}/legal/terms", timeout=30).json()["html"]  # platform stance (Tushar, 9 Sep 2026)
     for slug in ("terms", "privacy", "refunds"):
         d = requests.get(f"{API}/legal/{slug}", timeout=30).json()
         assert d["title"] and d["updated"] and len(d["toc"]) >= 5, slug
@@ -51,21 +52,6 @@ def test_platform_details_flow_into_every_page_and_checkout_block():
         html = requests.get(f"{API}/legal/privacy", timeout=30).json()["html"]
         assert "12 Test Lane" not in html and "Postal:" not in html and "{{" not in html
         assert "registeredAddress" in requests.get(f"{API}/legal", timeout=30).json()["missing"]
-    finally:
-        requests.put(f"{API}/content", json={"platformDetails": orig}, headers=h, timeout=30)
-
-
-def test_sebi_registration_switches_the_platform_wording():
-    """With the RA registration filled in, Terms must stop claiming Omnivest is unregistered (Tushar holds INH... personally)."""
-    h = _admin()
-    orig = _content(h).get("platformDetails") or {}
-    try:
-        base = requests.get(f"{API}/legal/terms", timeout=30).json()["html"]
-        assert "We are not a SEBI-registered adviser" in base
-        requests.put(f"{API}/content", json={"platformDetails": {**orig, "sebiRegistration": "INH000012345", "raasbNo": "BSE-RA-777"}}, headers=h, timeout=30).raise_for_status()
-        html = requests.get(f"{API}/legal/terms", timeout=30).json()["html"]
-        assert "We are not a SEBI-registered adviser" not in html
-        assert "registration no. INH000012345" in html and "BSE-RA-777" in html and "{{" not in html
     finally:
         requests.put(f"{API}/content", json={"platformDetails": orig}, headers=h, timeout=30)
 
