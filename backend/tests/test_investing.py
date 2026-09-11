@@ -59,3 +59,10 @@ def test_market_state_windows():
 def test_counts():
     c = inv.counts_of([{"order_id": "1", "status": "COMPLETE"}, {"order_id": "2", "status": "OPEN"}, {"order_id": None, "status": "REJECTED"}, {"order_id": "4", "status": "CANCELLED"}])
     assert c == {"total": 4, "placed": 3, "complete": 1, "open": 1, "rejected": 2}
+
+
+def test_funds_check_pads_and_rounds():
+    assert inv.funds_check(11212, 48210) == {"required": 11437, "available": 48210.0, "short": 0, "ok": True}
+    fc = inv.funds_check(3845, -119)                              # smallcase's example: 3845 -> 3922 required, ₹-119 available
+    assert fc["required"] == 3922 and fc["short"] == 4050 and fc["ok"] is False   # rounded up to ₹10 (smallcase showed 4,042)
+    assert inv.funds_check(1000, None) is None                    # balance unknown -> no gate, warn only

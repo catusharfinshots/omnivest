@@ -39,6 +39,7 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
   const [err, setErr] = useState(null);       // { code, message, min_amount }
   const [result, setResult] = useState(null); // { batch, market }
   const [connecting, setConnecting] = useState(false);
+  const [quote, setQuote] = useState(null);   // live minimum + Zerodha balance, fetched when the modal opens
   const amountRef = useRef(null);
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
 
   useEffect(() => {
     if (!open) return;
-    setStep(1); setPreview(null); setResult(null); setErr(null);
+    setStep(1); setPreview(null); setResult(null); setErr(null); setQuote(null);
     setAmount(String(Math.round(minAmount || basket?.minAmount || 0) || ''));
     axios.get(`${API}/invest/market`).then(({ data }) => setMarket(data)).catch(() => setMarket(null));
     refreshKite?.();
@@ -58,7 +59,24 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, basket?.id]);
 
+  // once Zerodha is connected: live minimum (today's prices) and available balance
+  useEffect(() => {
+    if (!open || !kite || !token || !basket?.id) return;
+    let alive = true;
+    axios.post(`${API}/invest/quote`, { portfolio_id: basket.id }, h).then(({ data }) => {
+      if (!alive) return;
+      setQuote(data); setMarket(data.market);
+      setAmount((a) => (!a || Number(a) === Math.round(minAmount || basket?.minAmount || 0) ? String(data.min_amount) : a));
+    }).catch(() => {});
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, !!kite, basket?.id]);
+
   if (!open || !basket) return null;
+  const liveMin = quote?.min_amount || Math.round(minAmount || basket.minAmount || 0);
+  const funds = preview?.funds || null;
+  const fundsShort = funds && !funds.ok;
+  const openKiteFunds = () => window.open('https://kite.zerodha.com/funds', '_blank', 'noopener');
 
   const fail = (e) => {
     const d = e?.response?.data?.detail;
@@ -140,9 +158,9 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
                   <span className="font-heading text-[28px] font-extrabold text-[#0F1729]">₹</span>
                   <input ref={amountRef} value={amount} onChange={(e) => { setAmount(e.target.value.replace(/[^\d]/g, '')); setErr(null); }} inputMode="numeric" className="num font-heading text-[30px] font-extrabold text-[#0F1729] w-full outline-none border-b-2 border-[#6C2BD9] py-1 bg-transparent" data-testid="invest-amount" aria-label="Amount to invest" />
                 </div>
-                <div className="text-[12px] text-[#667085] mt-1.5">Minimum {INR(minAmount || basket.minAmount)} · buys 1+ share of every stock at the last price</div>
+                <div className="text-[12px] text-[#667085] mt-1.5">Minimum {INR(liveMin)} · buys 1+ share of every stock at {quote ? "today's" : 'the last'} price</div>
                 <div className="flex gap-2 flex-wrap mt-3">
-                  {[['Minimum', Math.round(minAmount || basket.minAmount || 0)], ['₹25,000', 25000], ['₹50,000', 50000], ['₹1,00,000', 100000]].map(([label, v]) => (
+                  {[['Minimum', liveMin], ['₹25,000', 25000], ['₹50,000', 50000], ['₹1,00,000', 100000]].map(([label, v]) => (
                     <button key={label} type="button" onClick={() => setAmount(String(v))} className={`h-11 sm:h-9 px-3.5 rounded-full text-[13px] font-semibold border ${Number(amount) === v ? 'bg-[#1A1030] text-white border-[#1A1030]' : 'bg-white border-[#E8E1F0] text-[#334155]'}`}>{label}</button>
                   ))}
                 </div>
@@ -151,6 +169,7 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
               {err?.code === 'broker' && <Note tone="warn" icon={AlertTriangle}>{err.message}</Note>}
               <div className="rounded-2xl border border-[#E8E1F0] p-4 text-[13px] space-y-1.5">
                 <div className="flex justify-between"><span className="text-[#526071]">Broker</span><b>{kite ? `Zerodha · ${kite.profile?.user_id_kite || kite.profile?.user_name || 'connected'} ✓` : 'Not connected'}</b></div>
+                {quote?.funds && <div className="flex justify-between" data-testid="invest-funds"><span className="text-[#526071]">Available in Zerodha</span><b className="num">{INR(quote.funds.available)}</b></div>}
                 <div className="flex justify-between"><span className="text-[#526071]">Orders</span><b>{(basket.constituents || []).length || basket.holdings_count} stocks · limit · delivery</b></div>
                 {market && <div className="flex justify-between"><span className="text-[#526071]">Timing</span><b>{market.open ? 'Now' : market.mode === 'amo' ? `After-market · ${when(market.next_open_ist)}` : 'Not right now'}</b></div>}
               </div>
@@ -165,7 +184,7 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
               <div className="flex justify-between items-baseline text-[13px]"><span className="text-[#526071]">Investment amount</span><b className="num">{INR(preview.amount_requested)} → <span className="text-[#0B7F4A]">{INR(preview.amount_adjusted)} adjusted</span></b></div>
               <div className="text-[12px] text-[#667085]">Rounded to whole shares so the mix stays close to the partner's weights. Limit orders at last price +{preview.buffer_pct}%{preview.market.mode === 'amo' ? ', placed as after-market orders' : ''}.</div>
               {preview.hint && <Note tone="info" testid="invest-hint">Add <b>{INR(preview.hint.add_amount)}</b> to bring every stock within 2% of its target weight. <button type="button" className="underline font-semibold" onClick={() => { setAmount(String(preview.hint.amount)); setStep(1); }}>Use {INR(preview.hint.amount)}</button></Note>}
-              {preview.funds && preview.funds.available < preview.amount_adjusted && <Note tone="warn" icon={AlertTriangle} testid="invest-funds-warn">Zerodha shows {INR(preview.funds.available)} available; these orders need {INR(preview.amount_adjusted)}. Add funds in Kite or some orders will be rejected.</Note>}
+
               <div className="rounded-2xl border border-[#E8E1F0] overflow-hidden">
                 <table className="w-full text-[13px]">
                   <thead><tr className="text-[11px] uppercase tracking-wider text-[#667085] bg-[#F7F4FB]"><th className="text-left font-semibold px-3 py-2">Stock</th><th className="text-right font-semibold px-2 py-2">Weight</th><th className="text-right font-semibold px-2 py-2">Qty</th><th className="text-right font-semibold px-3 py-2">Limit ₹</th></tr></thead>
@@ -185,11 +204,30 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
                 <div className="text-[12px] text-[#667085]">{preview.count} orders · BUY · {preview.market.mode === 'amo' ? 'after-market' : 'now'}{preview.funds ? ` · available ${INR(preview.funds.available)}` : ''}</div>
                 <div className="font-heading text-[22px] font-extrabold num">{INR(preview.amount_adjusted)}</div>
               </div>
-              {err && <Note tone="neg" icon={AlertTriangle}>{err.message}</Note>}
-              <div className="grid grid-cols-[1fr_2fr] gap-2">
-                <button type="button" onClick={() => setStep(1)} disabled={busy} className="btn-outline h-12">Back</button>
-                <button type="button" onClick={place} disabled={busy || blocked} className="btn-invest h-12 rounded-xl text-[15px] disabled:opacity-60" data-testid="invest-place-btn">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Place {preview.count} orders</button>
-              </div>
+              {err && err.code !== 'funds' && <Note tone="neg" icon={AlertTriangle}>{err.message}</Note>}
+              {(fundsShort || err?.code === 'funds') ? (
+                <div className="rounded-2xl border border-[#F1D48A] bg-[#FFFBEB] p-4" data-testid="invest-funds-gate">
+                  <div className="font-semibold text-[#0F1729] flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-[#9A4A05]" /> Add funds to continue</div>
+                  <div className="text-[12px] text-[#667085] mt-1">Required funds include a 2% margin for price changes at execution.</div>
+                  {(() => { const f = err?.code === 'funds' ? err : funds; return (
+                    <div className="mt-3 text-[13px] space-y-1.5">
+                      <div className="flex justify-between"><span className="text-[#526071]">Required funds</span><b className="num">{INR(f.required)}</b></div>
+                      <div className="flex justify-between"><span className="text-[#526071]">Available in Zerodha</span><b className="num">{INR(f.available)}</b></div>
+                      <div className="flex justify-between border-t border-[#F1D48A] pt-1.5"><span className="text-[#0F1729] font-semibold">Funds to add</span><b className="num text-[#B91C1C]">{INR(f.short)}</b></div>
+                      <div className="grid grid-cols-2 gap-2 pt-2">
+                        <button type="button" onClick={openKiteFunds} className="btn-primary h-11" data-testid="invest-add-funds">Add {INR(f.short)} on Zerodha</button>
+                        <button type="button" onClick={review} disabled={busy} className="btn-outline h-11 disabled:opacity-60" data-testid="invest-recheck-funds">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Re-check balance</button>
+                      </div>
+                      <div className="text-[11.5px] text-[#667085] pt-1">Zerodha's funds page opens in a new tab. Money added by UPI shows within a minute; come back and re-check. <Link to="/faq" className="underline">Learn more</Link></div>
+                    </div>
+                  ); })()}
+                </div>
+              ) : (
+                <div className="grid grid-cols-[1fr_2fr] gap-2">
+                  <button type="button" onClick={() => setStep(1)} disabled={busy} className="btn-outline h-12">Back</button>
+                  <button type="button" onClick={place} disabled={busy || blocked} className="btn-invest h-12 rounded-xl text-[15px] disabled:opacity-60" data-testid="invest-place-btn">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Place {preview.count} orders</button>
+                </div>
+              )}
               <div className="text-[11.5px] text-[#667085] text-center leading-relaxed">By placing, you instruct Zerodha to buy these quantities in your account. Execution prices may differ from the limits shown.</div>
             </div>
           )}

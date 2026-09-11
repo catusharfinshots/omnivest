@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Link2, CheckCircle2, LineChart, LayoutDashboard, LogOut, User, ShieldCheck, ClipboardList } from 'lucide-react';
+import { Menu, X, Link2, CheckCircle2, LayoutDashboard, LogOut, User, ShieldCheck, ClipboardList } from 'lucide-react';
 import omniMark from '../assets/omnivest-mark-white.svg';
-import { useBroker } from '../context/BrokerContext';
 import { useAuth } from '../context/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import OrderTicket from './OrderTicket';
 
 const navItems = [
   { label: 'Model Portfolios', to: '/model-portfolios' },
@@ -29,11 +27,8 @@ function Logo() {
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const [ticketOpen, setTicketOpen] = useState(false);
   const navigate = useNavigate();
-  const { connections } = useBroker();
   const { isAuthed, user, logout, openAuth } = useAuth();
-  const kiteConnected = !!connections.kite;
   // One page, one audience: the partner page's header offers the partner
   // door, not the customer one.
   const onPartnerPage = useLocation().pathname.startsWith('/partner');
@@ -59,11 +54,6 @@ export default function Navbar() {
         </div>
 
         <div className="hidden lg:flex items-center gap-2">
-          {kiteConnected && (
-            <button onClick={() => setTicketOpen(true)} className="inline-flex items-center gap-1.5 rounded-full bg-[#0A7D48] px-3 py-2 text-xs font-semibold text-white hover:bg-[#086B3D] transition-colors">
-              <LineChart className="h-3.5 w-3.5" /> Trade
-            </button>
-          )}
 
           {isAuthed ? (
             <Popover>
@@ -115,11 +105,6 @@ export default function Navbar() {
             ))}
             {isAuthed ? (
               <div className="pt-3 flex flex-col gap-2">
-                {kiteConnected && (
-                  <button onClick={() => { setOpen(false); setTicketOpen(true); }} className="inline-flex items-center justify-center gap-1.5 rounded-full bg-[#0A7D48] px-3 py-2.5 text-sm font-semibold text-white hover:bg-[#086B3D] transition-colors">
-                    <LineChart className="h-4 w-4" /> Trade
-                  </button>
-                )}
                 {user?.role !== 'analyst' && <Link to="/dashboard" onClick={() => setOpen(false)} className="btn-outline"><LayoutDashboard className="h-4 w-4" /> Dashboard</Link>}
                 {user?.role === 'admin' && <Link to="/admin" onClick={() => setOpen(false)} data-testid="nav-admin-console-mobile" className="btn-ghost justify-start"><ShieldCheck className="h-4 w-4" /> Admin console</Link>}
                 {user?.role === 'analyst' && <Link to="/partner" onClick={() => setOpen(false)} data-testid="nav-analyst-console-mobile" className="btn-ghost justify-start"><LineChart className="h-4 w-4" /> Analyst console</Link>}
@@ -134,7 +119,6 @@ export default function Navbar() {
           </div>
         </div>
       )}
-      <OrderTicket open={ticketOpen} onOpenChange={setTicketOpen} />
     </header>
   );
 }

@@ -37,6 +37,7 @@ COLL = "invest_batches"
 TICK = 0.05
 DEFAULT_BUFFER_PCT = 0.5
 HINT_TOLERANCE_PP = 2.0          # "add ₹X" hint: every stock within 2 percentage points of its target weight
+FUNDS_MARGIN_PCT = 2.0           # smallcase pads required funds ~2% "to account for changing prices"
 FINAL = {"COMPLETE", "REJECTED", "CANCELLED"}
 RETRYABLE = re.compile(r"ip|whitelist|network|timed? ?out|gateway|temporar", re.I)
 
@@ -114,6 +115,16 @@ def market_state(now: Optional[datetime] = None, holidays: Optional[List[str]] =
         nxt = next_open_after(now)
     return {"open": False, "mode": "amo", "next_open_ist": nxt.isoformat(),
             "note": f"Market is closed. Orders placed now go as after-market orders and execute when NSE opens on {nxt.strftime('%a %d %b')} at 9:15 AM."}
+
+
+def funds_check(amount_adjusted: float, available: Optional[float], margin_pct: float = FUNDS_MARGIN_PCT) -> Optional[dict]:
+    """Required = adjusted amount + margin; short = what to add (rounded up to ₹10). None when the balance is unknown."""
+    if available is None:
+        return None
+    required = math.ceil(amount_adjusted * (1 + margin_pct / 100.0))
+    short = max(0.0, required - available)
+    short = int(math.ceil(short / 10.0) * 10) if short > 0 else 0
+    return {"required": required, "available": round(available, 2), "short": short, "ok": short == 0}
 
 
 def counts_of(orders: List[dict]) -> dict:
@@ -201,7 +212,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         except Exception:  # noqa: BLE001
             return None
 
-    async def _build(user: dict, pid: str, amount: float) -> dict:
+    async def _quote(user: dict, pid: str) -> dict:
+        """Everything the modal needs before an amount exists: live prices, live minimum, balance, market state."""
         doc = await _listing(pid, user)
         conn = await _conn(user)
         k = _kite_client(conn["access_token"])
@@ -216,26 +228,40 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 raise HTTPException(status_code=428, detail={"code": "broker", "message": "Your Zerodha login has expired for today. Connect again to continue."})
             raise HTTPException(status_code=502, detail=f"Zerodha did not return prices: {msg[:160]}")
         state, buffer = await _state()
-        minimum = min_amount(weights, prices)
+        return {"doc": doc, "conn": conn, "k": k, "weights": weights, "exch": exch, "prices": prices, "state": state, "buffer": buffer,
+                "minimum": min_amount(weights, prices), "funds": await _funds(k)}
+
+    async def _build(user: dict, pid: str, amount: float) -> dict:
+        q = await _quote(user, pid)
+        doc, conn, k, weights, exch, prices, state, buffer, minimum = (q[x] for x in ("doc", "conn", "k", "weights", "exch", "prices", "state", "buffer", "minimum"))
+        names = {c["symbol"].upper(): (c.get("name") or "") for c in doc.get("constituents") or [] if c.get("symbol")}
         amount = float(amount or 0)
         if amount < minimum:
             raise HTTPException(status_code=422, detail={"code": "min", "message": f"Minimum investment is ₹{minimum:,.0f} so every stock gets at least one share.", "min_amount": minimum})
         rows = quantities(weights, prices, amount)
         for r in rows:
             r["exchange"] = exch[r["symbol"]]
+            r["name"] = names.get(r["symbol"], "")
             r["limit_price"] = limit_price(r["ltp"], buffer)
             r["value"] = round(r["qty"] * r["limit_price"], 2)
             r["transaction_type"] = "BUY"
         adjusted = round(sum(r["value"] for r in rows), 2)
-        funds = await _funds(k)
+        funds = q["funds"]
         return {
             "portfolio": {"id": doc["id"], "name": doc.get("name"), "version": len(doc.get("versions") or []) or 1},
             "broker": {"connected": True, "user_name": (conn.get("profile") or {}).get("user_name"), "client_id": (conn.get("profile") or {}).get("user_id_kite")},
             "market": state, "buffer_pct": buffer, "min_amount": minimum,
             "amount_requested": amount, "amount_adjusted": adjusted, "orders": rows, "count": len(rows),
-            "hint": top_up_hint(weights, prices, amount), "funds": {"available": funds} if funds is not None else None,
+            "hint": top_up_hint(weights, prices, amount), "funds": funds_check(adjusted, funds),
             "_conn": conn, "_doc": doc,
         }
+
+    @router.post("/quote")
+    async def quote(payload: dict = Body(...), user: dict = Depends(require_user)):
+        q = await _quote(user, str(payload.get("portfolio_id") or ""))
+        return {"portfolio": {"id": q["doc"]["id"], "name": q["doc"].get("name")}, "min_amount": q["minimum"], "market": q["state"], "buffer_pct": q["buffer"],
+                "funds": {"available": round(q["funds"], 2)} if q["funds"] is not None else None,
+                "broker": {"connected": True, "user_name": (q["conn"].get("profile") or {}).get("user_name"), "client_id": (q["conn"].get("profile") or {}).get("user_id_kite")}}
 
     @router.get("/market")
     async def market():
@@ -303,6 +329,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         b = await _build(user, str(payload.get("portfolio_id") or ""), payload.get("amount") or 0)
         if b["market"]["mode"] == "blocked":
             raise HTTPException(status_code=409, detail={"code": "blocked", "message": b["market"]["note"]})
+        if b["funds"] and not b["funds"]["ok"] and not payload.get("ignore_funds"):
+            raise HTTPException(status_code=409, detail={"code": "funds", "message": f"Add ₹{b['funds']['short']:,} to your Zerodha account to place these orders.", **b["funds"]})
         variety = "amo" if b["market"]["mode"] == "amo" else "regular"
         k = _kite_client(b["_conn"]["access_token"])
         placed = [await _place_one(k, o, variety) for o in b["orders"]]
@@ -353,6 +381,10 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if state["mode"] == "blocked":
             raise HTTPException(status_code=409, detail={"code": "blocked", "message": state["note"]})
         prices = await _prices(k, {o["symbol"]: o.get("exchange") or "NSE" for o in todo})
+        need = sum(o["qty"] * limit_price(prices[o["symbol"]], buffer) for o in todo)
+        fc = funds_check(need, await _funds(k))
+        if fc and not fc["ok"]:
+            raise HTTPException(status_code=409, detail={"code": "funds", "message": f"Add ₹{fc['short']:,} to your Zerodha account to place these orders again.", **fc})
         variety = "amo" if state["mode"] == "amo" else "regular"
         n = 0
         for o in todo:

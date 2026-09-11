@@ -23,13 +23,22 @@ SEED_FAQS = [
     {"question": "How much money do I need to start?", "answer": "It depends on the portfolio — each listing shows its minimum investment amount. Many portfolios start from just a few thousand rupees.", "category": "Getting Started", "isTop": True},
     {"question": "Is my money and data safe?", "answer": "Yes. Omnivest uses financial-grade security with encryption in transit and at rest. Your money always stays in your own broker account — we never hold your funds.", "category": "Safety & Security", "isTop": True},
     {"question": "What are the fees?", "answer": "Fees vary by portfolio and are shown on each portfolio's page before you invest. Some portfolios are free to access while others carry a subscription set by the research analyst.", "category": "Fees & Charges", "isTop": True},
+    {"question": "What should I do if my available funds are too low to place the order?", "answer": "Orders are placed from your own Zerodha account, so the money has to be there first. Omnivest checks your available balance before placing and shows exactly how much to add, with a button that opens Zerodha's funds page. Add the amount in Kite, come back and tap Re-check balance, then place. There is no separate Omnivest wallet.", "category": "Investing", "isTop": False},
+    {"question": "Can I place orders when the market is closed?", "answer": "Yes. Outside NSE hours (9:15 AM to 3:30 PM on trading days) Omnivest places after-market orders in your Zerodha account. They sit in your Kite order book and execute when the market opens next. Between 3:30 and 3:45 PM and between 8:57 and 9:15 AM Zerodha does not accept new orders, so the button waits.", "category": "Investing", "isTop": False},
+    {"question": "Why are some of my orders unfilled or rejected?", "answer": "Orders are limit orders at the last price plus a small buffer. A stock that gaps up at the open, hits a circuit limit or has thin liquidity can stay unfilled and lapses at the end of the day. Zerodha rejects orders when funds are short, a login has expired or a symbol is restricted. The Orders page shows Zerodha's exact reason for every order.", "category": "Investing", "isTop": False},
+    {"question": "What is Repair?", "answer": "Repair places fresh orders, at a fresh limit price, only for the stocks whose orders were rejected or cancelled, so your holdings match the portfolio's weights. Open the Orders page, find the batch and tap Repair. Nothing is placed twice for stocks that already filled.", "category": "Investing", "isTop": False},
 ]
 
 
 async def seed_faqs(db: AsyncIOMotorDatabase) -> None:
-    if await db.faqs.count_documents({}) > 0:
-        return
+    """First run seeds everything; later runs add only built-ins whose question is not present yet
+    (so new product FAQs reach production without touching admin-edited ones)."""
+    existing = {d.get("question") async for d in db.faqs.find({}, {"question": 1})}
+    base = await db.faqs.count_documents({})
     for i, f in enumerate(SEED_FAQS):
+        if f["question"] in existing:
+            continue
+        i = base + i
         await db.faqs.insert_one({
             "id": str(uuid.uuid4()),
             "question": f["question"], "answer": f["answer"], "category": f["category"],
