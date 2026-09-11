@@ -20,6 +20,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from kite_proxy import kite_kwargs  # noqa: E402
 
 try:
     from kiteconnect import KiteConnect  # type: ignore
@@ -68,7 +69,7 @@ def _kite_client(access_token: Optional[str] = None) -> "KiteConnect":
         raise HTTPException(status_code=500, detail="kiteconnect library not installed")
     if not KITE_API_KEY or not KITE_API_SECRET:
         raise HTTPException(status_code=500, detail="Kite API key/secret not configured on server")
-    k = KiteConnect(api_key=KITE_API_KEY)
+    k = KiteConnect(api_key=KITE_API_KEY, **kite_kwargs())
     if access_token:
         k.set_access_token(access_token)
     return k

@@ -39,6 +39,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel
 
 from auth import build_current_user_dep
+from kite_proxy import kite_kwargs  # noqa: E402
 
 try:
     from kiteconnect import KiteConnect, exceptions as kite_exceptions
@@ -260,7 +261,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         row = await sessions.find_one({"account": ACCOUNT})
         if not row or not row.get("access_token") or row.get("needs_reconnect") or KiteConnect is None or not KITE_API_KEY:
             return None
-        k = KiteConnect(api_key=KITE_API_KEY)
+        k = KiteConnect(api_key=KITE_API_KEY, **kite_kwargs())
         k.set_access_token(row["access_token"])
         return k
 

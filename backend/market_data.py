@@ -33,6 +33,7 @@ except Exception:  # pragma: no cover
     kite_exceptions = None  # type: ignore
 
 from auth import build_current_user_dep
+from kite_proxy import kite_kwargs  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +70,7 @@ def _new_client(access_token: Optional[str] = None) -> "KiteConnect":
         raise HTTPException(status_code=500, detail="kiteconnect library not installed")
     if not KITE_API_KEY or not KITE_API_SECRET:
         raise HTTPException(status_code=500, detail="Kite API key/secret not configured on server")
-    k = KiteConnect(api_key=KITE_API_KEY)
+    k = KiteConnect(api_key=KITE_API_KEY, **kite_kwargs())
     if access_token:
         k.set_access_token(access_token)
     return k
@@ -136,6 +137,19 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         except Exception as e:  # noqa: BLE001
             logger.warning("post-reconnect refresh not started: %s", e)
         return {"ok": True, "kite_user": data.get("user_name") or data.get("user_id"), "login_time": str(data.get("login_time")), "refreshing": True}
+
+    @router.get("/admin/kite/proxy-check")
+    async def proxy_check(user: dict = Depends(require_admin)):
+        """Which public IP Zerodha will see for our API calls. Through KITE_PROXY_URL when set (must equal the
+        IP whitelisted in the Kite developer console), otherwise Render's shared pool."""
+        from kite_proxy import kite_kwargs, proxy_configured
+        import requests as _rq
+        try:
+            r = await run_in_threadpool(lambda: _rq.get("https://api.ipify.org?format=json", timeout=20, **kite_kwargs()))
+            ip = r.json().get("ip")
+            return {"ok": True, "via_proxy": proxy_configured(), "egress_ip": ip}
+        except Exception as e:  # noqa: BLE001
+            return {"ok": False, "via_proxy": proxy_configured(), "error": str(e)[:300]}
 
     @router.get("/admin/kite/market/status")
     async def market_status(user: dict = Depends(require_admin)):
