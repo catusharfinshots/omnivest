@@ -2,14 +2,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { ClipboardList, RefreshCw, Loader2, Wrench, ChevronDown, ChevronUp, Moon, Sun, AlertTriangle } from 'lucide-react';
+import { ClipboardList, RefreshCw, Loader2, Wrench, ChevronDown, ChevronUp, Moon, Sun, AlertTriangle, Ban } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const INR = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 const INR2 = (n) => (n ? Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—');
-const when = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '');
-const short = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '');
+const IST = 'Asia/Kolkata';
+const when = (iso) => (iso ? `${new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: IST })} IST` : '');
+const short = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: IST }) : '');
 const TONE = { COMPLETE: 'bg-[#E3F4EB] text-[#096B3E]', OPEN: 'bg-[#EFF6FF] text-[#1D4ED8]', REJECTED: 'bg-[#FBE4E4] text-[#B91C1C]', CANCELLED: 'bg-[#FBE4E4] text-[#B91C1C]' };
 const label = (o) => { const s = (o.status || '').toUpperCase(); if (!o.order_id) return 'Rejected'; if (s === 'COMPLETE') return 'Filled'; if (s === 'REJECTED') return 'Rejected'; if (s === 'CANCELLED') return 'Cancelled'; if (s.includes('AMO')) return 'After-market'; return 'Open'; };
 const tone = (o) => (!o.order_id ? TONE.REJECTED : TONE[(o.status || '').toUpperCase()] || TONE.OPEN);
@@ -24,7 +25,7 @@ function plainCause(msg = '') {
   return msg || 'Zerodha did not accept these orders. Repair places them again.';
 }
 
-function Batch({ b, onRepair, busy, openDefault }) {
+function Batch({ b, onRepair, onCancel, busy, openDefault }) {
   const [open, setOpen] = useState(openDefault);
   const [why, setWhy] = useState(null);
   const c = b.counts || {};
@@ -37,7 +38,7 @@ function Batch({ b, onRepair, busy, openDefault }) {
       <div className="flex items-start justify-between gap-3 px-4 sm:px-5 py-4">
         <div className="min-w-0">
           <div className="font-semibold text-[#0F1729] text-[15px] sm:text-[16px] truncate">{b.portfolio_name}</div>
-          <div className="text-[12px] text-[#667085] mt-0.5">Invest · {when(b.placed_at)}{b.mode === 'amo' ? ' · after-market' : ''} · batch {b.id}</div>
+          <div className="text-[12px] text-[#667085] mt-0.5">Invest · {when(b.placed_at)}{b.mode === 'amo' ? ' · after-market' : ''}</div>
         </div>
         <span className={`shrink-0 text-[11px] font-bold rounded-full px-2.5 py-1 ${pill.cls}`}>{pill.text}</span>
       </div>
@@ -78,8 +79,11 @@ function Batch({ b, onRepair, busy, openDefault }) {
             </table>
           </div>
           <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-t border-[#F1EDF7] text-[12px] text-[#667085]">
-            <span>{value === 0 && b.mode === 'amo' && c.rejected === 0 ? 'Fills update at market open.' : 'Zerodha order ids and messages are kept for every order.'}</span>
-            <button type="button" onClick={() => setOpen(false)} className="inline-flex items-center gap-1 font-semibold text-[#5320A8] h-9">Hide <ChevronUp className="h-3.5 w-3.5" /></button>
+            <span>{value === 0 && b.mode === 'amo' && c.rejected === 0 ? 'Fills update at market open.' : 'Every order keeps Zerodha\'s reference and status.'}</span>
+            <div className="flex items-center gap-3">
+              {c.open > 0 && <button type="button" onClick={() => onCancel(b)} disabled={busy} className="inline-flex items-center gap-1 font-semibold text-[#B91C1C] h-9 disabled:opacity-60" data-testid="order-cancel-btn"><Ban className="h-3.5 w-3.5" /> Cancel {c.open} open</button>}
+              <button type="button" onClick={() => setOpen(false)} className="inline-flex items-center gap-1 font-semibold text-[#5320A8] h-9">Hide <ChevronUp className="h-3.5 w-3.5" /></button>
+            </div>
           </div>
         </>
       ) : (
@@ -117,6 +121,17 @@ export default function OrdersPage() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthed]);
+
+  const cancelBatch = async (b) => {
+    if (!window.confirm(`Cancel ${b.counts.open} open order${b.counts.open > 1 ? 's' : ''} for ${b.portfolio_name}? Already-filled orders are kept.`)) return;
+    setBusy(true);
+    try {
+      const { data } = await axios.post(`${API}/invest/batches/${b.id}/cancel`, {}, h);
+      toast.success(data.cancelled ? `${data.cancelled} order${data.cancelled > 1 ? 's' : ''} cancelled in Zerodha` : 'Nothing open to cancel');
+      await load();
+    } catch (e) { toast.error(e?.response?.data?.detail?.message || e?.response?.data?.detail || 'Cancel failed'); }
+    finally { setBusy(false); }
+  };
 
   const repair = async (bid) => {
     setBusy(true);
@@ -162,7 +177,7 @@ export default function OrdersPage() {
                 <Link to="/model-portfolios" className="btn-primary mt-4 inline-flex">Browse portfolios</Link>
               </div>
             )}
-            {batches && batches.map((b, i) => <Batch key={b.id} b={b} onRepair={repair} busy={busy} openDefault={i === 0 || params.get('batch') === b.id} />)}
+            {batches && batches.map((b, i) => <Batch key={b.id} b={b} onRepair={repair} onCancel={cancelBatch} busy={busy} openDefault={i === 0 || params.get('batch') === b.id} />)}
           </div>
           <aside className="space-y-4">
             {market && (

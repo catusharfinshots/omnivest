@@ -5,28 +5,22 @@ import { useBroker } from '../context/BrokerContext';
 import { useAuth } from '../context/AuthContext';
 import MySubscriptions from '../components/MySubscriptions';
 import { baskets, getBasket } from '../mock';
-import { TrendingUp, TrendingDown, CalendarClock, ShoppingBag, Heart, Link2, RefreshCw, CheckCircle2, Loader2, ExternalLink, LineChart, ClipboardList, XCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, CalendarClock, ShoppingBag, Heart, Link2, RefreshCw, CheckCircle2, Loader2, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
-import OrderTicket from '../components/OrderTicket';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 export default function DashboardPage() {
   const { investments, sips, watchlist } = usePortfolio();
-  const { connections, userId, getKiteHoldings, getKiteMargins, refreshKite } = useBroker();
+  const { connections, getKiteMargins, refreshKite } = useBroker();
   const { isAuthed, loading: authLoading, user, openAuth, token } = useAuth();
   const navigate = useNavigate();
   const kite = connections.kite;
 
-  const [kiteHoldings, setKiteHoldings] = useState([]);
   const [kiteMargins, setKiteMargins] = useState(null);
-  const [kiteOrders, setKiteOrders] = useState([]);
   const [loadingKite, setLoadingKite] = useState(false);
-  const [ticketOpen, setTicketOpen] = useState(false);
-  const [ticketSymbol, setTicketSymbol] = useState('');
-  const [ticketTxn, setTicketTxn] = useState('BUY');
 
   // One role per account: partners live in the analyst console, not the investor dashboard.
   const isAnalyst = !authLoading && user?.role === 'analyst';
@@ -34,44 +28,21 @@ export default function DashboardPage() {
     if (isAnalyst) navigate('/partner', { replace: true });
   }, [isAnalyst, navigate]);
 
-  const openTicket = (symbol = '', txn = 'BUY') => {
-    setTicketSymbol(symbol);
-    setTicketTxn(txn);
-    setTicketOpen(true);
-  };
-
   const loadKite = async () => {
     if (!kite) return;
     setLoadingKite(true);
     try {
-      const [h, m, o] = await Promise.all([
-        getKiteHoldings(),
-        getKiteMargins(),
-        axios.get(`${API}/broker/kite/orders`, { params: { user_id: userId } }).then(r => r.data.orders || []).catch(() => []),
-      ]);
-      setKiteHoldings(h || []);
-      setKiteMargins(m || null);
-      setKiteOrders(o || []);
+      setKiteMargins((await getKiteMargins()) || null);
     } catch (e) {
-      toast.error('Failed to load Kite data', { description: e?.response?.data?.detail || e.message });
+      toast.error('Could not read your Zerodha balance', { description: e?.response?.data?.detail || e.message });
     } finally {
       setLoadingKite(false);
     }
   };
 
-  const cancelOrder = async (order) => {
-    try {
-      await axios.post(`${API}/broker/kite/order/cancel`, { user_id: userId, order_id: order.order_id, variety: order.variety || 'regular' });
-      toast.success('Cancel request sent');
-      loadKite();
-    } catch (e) {
-      toast.error('Cancel failed', { description: e?.response?.data?.detail || e.message });
-    }
-  };
-
   useEffect(() => {
     if (kite) loadKite();
-    else { setKiteHoldings([]); setKiteMargins(null); setKiteOrders([]); }
+    else setKiteMargins(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kite?.connected_at]);
 
@@ -151,7 +122,7 @@ export default function DashboardPage() {
           <span className="inline-flex items-center gap-1 rounded-full bg-white text-[#6C2BD9] px-4 py-2 text-sm font-semibold">Connect <ExternalLink className="h-3.5 w-3.5" /></span>
         </Link>
       ) : (
-        <div className="mt-6 surface p-5">
+        <div className="mt-6 surface p-5" data-testid="dash-broker-card">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#FF9F0A] to-[#F04438] text-white grid place-items-center font-bold">Z</div>
@@ -161,9 +132,6 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => openTicket()} className="inline-flex items-center gap-1.5 rounded-full bg-[#0A7D48] px-4 py-2 text-sm font-semibold text-white hover:bg-[#059669] transition-colors">
-                <LineChart className="h-4 w-4" /> Place order
-              </button>
               <button onClick={loadKite} disabled={loadingKite} className="btn-outline">
                 {loadingKite ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Refresh
               </button>
@@ -171,116 +139,18 @@ export default function DashboardPage() {
             </div>
           </div>
           {kiteMargins?.equity && (
-            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-[#F7F4FB] p-3">
-                <div className="text-[12px] uppercase tracking-wider text-[#6B6480] font-semibold">Available cash</div>
-                <div className="num mt-1 font-bold">₹{Number(kiteMargins.equity?.available?.cash || 0).toLocaleString('en-IN')}</div>
+                <div className="text-[12px] uppercase tracking-wider text-[#6B6480] font-semibold">Available in Zerodha</div>
+                <div className="num mt-1 font-bold">₹{Number(kiteMargins.equity?.available?.live_balance ?? kiteMargins.equity?.net ?? 0).toLocaleString('en-IN')}</div>
               </div>
               <div className="rounded-xl bg-[#F7F4FB] p-3">
-                <div className="text-[12px] uppercase tracking-wider text-[#6B6480] font-semibold">Live margin</div>
-                <div className="num mt-1 font-bold">₹{Number(kiteMargins.equity?.available?.live_balance || kiteMargins.equity?.net || 0).toLocaleString('en-IN')}</div>
-              </div>
-              <div className="rounded-xl bg-[#F7F4FB] p-3">
-                <div className="text-[12px] uppercase tracking-wider text-[#6B6480] font-semibold">Used</div>
-                <div className="num mt-1 font-bold">₹{Number(kiteMargins.equity?.utilised?.debits || 0).toLocaleString('en-IN')}</div>
-              </div>
-              <div className="rounded-xl bg-[#F7F4FB] p-3">
-                <div className="text-[12px] uppercase tracking-wider text-[#6B6480] font-semibold">Net</div>
-                <div className="num mt-1 font-bold">₹{Number(kiteMargins.equity?.net || 0).toLocaleString('en-IN')}</div>
+                <div className="text-[12px] uppercase tracking-wider text-[#6B6480] font-semibold">Orders via Omnivest</div>
+                <div className="mt-1 font-bold"><Link to="/orders" className="text-[#5320A8]">See your orders →</Link></div>
               </div>
             </div>
           )}
-          {kiteHoldings && kiteHoldings.length > 0 && (
-            <div className="mt-5">
-              <div className="text-xs font-semibold uppercase tracking-wider text-[#6B6480] mb-2">Live Kite holdings ({kiteHoldings.length})</div>
-              <div className="surface overflow-hidden">
-                <div className="grid grid-cols-12 px-4 py-2 text-[12px] font-semibold uppercase tracking-wider text-[#6B6480] bg-[#F7F4FB]">
-                  <div className="col-span-4">Symbol</div>
-                  <div className="col-span-2 text-right">Qty</div>
-                  <div className="col-span-2 text-right">Avg</div>
-                  <div className="col-span-2 text-right">LTP</div>
-                  <div className="col-span-2 text-right">P&L</div>
-                </div>
-                <div className="divide-y divide-[#F1E7FE] max-h-80 overflow-auto">
-                  {kiteHoldings.map((h, idx) => {
-                    const pnl = Number(h.pnl ?? ((Number(h.last_price||0) - Number(h.average_price||0)) * Number(h.quantity||0)));
-                    return (
-                      <div key={idx} className="grid grid-cols-12 px-4 py-2.5 items-center text-sm">
-                        <div className="col-span-4">
-                          <div className="font-semibold flex items-center gap-2">{h.tradingsymbol}
-                            <span className="hidden md:inline-flex gap-1">
-                              <button onClick={() => openTicket(h.tradingsymbol, 'BUY')} className="text-[12px] px-1.5 py-0.5 rounded bg-[#DCFCE7] text-[#059669] font-semibold">B</button>
-                              <button onClick={() => openTicket(h.tradingsymbol, 'SELL')} className="text-[12px] px-1.5 py-0.5 rounded bg-[#FEE2E2] text-[#B91C1C] font-semibold">S</button>
-                            </span>
-                          </div>
-                          <div className="text-[12px] text-[#6B6480]">{h.exchange}</div>
-                        </div>
-                        <div className="col-span-2 num text-right">{h.quantity}</div>
-                        <div className="col-span-2 num text-right">₹{Number(h.average_price||0).toFixed(2)}</div>
-                        <div className="col-span-2 num text-right">₹{Number(h.last_price||0).toFixed(2)}</div>
-                        <div className={`col-span-2 num text-right font-semibold ${pnl >= 0 ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>
-                          {pnl >= 0 ? '+' : ''}₹{pnl.toFixed(2)}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-          {kite && kiteHoldings && kiteHoldings.length === 0 && !loadingKite && (
-            <div className="mt-4 text-sm text-[#6B6480]">No holdings in your Kite account yet.</div>
-          )}
-
-          {/* Orders */}
-          {kite && (
-            <div className="mt-5">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-xs font-semibold uppercase tracking-wider text-[#6B6480] flex items-center gap-2"><ClipboardList className="h-3.5 w-3.5" /> Orders {kiteOrders.length > 0 && `(${kiteOrders.length})`}</div>
-              </div>
-              {kiteOrders.length === 0 ? (
-                <div className="rounded-xl border-2 border-dashed border-[#E8E1F0] p-6 text-center text-sm text-[#6B6480]">No orders yet. Click Place order to trade.</div>
-              ) : (
-                <div className="surface overflow-hidden">
-                  <div className="grid grid-cols-12 px-4 py-2 text-[12px] font-semibold uppercase tracking-wider text-[#6B6480] bg-[#F7F4FB]">
-                    <div className="col-span-1">Side</div>
-                    <div className="col-span-3">Symbol</div>
-                    <div className="col-span-1 text-right">Qty</div>
-                    <div className="col-span-2 text-right">Price</div>
-                    <div className="col-span-2">Type</div>
-                    <div className="col-span-2">Status</div>
-                    <div className="col-span-1"></div>
-                  </div>
-                  <div className="divide-y divide-[#F1E7FE] max-h-80 overflow-auto">
-                    {kiteOrders.map((o) => {
-                      const status = String(o.status || '').toUpperCase();
-                      const canCancel = ['OPEN','TRIGGER PENDING','MODIFY_VALIDATION_PENDING','MODIFY_PENDING','VALIDATION PENDING'].some(s => status.includes(s));
-                      const isBuy = o.transaction_type === 'BUY';
-                      const statusColor = status.includes('COMPLETE') ? 'text-[#0B7F4A]' : status.includes('REJECT') || status.includes('CANCELLED') ? 'text-[#B91C1C]' : 'text-[#6B6480]';
-                      return (
-                        <div key={o.order_id} className="grid grid-cols-12 px-4 py-2.5 items-center text-sm">
-                          <div className="col-span-1"><span className={`text-[12px] font-bold px-1.5 py-0.5 rounded ${isBuy ? 'bg-[#DCFCE7] text-[#059669]' : 'bg-[#FEE2E2] text-[#B91C1C]'}`}>{o.transaction_type}</span></div>
-                          <div className="col-span-3">
-                            <div className="font-semibold">{o.tradingsymbol}</div>
-                            <div className="text-[12px] text-[#6B6480]">{o.exchange} · {o.product}</div>
-                          </div>
-                          <div className="col-span-1 num text-right">{o.quantity}</div>
-                          <div className="col-span-2 num text-right">₹{Number(o.average_price || o.price || 0).toFixed(2)}</div>
-                          <div className="col-span-2 text-xs text-[#6B6480]">{o.order_type}</div>
-                          <div className={`col-span-2 text-xs font-semibold ${statusColor}`}>{status || '—'}</div>
-                          <div className="col-span-1 text-right">
-                            {canCancel ? (
-                              <button onClick={() => cancelOrder(o)} className="h-6 w-6 grid place-items-center rounded text-[#B91C1C] hover:bg-[#FEF3F2]" title="Cancel order"><XCircle className="h-4 w-4" /></button>
-                            ) : null}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          <div className="mt-3 text-[12px] text-[#667085]">Only what you place through Omnivest appears here. Your full order book and holdings stay in Kite.</div>
         </div>
       )}
 
@@ -347,7 +217,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-      <OrderTicket open={ticketOpen} onOpenChange={setTicketOpen} initialSymbol={ticketSymbol} initialTxn={ticketTxn} />
     </div>
   );
 }

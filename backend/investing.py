@@ -288,7 +288,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                     variety=variety, exchange=o["exchange"], tradingsymbol=o["symbol"], transaction_type="BUY",
                     quantity=int(o["qty"]), product="CNC", order_type="LIMIT", price=float(o["limit_price"]),
                     validity="DAY", tag="omnivest"))
-                return {**o, "order_id": str(oid), "status": "OPEN", "message": "", "filled_qty": 0, "avg_price": None, "attempts": attempt + 1}
+                return {**o, "order_id": str(oid), "status": "OPEN", "message": "", "filled_qty": 0, "avg_price": None, "variety": variety, "attempts": attempt + 1}
             except Exception as e:  # noqa: BLE001
                 last = str(e)[:200]
                 if not RETRYABLE.search(last) or attempt == 2:
@@ -400,6 +400,29 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         b["counts"] = counts_of(b["orders"]); b["updated_at"] = _now()
         await batches.update_one({"id": b["id"]}, {"$set": {"orders": b["orders"], "counts": b["counts"], "updated_at": b["updated_at"], "mode": variety}})
         return {"batch": _public(b), "repaired": n}
+
+    @router.post("/batches/{bid}/cancel")
+    async def cancel_batch(bid: str, user: dict = Depends(require_user)):
+        """Cancel this batch's still-open orders in Zerodha (smallcase calls it Archive). Filled ones are left alone."""
+        b = await batches.find_one({"id": bid, "user_id": user["id"]})
+        if not b:
+            raise HTTPException(status_code=404, detail="Batch not found")
+        b = await _refresh(b, user)
+        todo = [o for o in b["orders"] if o.get("order_id") and (o.get("status") or "").upper() not in FINAL]
+        if not todo:
+            return {"batch": _public(b), "cancelled": 0}
+        conn = await _conn(user)
+        k = _kite_client(conn["access_token"])
+        n = 0
+        for o in todo:
+            try:
+                await run_in_threadpool(lambda o=o: k.cancel_order(variety=o.get("variety") or b.get("mode") or "regular", order_id=o["order_id"]))
+                o.update({"status": "CANCELLED", "message": "Cancelled from Omnivest", "cancelled_at": _now()}); n += 1
+            except Exception as e:  # noqa: BLE001
+                o["message"] = str(e)[:200]
+        b["counts"] = counts_of(b["orders"]); b["updated_at"] = _now()
+        await batches.update_one({"id": b["id"]}, {"$set": {"orders": b["orders"], "counts": b["counts"], "updated_at": b["updated_at"]}})
+        return {"batch": _public(b), "cancelled": n}
 
     @router.get("/partner-summary/{pid}")
     async def partner_summary(pid: str, user: dict = Depends(require_user)):
