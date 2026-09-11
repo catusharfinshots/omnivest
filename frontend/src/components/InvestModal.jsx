@@ -197,22 +197,26 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
           {/* step 3: placed */}
           {step === 3 && b && (
             <div className="mt-2 space-y-3" data-testid="invest-placed">
-              <div className="h-16 w-16 rounded-full bg-[#E3F4EB] text-[#0B7F4A] grid place-items-center mx-auto"><CheckCircle2 className="h-8 w-8" /></div>
-              <h3 className="text-center font-heading text-[20px] font-bold text-[#0F1729]">{b.mode === 'amo' ? 'After-market orders placed' : 'Orders placed'}</h3>
+              {(() => { const none = b.counts.placed === 0; const partial = !none && b.counts.rejected > 0; return (<>
+              <div className={`h-16 w-16 rounded-full grid place-items-center mx-auto ${none ? 'bg-[#FBE4E4] text-[#B91C1C]' : partial ? 'bg-[#FEF3C7] text-[#9A4A05]' : 'bg-[#E3F4EB] text-[#0B7F4A]'}`}>{none ? <AlertTriangle className="h-8 w-8" /> : <CheckCircle2 className="h-8 w-8" />}</div>
+              <h3 className="text-center font-heading text-[20px] font-bold text-[#0F1729]" data-testid="invest-placed-title">{none ? 'Orders could not be placed' : partial ? (b.mode === 'amo' ? 'Some after-market orders placed' : 'Some orders placed') : (b.mode === 'amo' ? 'After-market orders placed' : 'Orders placed')}</h3>
               <div className="text-center text-[13px] text-[#526071]">{b.counts.placed} of {b.counts.total} orders accepted by Zerodha{b.counts.rejected ? ` · ${b.counts.rejected} rejected` : ''}</div>
               <div className="h-2 rounded-full bg-[#E8E1F0] overflow-hidden"><i className="block h-full bg-[#0A7D48]" style={{ width: `${(b.counts.placed / Math.max(1, b.counts.total)) * 100}%` }} /></div>
-              {b.mode === 'amo'
-                ? <Note tone="pos" icon={CheckCircle2}>They execute when NSE opens on {when(result.market.next_open_ist)}. We update each order's fill in your Orders page.</Note>
-                : <Note tone="pos" icon={CheckCircle2}>Zerodha is executing them now. Fills appear in your Orders page within a few seconds.</Note>}
-              {b.orders.filter((o) => !o.order_id).map((o) => (
-                <Note key={o.symbol} tone="warn" icon={AlertTriangle}><b>{o.symbol} rejected:</b> {o.message || 'not accepted by Zerodha'}. Fix the cause in Kite, then use Repair on the Orders page.</Note>
+              {none
+                ? <Note tone="neg" icon={AlertTriangle}>Nothing was placed and nothing was charged. Fix the reason below, then use Repair on the Orders page to place them again.</Note>
+                : b.mode === 'amo'
+                  ? <Note tone="pos" icon={CheckCircle2}>They execute when NSE opens on {when(result.market.next_open_ist)}. We update each order's fill in your Orders page.</Note>
+                  : <Note tone="pos" icon={CheckCircle2}>Zerodha is executing them now. Fills appear in your Orders page within a few seconds.</Note>}
+              </>); })()}
+              {Object.entries(b.orders.filter((o) => !o.order_id).reduce((m, o) => { const k = o.message || 'not accepted by Zerodha'; (m[k] = m[k] || []).push(o.symbol); return m; }, {})).map(([msg, syms]) => (
+                <Note key={msg} tone="warn" icon={AlertTriangle}><b>{syms.length === b.counts.total ? 'All orders' : syms.join(', ')} rejected:</b> {msg}</Note>
               ))}
               <div className="rounded-2xl border border-[#E8E1F0] p-4 text-[13px] space-y-1.5">
                 <div className="flex justify-between"><span className="text-[#526071]">Batch</span><b>Invest · #{b.id}</b></div>
                 <div className="flex justify-between"><span className="text-[#526071]">Placed</span><b>{when(b.placed_at)}</b></div>
                 <div className="flex justify-between"><span className="text-[#526071]">Amount</span><b className="num">{INR(b.orders.filter((o) => o.order_id).reduce((s, o) => s + o.value, 0))} of {INR(b.amount_adjusted)}</b></div>
               </div>
-              <Link to={`/orders?batch=${b.id}`} className="btn-primary w-full h-12" data-testid="invest-see-orders">See orders</Link>
+              <Link to={`/orders?batch=${b.id}`} className="btn-primary w-full h-12" data-testid="invest-see-orders">{b.counts.rejected ? 'Go to orders to repair' : 'See orders'}</Link>
               <button type="button" onClick={onClose} className="btn-outline w-full h-11">Back to the portfolio</button>
             </div>
           )}
