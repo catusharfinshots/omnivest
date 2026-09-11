@@ -76,7 +76,9 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
   const liveMin = quote?.min_amount || Math.round(minAmount || basket.minAmount || 0);
   const funds = preview?.funds || null;
   const fundsShort = funds && !funds.ok;
-  const openKiteFunds = (amt) => window.open(`https://kite.zerodha.com/funds${amt ? `?amount=${Math.round(amt)}` : ''}`, '_blank', 'noopener');
+  // Zerodha's deposit form lives on cashier.zerodha.com (Kite's Funds page is one click before it). The amount travels in
+  // the link and survives Zerodha's login redirect; Kite may or may not pre-fill it, so the copy button stays.
+  const openKiteFunds = (amt) => window.open(`https://cashier.zerodha.com/?type=login${amt ? `&amount=${Math.round(amt)}` : ''}`, '_blank', 'noopener');
   const copyAmount = async (amt) => { try { await navigator.clipboard.writeText(String(Math.round(amt))); toast.success(`₹${Math.round(amt).toLocaleString('en-IN')} copied`); } catch { toast(`Add ₹${Math.round(amt).toLocaleString('en-IN')} in Kite`); } };
 
   const fail = (e) => {
@@ -220,7 +222,7 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
                         <button type="button" onClick={() => openKiteFunds(f.short)} className="btn-primary h-11" data-testid="invest-add-funds">Add {INR(f.short)} on Zerodha</button>
                         <button type="button" onClick={review} disabled={busy} className="btn-outline h-11 disabled:opacity-60" data-testid="invest-recheck-funds">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Re-check balance</button>
                       </div>
-                      <div className="text-[11.5px] text-[#667085] pt-1">Zerodha's funds page opens in a new tab. <button type="button" onClick={() => copyAmount(f.short)} className="underline font-semibold text-[#5320A8]" data-testid="invest-copy-amount">Copy {INR(f.short)}</button> to paste there. Money added by UPI shows within a minute; come back and re-check. <Link to="/faq" className="underline">Learn more</Link></div>
+                      <div className="text-[11.5px] text-[#667085] pt-1">Zerodha's deposit form opens in a new tab. <button type="button" onClick={() => copyAmount(f.short)} className="underline font-semibold text-[#5320A8]" data-testid="invest-copy-amount">Copy {INR(f.short)}</button> to paste there. Money added by UPI shows within a minute; come back and re-check. <Link to="/faq" className="underline">Learn more</Link></div>
                     </div>
                   ); })()}
                 </div>
