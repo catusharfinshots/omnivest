@@ -167,7 +167,9 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
 
     async def _state():
         r = await _rules()
-        return market_state(holidays=[str(x) for x in (r.get("market_holidays") or [])]), float(r.get("order_buffer_pct") or DEFAULT_BUFFER_PCT)
+        import market_calendar
+        hol = await market_calendar.holidays(db, r.get("market_holidays") or [])
+        return market_state(holidays=hol), float(r.get("order_buffer_pct") or DEFAULT_BUFFER_PCT)
 
     async def _conn(user: dict) -> dict:
         conn = await db.broker_connections.find_one({"user_id": user["id"], "broker": "kite"})
@@ -266,7 +268,11 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     @router.get("/market")
     async def market():
         state, buffer = await _state()
-        return {**state, "buffer_pct": buffer}
+        import market_calendar
+        hol = await market_calendar.holidays(db, (await _rules()).get("market_holidays") or [])
+        today = datetime.now(IST).strftime("%Y-%m-%d")
+        upcoming = [d for d in hol if d >= today][:3]
+        return {**state, "buffer_pct": buffer, "holidays": {**market_calendar.status(await market_calendar.load(db)), "upcoming": upcoming}}
 
     @router.post("/preview")
     async def preview(payload: dict = Body(...), user: dict = Depends(require_user)):

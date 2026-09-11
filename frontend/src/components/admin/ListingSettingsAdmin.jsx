@@ -32,6 +32,8 @@ export default function ListingSettingsAdmin({ token }) {
   const [cls, setCls] = useState(null);
   const [clsBusy, setClsBusy] = useState(false);
   const [uploadKind, setUploadKind] = useState('nifty100');
+  const [hol, setHol] = useState(null);
+  useEffect(() => { axios.get(`${API}/invest/market`).then(({ data }) => setHol(data.holidays || null)).catch(() => {}); }, []);
 
   const loadCls = async () => { try { const { data } = await axios.get(`${API}/admin/classification/status`, auth); setCls(data); } catch { setCls(null); } };
   useEffect(() => {
@@ -146,7 +148,7 @@ export default function ListingSettingsAdmin({ token }) {
             <div>
               <Label>NSE holidays (invest clock)</Label>
               <Input value={Array.isArray(rules.market_holidays) ? rules.market_holidays.join(', ') : (rules.market_holidays || '')} onChange={(e) => set('market_holidays', e.target.value)} className="mt-1.5 h-10" placeholder="2026-10-02, 2026-10-20" data-testid="rules-holidays" />
-              <div className="mt-1 text-[12px] text-[#667085]">Dates as YYYY-MM-DD, comma-separated. Orders on these days go as after-market orders for the next session.</div>
+              <div className="mt-1 text-[12px] text-[#667085]">Extra dates only, YYYY-MM-DD, comma-separated. NSE's official calendar is fetched automatically every week{hol ? ` (${hol.builtin + hol.fetched} dates known${hol.upcoming?.length ? `, next: ${hol.upcoming.join(', ')}` : ''}${hol.fetched_at ? `, fetched ${new Date(hol.fetched_at).toLocaleDateString('en-IN')}` : ', built-in list until the first fetch'})` : ''}.</div>
             </div>
             <Num label="Omnivest platform share" value={rules.platform_fee_pct} onChange={(v) => set('platform_fee_pct', v)} suffix="% of subscription revenue" min={0} max={100} hint="0% = Founding Partner offer (partners keep 100%)." />
             <div>

@@ -66,3 +66,12 @@ def test_funds_check_pads_and_rounds():
     fc = inv.funds_check(3845, -119)                              # smallcase's example: 3845 -> 3922 required, ₹-119 available
     assert fc["required"] == 3922 and fc["short"] == 4050 and fc["ok"] is False   # rounded up to ₹10 (smallcase showed 4,042)
     assert inv.funds_check(1000, None) is None                    # balance unknown -> no gate, warn only
+
+
+def test_builtin_holiday_calendar_knows_ganesh_chaturthi_2026():
+    import market_calendar as mc
+    assert "2026-09-14" in mc.BUILTIN and "2026-10-02" in mc.BUILTIN
+    # Friday night before the holiday -> next session is Tuesday 15 Sep
+    st = inv.market_state(_at(2026, 9, 11, 21, 0), holidays=mc.BUILTIN)
+    assert st["mode"] == "amo" and st["next_open_ist"].startswith("2026-09-15T09:15")
+    assert mc._parse([{"tradingDate": "14-Sep-2026"}, {"tradingDate": "bad"}]) == ["2026-09-14"]

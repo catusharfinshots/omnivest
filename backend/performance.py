@@ -524,12 +524,17 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         return now + timedelta(hours=6)
 
     async def _nse_lists(reason: str):
-        """Keep the NSE index membership (market-cap bucket + industry per symbol) fresh without a click."""
+        """Keep the NSE index membership (market-cap bucket + industry per symbol) and the NSE holiday calendar fresh."""
         try:
             import classification
             await classification.auto_refresh(db, reason)
         except Exception as e:  # noqa: BLE001
             logger.warning("nse lists auto-refresh (%s): %s", reason, e)
+        try:
+            import market_calendar
+            await market_calendar.auto_refresh(db, reason)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("nse holidays auto-refresh (%s): %s", reason, e)
 
     async def scheduler():
         """Runs forever inside the server: refreshes after each close, flags an expired Kite session each morning,
