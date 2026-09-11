@@ -109,11 +109,16 @@ export default function OrdersPage() {
   const [busy, setBusy] = useState(false);
   const h = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
 
-  const load = async () => {
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshedAt, setRefreshedAt] = useState(null);
+  const load = async (announce = false) => {
+    if (announce) setRefreshing(true);
     try {
       const [{ data }, m] = await Promise.all([axios.get(`${API}/invest/batches`, h), axios.get(`${API}/invest/market`).catch(() => ({ data: null }))]);
-      setBatches(data.batches || []); setMarket(m.data);
-    } catch { setBatches([]); }
+      setBatches(data.batches || []); setMarket(m.data); setRefreshedAt(new Date());
+      if (announce) toast.success('Statuses updated from Zerodha');
+    } catch { setBatches([]); if (announce) toast.error('Could not reach Zerodha. Try again in a moment.'); }
+    finally { if (announce) setRefreshing(false); }
   };
   useEffect(() => {
     document.title = 'Your orders | Omnivest';
@@ -127,7 +132,8 @@ export default function OrdersPage() {
     setBusy(true);
     try {
       const { data } = await axios.post(`${API}/invest/batches/${b.id}/cancel`, {}, h);
-      toast.success(data.cancelled ? `${data.cancelled} order${data.cancelled > 1 ? 's' : ''} cancelled in Zerodha` : 'Nothing open to cancel');
+      if (data.cancelled) toast.success(`${data.cancelled} order${data.cancelled > 1 ? 's' : ''} cancelled in Zerodha${data.failed?.length ? `, ${data.failed.length} could not be` : ''}`);
+      else toast('No open orders left in this batch');
       await load();
     } catch (e) { toast.error(e?.response?.data?.detail?.message || e?.response?.data?.detail || 'Cancel failed'); }
     finally { setBusy(false); }
@@ -157,7 +163,10 @@ export default function OrdersPage() {
             <h1 className="font-heading text-[26px] sm:text-4xl font-bold text-[#0F1729] flex items-center gap-2"><ClipboardList className="h-6 w-6 text-[#6C2BD9]" /> Your orders</h1>
             <p className="text-[14px] text-[#526071] mt-1">Every order placed through Omnivest in your Zerodha account, with Zerodha's live status.</p>
           </div>
-          <button type="button" onClick={load} className="btn-outline h-10 shrink-0" aria-label="Refresh"><RefreshCw className="h-4 w-4" /> <span className="hidden sm:inline">Refresh</span></button>
+          <div className="shrink-0 text-right">
+            <button type="button" onClick={() => load(true)} disabled={refreshing} className="btn-outline h-10 disabled:opacity-60" aria-label="Refresh statuses from Zerodha" data-testid="orders-refresh">{refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} <span className="hidden sm:inline">Refresh</span></button>
+            {refreshedAt && <div className="text-[11px] text-[#667085] mt-1">Zerodha status as of {refreshedAt.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: IST })} IST</div>}
+          </div>
         </div>
 
         <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3" data-testid="orders-tiles">

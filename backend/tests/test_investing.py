@@ -75,3 +75,9 @@ def test_builtin_holiday_calendar_knows_ganesh_chaturthi_2026():
     st = inv.market_state(_at(2026, 9, 11, 21, 0), holidays=mc.BUILTIN)
     assert st["mode"] == "amo" and st["next_open_ist"].startswith("2026-09-15T09:15")
     assert mc._parse([{"tradingDate": "14-Sep-2026"}, {"tradingDate": "bad"}]) == ["2026-09-14"]
+
+
+def test_iso_marks_naive_mongo_datetimes_as_utc():
+    from datetime import datetime as _dt
+    assert inv._iso(_dt(2026, 9, 11, 19, 24, 31)).endswith("+00:00")       # Mongo returns naive UTC; the browser must not read it as local
+    assert inv._iso("2026-09-11") == "2026-09-11"

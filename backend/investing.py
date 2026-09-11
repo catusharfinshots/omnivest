@@ -147,7 +147,9 @@ def _now():
 
 
 def _iso(v):
-    return v.isoformat() if isinstance(v, datetime) else v
+    if not isinstance(v, datetime):
+        return v
+    return (v if v.tzinfo else v.replace(tzinfo=timezone.utc)).isoformat()
 
 
 # ---------------- router ----------------
@@ -413,16 +415,23 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             return {"batch": _public(b), "cancelled": 0}
         conn = await _conn(user)
         k = _kite_client(conn["access_token"])
-        n = 0
+        n, failed = 0, []
         for o in todo:
+            st = (o.get("status") or "").upper()
+            variety = o.get("variety") or ("amo" if ("AMO" in st or b.get("mode") == "amo") else "regular")
             try:
-                await run_in_threadpool(lambda o=o: k.cancel_order(variety=o.get("variety") or b.get("mode") or "regular", order_id=o["order_id"]))
-                o.update({"status": "CANCELLED", "message": "Cancelled from Omnivest", "cancelled_at": _now()}); n += 1
+                await run_in_threadpool(lambda o=o, v=variety: k.cancel_order(variety=v, order_id=o["order_id"]))
+                o.update({"status": "CANCELLED", "message": "Cancelled from Omnivest", "cancelled_at": _now(), "variety": variety}); n += 1
             except Exception as e:  # noqa: BLE001
-                o["message"] = str(e)[:200]
+                msg = str(e)[:200]
+                o["cancel_error"] = msg
+                failed.append({"symbol": o["symbol"], "error": msg})
+                logger.warning("cancel %s (%s, %s) failed: %s", o.get("order_id"), o["symbol"], variety, msg)
         b["counts"] = counts_of(b["orders"]); b["updated_at"] = _now()
         await batches.update_one({"id": b["id"]}, {"$set": {"orders": b["orders"], "counts": b["counts"], "updated_at": b["updated_at"]}})
-        return {"batch": _public(b), "cancelled": n}
+        if failed and n == 0:
+            raise HTTPException(status_code=502, detail={"code": "cancel", "message": f"Zerodha did not cancel: {failed[0]['error']}", "failed": failed})
+        return {"batch": _public(b), "cancelled": n, "failed": failed}
 
     @router.get("/partner-summary/{pid}")
     async def partner_summary(pid: str, user: dict = Depends(require_user)):
