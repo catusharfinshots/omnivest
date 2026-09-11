@@ -76,7 +76,8 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
   const liveMin = quote?.min_amount || Math.round(minAmount || basket.minAmount || 0);
   const funds = preview?.funds || null;
   const fundsShort = funds && !funds.ok;
-  const openKiteFunds = () => window.open('https://kite.zerodha.com/funds', '_blank', 'noopener');
+  const openKiteFunds = (amt) => window.open(`https://kite.zerodha.com/funds${amt ? `?amount=${Math.round(amt)}` : ''}`, '_blank', 'noopener');
+  const copyAmount = async (amt) => { try { await navigator.clipboard.writeText(String(Math.round(amt))); toast.success(`₹${Math.round(amt).toLocaleString('en-IN')} copied`); } catch { toast(`Add ₹${Math.round(amt).toLocaleString('en-IN')} in Kite`); } };
 
   const fail = (e) => {
     const d = e?.response?.data?.detail;
@@ -145,6 +146,7 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
                 </div>
               </div>
               <button type="button" onClick={connect} disabled={connecting} className="btn-primary w-full mt-3 disabled:opacity-60" data-testid="invest-connect-btn">{connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Connect Zerodha</button>
+              <div className="text-[12px] text-[#526071] mt-2 rounded-lg bg-[#F7F4FB] px-3 py-2 leading-relaxed" data-testid="invest-connect-hint">Tip: on Zerodha's login page tick <b>“Login to Kite Web also”</b> so Add funds and your order book open without logging in again.</div>
               <div className="text-[11.5px] text-[#667085] mt-1 text-center">Already connected on another device? <Link to="/brokers/connect" className="underline inline-flex items-center min-h-[44px] sm:min-h-0 px-1">Manage brokers</Link></div>
             </div>
           )}
@@ -215,10 +217,10 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
                       <div className="flex justify-between"><span className="text-[#526071]">Available in Zerodha</span><b className="num">{INR(f.available)}</b></div>
                       <div className="flex justify-between border-t border-[#F1D48A] pt-1.5"><span className="text-[#0F1729] font-semibold">Funds to add</span><b className="num text-[#B91C1C]">{INR(f.short)}</b></div>
                       <div className="grid grid-cols-2 gap-2 pt-2">
-                        <button type="button" onClick={openKiteFunds} className="btn-primary h-11" data-testid="invest-add-funds">Add {INR(f.short)} on Zerodha</button>
+                        <button type="button" onClick={() => openKiteFunds(f.short)} className="btn-primary h-11" data-testid="invest-add-funds">Add {INR(f.short)} on Zerodha</button>
                         <button type="button" onClick={review} disabled={busy} className="btn-outline h-11 disabled:opacity-60" data-testid="invest-recheck-funds">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Re-check balance</button>
                       </div>
-                      <div className="text-[11.5px] text-[#667085] pt-1">Zerodha's funds page opens in a new tab. Money added by UPI shows within a minute; come back and re-check. <Link to="/faq" className="underline">Learn more</Link></div>
+                      <div className="text-[11.5px] text-[#667085] pt-1">Zerodha's funds page opens in a new tab. <button type="button" onClick={() => copyAmount(f.short)} className="underline font-semibold text-[#5320A8]" data-testid="invest-copy-amount">Copy {INR(f.short)}</button> to paste there. Money added by UPI shows within a minute; come back and re-check. <Link to="/faq" className="underline">Learn more</Link></div>
                     </div>
                   ); })()}
                 </div>
