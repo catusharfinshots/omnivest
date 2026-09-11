@@ -11,6 +11,8 @@ Partners' form renders from these; admins edit them in "Listing settings" withou
 """
 from __future__ import annotations
 
+import re
+
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
@@ -33,6 +35,7 @@ DEFAULTS: Dict[str, List[str]] = {
 FIELDS = list(DEFAULTS.keys())
 
 RULE_DEFAULTS: Dict[str, Any] = {
+    "order_buffer_pct": 0.5, "market_holidays": [],   # invest flow: limit = last price + buffer; NSE holidays (YYYY-MM-DD) for the AMO clock
     "min_constituents": 2,
     "max_constituents": 50,
     "max_weight_pct": 50,            # no single stock above this
@@ -69,7 +72,7 @@ RULE_DEFAULTS: Dict[str, Any] = {
 }
 RULE_TYPES = {"min_constituents": int, "max_constituents": int, "max_weight_pct": int, "max_tags": int, "max_subtitle_words": int,
               "factsheet_pdf_required": bool, "allow_video": bool, "plan_durations": list, "platform_fee_pct": float,
-              "founding_partner_until": str, "min_plan_price": int, "methodology_sections": list}
+              "founding_partner_until": str, "min_plan_price": int, "methodology_sections": list, "order_buffer_pct": float, "market_holidays": list}
 
 
 def clean_sections(raw) -> List[Dict[str, Any]]:
@@ -89,6 +92,16 @@ def clean_sections(raw) -> List[Dict[str, Any]]:
     return out[:10]
 
 
+_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _as_list(key: str, value) -> List[Any]:
+    """List-typed rules: plan_durations are positive ints; market_holidays are YYYY-MM-DD strings."""
+    if key == "market_holidays":
+        return sorted({str(x).strip() for x in (value or []) if _DATE.match(str(x).strip())})
+    return [int(x) for x in (value or []) if int(x) > 0]
+
+
 async def load_rules(db: AsyncIOMotorDatabase) -> Dict[str, Any]:
     """Current listing rules (defaults merged with the admin doc). Used by analyst.py at submit time."""
     doc = await db.app_settings.find_one({"_id": RULES_ID}) or {}
@@ -99,7 +112,7 @@ async def load_rules(db: AsyncIOMotorDatabase) -> Dict[str, Any]:
                 if k == "methodology_sections":
                     out[k] = clean_sections(doc[k]) or list(RULE_DEFAULTS[k])
                 else:
-                    out[k] = t(doc[k]) if t is not list else [int(x) for x in doc[k] if int(x) > 0]
+                    out[k] = t(doc[k]) if t is not list else _as_list(k, doc[k])
             except Exception:  # noqa: BLE001
                 pass
     if not out["plan_durations"]:
@@ -163,8 +176,13 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             v = payload[k]
             try:
                 if t is list:
-                    v = clean_sections(v) if k == "methodology_sections" else sorted({int(x) for x in v if int(x) > 0})
-                    if not v:
+                    if k == "methodology_sections":
+                        v = clean_sections(v)
+                    elif k == "market_holidays":
+                        v = _as_list(k, v)          # may be empty: no holidays listed
+                    else:
+                        v = sorted({int(x) for x in v if int(x) > 0})
+                    if not v and k != "market_holidays":
                         raise ValueError
                 elif t is bool:
                     v = bool(v)

@@ -23,6 +23,7 @@ import DashboardPage from './pages/DashboardPage';
 import BusinessPage from './pages/BusinessPage';
 import LegalPage from './pages/LegalPage';
 import ContactPage from './pages/ContactPage';
+import OrdersPage from './pages/OrdersPage';
 import AdminPage from './pages/AdminPage';
 import PartnerLanding from './pages/PartnerLanding';
 import PartnerApply from './pages/PartnerApply';
@@ -105,6 +106,7 @@ function App() {
               <Route path="/privacy" element={<LegalPage slug="privacy" />} />
               <Route path="/refunds" element={<LegalPage slug="refunds" />} />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/orders" element={<OrdersPage />} />
               <Route path="/faq" element={<FAQPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />

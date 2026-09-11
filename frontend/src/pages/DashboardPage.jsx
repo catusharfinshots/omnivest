@@ -325,6 +325,10 @@ export default function DashboardPage() {
       </div>
 
       <MySubscriptions token={token} />
+      <div className="surface p-5 flex items-center justify-between gap-3 mt-6" data-testid="dash-orders-card">
+        <div><div className="text-lg font-semibold">Your orders</div><div className="text-sm text-[#526071]">Orders placed through Omnivest in your Zerodha account, with live status.</div></div>
+        <Link to="/orders" className="btn-outline shrink-0">See orders</Link>
+      </div>
 
       {watchlist.length > 0 && (
         <div className="mt-10">

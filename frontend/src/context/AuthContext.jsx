@@ -77,6 +77,14 @@ export function AuthProvider({ children }) {
   const [authInvite, setAuthInvite] = useState(null);
   const [authNext, setAuthNext] = useState(null);
   const [authFlow, setAuthFlow] = useState('customer');
+  // The broker connection (Kite) is stored under the signed-in user's id; tell BrokerContext when it changes.
+  useEffect(() => {
+    try {
+      if (user?.id) localStorage.setItem('basketly-uid-v1', user.id);
+      window.dispatchEvent(new Event('omnivest-auth'));
+    } catch { /* ignore */ }
+  }, [user]);
+
   const openAuth = useCallback((opts = {}) => {
     setAuthInvite(opts.invite || null);
     setAuthNext(opts.next || null);

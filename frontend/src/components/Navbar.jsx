@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Link2, CheckCircle2, LineChart, LayoutDashboard, LogOut, User, ShieldCheck } from 'lucide-react';
+import { Menu, X, Link2, CheckCircle2, LineChart, LayoutDashboard, LogOut, User, ShieldCheck, ClipboardList } from 'lucide-react';
 import omniMark from '../assets/omnivest-mark-white.svg';
 import { useBroker } from '../context/BrokerContext';
 import { useAuth } from '../context/AuthContext';
@@ -87,9 +87,10 @@ export default function Navbar() {
                 {user?.role === 'analyst' && (
                   <Link to="/partner" data-testid="nav-analyst-console" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><LineChart className="h-4 w-4" /> Analyst console</Link>
                 )}
-                {user?.role !== 'analyst' && (
+                {user?.role !== 'analyst' && (<>
                   <Link to="/dashboard" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><LayoutDashboard className="h-4 w-4" /> Dashboard</Link>
-                )}
+                  <Link to="/orders" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]" data-testid="nav-orders"><ClipboardList className="h-4 w-4" /> Orders</Link>
+                </>)}
                 <Link to="/brokers/connect" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><Link2 className="h-4 w-4" /> Connect broker</Link>
                 <button onClick={doLogout} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-[#B91C1C] hover:bg-[#FEF2F2]"><LogOut className="h-4 w-4" /> Log out</button>
               </PopoverContent>

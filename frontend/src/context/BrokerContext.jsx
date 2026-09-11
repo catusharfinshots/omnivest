@@ -18,7 +18,7 @@ function ensureUserId() {
 const BrokerContext = createContext(null);
 
 export function BrokerProvider({ children }) {
-  const [userId] = useState(() => ensureUserId());
+  const [userId, setUserId] = useState(() => ensureUserId());
   const [connections, setConnections] = useState({ kite: null });
   const [loading, setLoading] = useState(true);
 
@@ -37,6 +37,13 @@ export function BrokerProvider({ children }) {
     setLoading(true);
     refreshKite().finally(() => setLoading(false));
   }, [refreshKite]);
+
+  // Signed-in user changes -> re-key the broker connection to that user
+  useEffect(() => {
+    const onAuth = () => setUserId(ensureUserId());
+    window.addEventListener('omnivest-auth', onAuth);
+    return () => window.removeEventListener('omnivest-auth', onAuth);
+  }, []);
 
   // Listen for popup postMessage on connect success
   useEffect(() => {

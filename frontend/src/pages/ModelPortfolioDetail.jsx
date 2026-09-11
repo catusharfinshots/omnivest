@@ -4,7 +4,7 @@ import axios from 'axios';
 import { track } from '../lib/track';
 import { getBasket, getManager } from '../mock';
 import Seo from '../components/Seo';
-import InvestFlow from '../components/InvestFlow';
+import InvestModal from '../components/InvestModal';
 import ShareButton from '../components/ShareButton';
 import ShareRow from '../components/ShareRow';
 import { BookOpen, FlaskConical, FileText } from 'lucide-react';
@@ -418,7 +418,7 @@ export default function ModelPortfolioDetail() {
         </DialogContent>
       </Dialog>
 
-      <InvestFlow open={investOpen} onOpenChange={setInvestOpen} basket={basket} onViewInvestments={() => navigate('/dashboard')} />
+      <InvestModal open={investOpen} onClose={() => setInvestOpen(false)} basket={basket} token={token} minAmount={minAmount} />
     </div>
   );
 }

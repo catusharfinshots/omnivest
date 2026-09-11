@@ -43,7 +43,8 @@ export default function ListingSettingsAdmin({ token }) {
   const saveRules = async () => {
     setBusy(true);
     try {
-      const payload = { ...rules, plan_durations: String(rules.plan_durations).split(',').map((x) => Number(x)).filter((x) => x > 0) };
+      const holidays = Array.isArray(rules.market_holidays) ? rules.market_holidays : String(rules.market_holidays || '').split(',').map((x) => x.trim()).filter(Boolean);
+      const payload = { ...rules, plan_durations: String(rules.plan_durations).split(',').map((x) => Number(x)).filter((x) => x > 0), market_holidays: holidays, order_buffer_pct: Number(rules.order_buffer_pct ?? 0.5) };
       const { data } = await axios.put(`${API}/admin/listing-rules`, payload, auth);
       setRules(data);
       toast.success('Listing rules saved — they apply to the next submit');
@@ -141,6 +142,12 @@ export default function ListingSettingsAdmin({ token }) {
               <div className="mt-1 text-[12px] text-[#667085]">Months, comma-separated.</div>
             </div>
             <Num label="Minimum plan price" value={rules.min_plan_price} onChange={(v) => set('min_plan_price', v)} suffix="₹" min={0} />
+            <Num label="Order limit buffer" value={rules.order_buffer_pct} onChange={(v) => set('order_buffer_pct', v)} suffix="% above last price" min={0} max={5} hint="Invest now places limit orders at the last price plus this buffer, so more fill at open." />
+            <div>
+              <Label>NSE holidays (invest clock)</Label>
+              <Input value={Array.isArray(rules.market_holidays) ? rules.market_holidays.join(', ') : (rules.market_holidays || '')} onChange={(e) => set('market_holidays', e.target.value)} className="mt-1.5 h-10" placeholder="2026-10-02, 2026-10-20" data-testid="rules-holidays" />
+              <div className="mt-1 text-[12px] text-[#667085]">Dates as YYYY-MM-DD, comma-separated. Orders on these days go as after-market orders for the next session.</div>
+            </div>
             <Num label="Omnivest platform share" value={rules.platform_fee_pct} onChange={(v) => set('platform_fee_pct', v)} suffix="% of subscription revenue" min={0} max={100} hint="0% = Founding Partner offer (partners keep 100%)." />
             <div>
               <Label>Founding-partner window ends</Label>
