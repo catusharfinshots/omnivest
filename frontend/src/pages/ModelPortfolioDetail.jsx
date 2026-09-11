@@ -144,7 +144,11 @@ export default function ModelPortfolioDetail() {
   const benchHead = pmBench ? (useCagr ? pmBench.cagr_pct : pmBench.return_pct) : null;
   const alpha = headline !== null && benchHead !== null && benchHead !== undefined ? +(headline - benchHead).toFixed(2) : null;
   const vol = (pm && pm.volatility_label) || null;
-  const minAmount = perfOk && perf.min_investment?.amount ? perf.min_investment.amount : basket.minAmount;
+  // Minimum investment is computed by the engine (1+ share of every stock at the last close). Until it arrives we show a
+  // placeholder rather than the legacy typed default, which flashed ₹5,000 before the real ₹11,385 (Tushar, 12 Sep 2026).
+  const computedMin = (perfOk && perf.min_investment?.amount) || basket.computed?.min_investment || null;
+  const minAmount = computedMin || (isDb ? null : basket.minAmount);
+  const minLabel = minAmount ? INR(minAmount) : (perf && perf.status !== 'ok' ? 'Not yet' : '…');
   const ago = perf?.launched_days_ago;
   const launchedLabel = ago === 0 ? 'Launched today' : ago === 1 ? 'Launched yesterday' : ago > 1 ? `Launched ${ago} days ago` : (basket.launch_date ? `Launched ${nice(basket.launch_date)}` : 'Since launch');
   const headlineText = headline === null ? 'New' : pct(headline);
@@ -157,7 +161,7 @@ export default function ModelPortfolioDetail() {
     // the benchmark's own move is always shown, so a flat index day never looks like missing data
     { label: `vs ${benchLabel}`, value: pct(alpha), sub: alpha === null ? 'from next market close' : `${benchLabel} ${pct(benchHead)} · ${alpha >= 0 ? 'ahead' : 'behind'}`, good: alpha !== null && alpha >= 0, bad: alpha !== null && alpha < 0 },
     { label: 'Volatility', value: vol || '—', sub: vol ? `${pm.volatility_pct}% annualised` : 'after 20 trading days', tone: vol === 'Low' ? 'good' : vol === 'High' ? 'bad' : vol === 'Medium' ? 'warn' : '' },
-    { label: 'Min. investment', value: INR(minAmount), sub: perfOk && perf.min_investment ? "at today's prices" : 'to start' },
+    { label: 'Min. investment', value: minLabel, sub: perfOk && perf.min_investment ? "at today's prices" : 'to start' },
   ];
 
   return (
@@ -204,7 +208,7 @@ export default function ModelPortfolioDetail() {
           </div>
           {/* phones: the three figures the reference shows, in one quiet strip */}
           <div className="sm:hidden mt-4 grid grid-cols-3 divide-x divide-[#EEF1F6] rounded-xl border border-[#E6E8F0] bg-white" data-testid="figure-strip">
-            <div className="px-3 py-2.5"><div className="text-[12px] text-[#667085]">Min. amount</div><div className="num text-[16px] font-bold text-[#0F1729] mt-0.5">{INR(minAmount)}</div></div>
+            <div className="px-3 py-2.5"><div className="text-[12px] text-[#667085]">Min. amount</div><div className="num text-[16px] font-bold text-[#0F1729] mt-0.5">{minLabel}</div></div>
             <div className="px-3 py-2.5"><div className="text-[12px] text-[#667085]">{useCagr ? 'CAGR' : 'Since launch'}</div><div className={`num text-[16px] font-bold mt-0.5 ${headline !== null && headline < 0 ? 'text-[#B91C1C]' : headline !== null ? 'text-[#0B7F4A]' : 'text-[#5320A8]'}`}>{perfOk ? headlineText : '—'}</div></div>
             <div className="px-3 py-2.5"><div className="text-[12px] text-[#667085]">Volatility</div><div className="mt-0.5">{vol ? <VolatilityBadge level={vol} compact /> : <span className="text-[16px] font-bold text-[#98A2B3]">—</span>}</div></div>
           </div>
@@ -322,7 +326,7 @@ export default function ModelPortfolioDetail() {
         <div className="hidden lg:block lg:col-span-4">
           <div className="surface p-6 lg:sticky lg:top-24" data-testid="invest-box">
             <div className="flex items-center gap-1.5 text-xs text-[#526071]"><span>Minimum investment amount</span><Info className="h-3.5 w-3.5" /></div>
-            <div className="num mt-1 text-3xl font-bold text-[#0F1729]">{INR(minAmount)}</div>
+            <div className="num mt-1 text-3xl font-bold text-[#0F1729]">{minAmount ? INR(minAmount) : <span className="skeleton inline-block h-8 w-28 rounded align-middle" />}</div>
             {perfOk && perf.min_investment?.amount ? <div className="text-[12px] text-[#667085]">buys 1+ share of every stock at today's prices</div> : null}
 
             {paid && access.unlocked && access.reason === 'subscriber' ? (
@@ -382,7 +386,7 @@ export default function ModelPortfolioDetail() {
             ) : (
               <>
                 <div className="text-[12px] text-[#667085] leading-4">Min. amount</div>
-                <div className="num text-[17px] font-bold text-[#0F1729] leading-5">{INR(minAmount)}</div>
+                <div className="num text-[17px] font-bold text-[#0F1729] leading-5">{minLabel}</div>
               </>
             )}
           </div>

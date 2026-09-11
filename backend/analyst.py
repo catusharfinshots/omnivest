@@ -7,6 +7,8 @@ Collections:
 """
 from __future__ import annotations
 
+import logging
+
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, List
@@ -24,6 +26,8 @@ from richtext import sanitize_html, plain_text
 from covers import normalise_cover, public_cover
 import storage
 
+
+logger = logging.getLogger(__name__)
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -574,6 +578,13 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             "website": (mgr or {}).get("website", ""),
             "listings": live_count,
         }
+        # first paint: carry the engine's card summary (min investment, returns) so the page never shows the legacy typed minimum
+        try:
+            import performance as perf_engine
+            if perf_engine.ENGINE is not None and doc.get("status") == "approved":
+                doc["computed"] = (await perf_engine.ENGINE.summaries([doc["id"]], None)).get(doc["id"])
+        except Exception as e:  # noqa: BLE001
+            logger.info("detail summary skipped: %s", str(e)[:120])
         return {"portfolio": doc}
 
     return router
