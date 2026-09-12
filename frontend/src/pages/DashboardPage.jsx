@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Eye, EyeOff, Loader2, Wrench, Clock, User, Link2, BadgeCheck, AlertTriangle, Info, PieChart, Landmark, Compass, Building2, LineChart, Lock } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Wrench, Clock, User, Link2, BadgeCheck, AlertTriangle, Info, PieChart, Landmark, Compass, Building2, LineChart, Lock, Flame, Gift, Wallet, Shield, Sparkles, ArrowRight, BookOpen } from 'lucide-react';
+import { learnPosts } from '../mock';
 import { useAuth } from '../context/AuthContext';
 import CoverArt from '../components/CoverArt';
 import WatchButton from '../components/WatchButton';
@@ -13,6 +14,9 @@ const day = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeri
 const dayY = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: IST }) : '');
 const pct = (v, signed = true) => (v == null ? '—' : `${signed && v > 0 ? '+' : ''}${Number(v).toFixed(1)}%`);
 const NUDGE = { broker: [Link2, 'bg-[#F1EDF7] text-[#6C2BD9]'], expired: [AlertTriangle, 'bg-[#FEF3C7] text-[#9A4A05]'], fix: [Wrench, 'bg-[#FEF3C7] text-[#9A4A05]'], pending: [Clock, 'bg-[#EFF6FF] text-[#1D4ED8]'], profile: [User, 'bg-[#F1EDF7] text-[#5320A8]'], renewal: [BadgeCheck, 'bg-[#E3F4EB] text-[#096B3E]'] };
+const SHELF_ICON = { flame: [Flame, 'from-[#FF7A59] to-[#F04438]'], gift: [Gift, 'from-[#6C2BD9] to-[#9F67FF]'], wallet: [Wallet, 'from-[#0EA5E9] to-[#2563EB]'], shield: [Shield, 'from-[#10B981] to-[#0A7D48]'], sparkles: [Sparkles, 'from-[#F59E0B] to-[#EF4444]'] };
+const THUMB = ['from-[#6C2BD9] to-[#9F67FF]', 'from-[#0EA5E9] to-[#2563EB]', 'from-[#10B981] to-[#0A7D48]', 'from-[#F59E0B] to-[#EF4444]', 'from-[#EC4899] to-[#8B5CF6]', 'from-[#14B8A6] to-[#0EA5E9]'];
+const BANNER = ['from-[#4C1D95] via-[#6C2BD9] to-[#9F67FF]', 'from-[#0F2A1F] via-[#0A7D48] to-[#10B981]'];
 const PRODUCTS = [
   { to: '/model-portfolios', icon: PieChart, t: 'Model portfolios', d: 'Expert-built stock baskets, invested from your own broker account', live: true },
   { to: '/aif', icon: Landmark, t: 'AIF', d: 'Alternative investment funds for ₹1 Cr+ investors' },
@@ -56,6 +60,8 @@ export default function DashboardPage() {
   const [d, setD] = useState(null);
   const [hidden, toggleHidden] = useHidden();
   const [chip, setChip] = useState('all');
+  const [shelf, setShelf] = useState(0);
+  const [pick, setPick] = useState('all');
 
   useEffect(() => { document.title = 'Dashboard | Omnivest'; }, []);
   useEffect(() => { if (!authLoading && user?.role === 'analyst') navigate('/partner', { replace: true }); if (!authLoading && user?.role === 'admin') navigate('/admin', { replace: true }); }, [authLoading, user, navigate]);
@@ -124,6 +130,20 @@ export default function DashboardPage() {
           </section>
         </div>
 
+        {/* 2b. Featured */}
+        {(d?.featured || []).length > 0 && (
+          <div className="mt-6 grid md:grid-cols-2 gap-4" data-testid="dash-featured">
+            {d.featured.map((f, i) => (
+              <Link key={f.id} to={`/model-portfolios/${f.id}`} className={`relative overflow-hidden rounded-2xl text-white p-6 min-h-[168px] flex flex-col justify-between bg-gradient-to-br ${BANNER[i % BANNER.length]} hover:brightness-110 transition-all`}>
+                <div className="absolute -right-8 -bottom-10 h-44 w-44 rounded-full bg-white/10" aria-hidden="true" />
+                <div className="absolute right-6 top-6 h-16 w-16 rounded-2xl bg-white/15 backdrop-blur grid place-items-center" aria-hidden="true"><CoverArt cover={f.cover} name={f.name} size={44} radius={12} /></div>
+                <div><div className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">{f.label}</div><div className="font-heading font-bold text-[20px] mt-1 pr-24">{f.name}</div><div className="text-[13px] text-white/85 mt-1 pr-24">{f.manager ? `by ${f.manager}` : ''}{f.return_pct != null ? ` · ${pct(f.return_pct)} since launch` : ''}</div></div>
+                <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-white text-[#1A1030] px-4 py-2 text-[13px] font-semibold mt-4">Explore now <ArrowRight className="h-3.5 w-3.5" /></span>
+              </Link>
+            ))}
+          </div>
+        )}
+
         {/* 3. Based on your interests */}
         {(d?.interests || []).length > 0 && (
           <section className="mt-6" data-testid="dash-interests">
@@ -158,6 +178,47 @@ export default function DashboardPage() {
           </div>
         </section>
 
+        {/* 4b. Take your pick */}
+        {(d?.collections || []).length > 0 && (() => { const shelves = d.collections; const cur = shelves[Math.min(shelf, shelves.length - 1)]; const rows = (cur?.items || []).filter((r) => pick === 'all' || (pick === 'free' ? !r.paid : r.paid)); return (
+          <section className="mt-6" data-testid="dash-pick">
+            <div className="flex items-end justify-between gap-3 flex-wrap">
+              <div><h2 className="font-heading font-bold text-[18px] text-[#0F1729]">Take your pick</h2><div className="text-[12.5px] text-[#667085]">Shelves built from live listings, refreshed every few minutes</div></div>
+              <div className="flex gap-1.5">{[['all', 'All'], ['free', 'Free'], ['paid', 'Paid']].map(([k, l]) => <button key={k} type="button" onClick={() => setPick(k)} className={`h-10 sm:h-8 px-3 rounded-full text-[12px] font-semibold border ${pick === k ? 'bg-[#1A1030] text-white border-[#1A1030]' : 'bg-white border-[#E8E1F0] text-[#334155]'}`}>{l}</button>)}</div>
+            </div>
+            <div className="mt-3 surface overflow-hidden grid lg:grid-cols-[260px_1fr]">
+              <div className="flex lg:flex-col overflow-x-auto lg:overflow-visible border-b lg:border-b-0 lg:border-r border-[#F1EDF7] p-2 gap-1">
+                {shelves.map((s, i) => { const [Icon, grad] = SHELF_ICON[s.icon] || SHELF_ICON.sparkles; const on = i === Math.min(shelf, shelves.length - 1); return (
+                  <button key={s.key} type="button" onClick={() => setShelf(i)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left shrink-0 min-h-[48px] ${on ? 'bg-[#F7F4FB] lg:border-l-4 lg:border-[#6C2BD9]' : 'hover:bg-[#FBFAFD]'}`} aria-pressed={on}>
+                    <span className={`h-9 w-9 rounded-full grid place-items-center text-white bg-gradient-to-br ${grad} shrink-0`}><Icon className="h-4 w-4" /></span>
+                    <span className={`text-[14px] font-semibold whitespace-nowrap lg:whitespace-normal ${on ? 'text-[#5320A8]' : 'text-[#0F1729]'}`}>{s.title}</span>
+                  </button>
+                ); })}
+              </div>
+              <div className="p-4 sm:p-5">
+                <div className="text-[13px] text-[#526071]">{cur?.sub}</div>
+                {rows.length === 0 && <div className="py-8 text-center text-[13px] text-[#667085]">Nothing on this shelf for that filter.</div>}
+                <div className="mt-3 grid sm:grid-cols-2 gap-3">
+                  {rows.slice(0, 4).map((r) => (
+                    <div key={r.id} className="rounded-2xl border border-[#E8E1F0] p-4 flex flex-col gap-3 hover:border-[#D8C7F1] transition-colors">
+                      <div className="flex items-start justify-between gap-2">
+                        <Link to={`/model-portfolios/${r.id}`} className="flex items-center gap-3 min-w-0"><CoverArt cover={r.cover} name={r.name} size={44} radius={12} /><span className="min-w-0"><span className="block font-semibold text-[14px] text-[#0F1729] truncate">{r.name}</span><span className="block text-[12px] text-[#667085] truncate">{r.manager ? `by ${r.manager}` : ''}</span></span></Link>
+                        <WatchButton portfolioId={r.id} watching={r.watching} compact />
+                      </div>
+                      {r.subtitle && <div className="text-[12.5px] text-[#526071] leading-relaxed line-clamp-2">{r.subtitle}</div>}
+                      <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end text-[11.5px] text-[#667085]">
+                        <span>Min. amount<b className="block text-[13.5px] text-[#0F1729] num">{r.min_amount ? `₹${Number(r.min_amount).toLocaleString('en-IN')}` : '—'}</b></span>
+                        <span>Since launch<b className={`block text-[13.5px] ${(r.return_pct || 0) >= 0 ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>{pct(r.return_pct)}</b></span>
+                        {r.volatility_label && <span className={`text-[11px] font-bold rounded-md px-2 py-1 ${r.volatility_label === 'Low' ? 'bg-[#E3F4EB] text-[#096B3E]' : r.volatility_label === 'High' ? 'bg-[#FBE4E4] text-[#B91C1C]' : 'bg-[#FEF3C7] text-[#9A4A05]'}`}>{r.volatility_label}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 text-right"><Link to="/model-portfolios" className="btn-outline h-10 px-4 text-[13px]">View all</Link></div>
+              </div>
+            </div>
+          </section>
+        ); })()}
+
         {/* 5. Products */}
         <section className="mt-6" data-testid="dash-products">
           <h2 className="font-heading font-bold text-[18px] text-[#0F1729]">Everything on Omnivest</h2>
@@ -168,6 +229,20 @@ export default function DashboardPage() {
                 <span className="h-10 w-10 rounded-xl bg-[#F1EDF7] text-[#6C2BD9] grid place-items-center"><Icon className="h-5 w-5" /></span>
                 <div className="font-semibold text-[14px] text-[#0F1729] mt-2.5">{t}{!live && <span className="ml-1.5 align-middle text-[10px] font-bold text-[#9A4A05] bg-[#FEF3C7] rounded-full px-1.5 py-0.5">Coming</span>}</div>
                 <div className="text-[12px] text-[#667085] mt-0.5 leading-relaxed">{desc}</div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* 6a. Worth a read */}
+        <section className="mt-6" data-testid="dash-read">
+          <h2 className="font-heading font-bold text-[18px] text-[#0F1729]">Worth a read</h2>
+          <div className="text-[12.5px] text-[#667085]">Short reads from Learn</div>
+          <div className="mt-3 grid sm:grid-cols-3 gap-3">
+            {learnPosts.slice(0, 3).map((p, i) => (
+              <Link key={p.slug} to={`/learn/${p.slug}`} className="surface overflow-hidden hover:border-[#D8C7F1] transition-colors">
+                <div className={`h-28 bg-gradient-to-br ${THUMB[i % THUMB.length]} relative`}><BookOpen className="absolute right-4 bottom-4 h-8 w-8 text-white/60" /><span className="absolute left-4 top-4 text-[11px] font-bold uppercase tracking-wide text-white/90 bg-white/15 rounded-full px-2 py-0.5">{p.category}</span></div>
+                <div className="p-4"><div className="font-semibold text-[14px] text-[#0F1729] leading-snug">{p.title}</div><div className="text-[12.5px] text-[#526071] mt-1">{p.excerpt}</div><div className="text-[12px] font-bold text-[#5320A8] mt-2">Read more · {p.readTime}</div></div>
               </Link>
             ))}
           </div>

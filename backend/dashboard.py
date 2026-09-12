@@ -90,6 +90,42 @@ def context_line(market: dict, nifty_pct: Optional[float], my_pct: Optional[floa
     return " ".join(parts)
 
 
+COLLECTIONS = [
+    ("most_subscribed", "Most subscribed", "Most subscribed in the last 4 weeks", "flame"),
+    ("free", "Free to start", "No subscription; invest from the minimum", "gift"),
+    ("under_10k", "Under ₹10,000", "Portfolios you can start with a small amount", "wallet"),
+    ("low_vol", "Steady movers", "Low-volatility portfolios", "shield"),
+    ("new", "New launches", "Launched in the last 30 days", "sparkles"),
+]
+
+
+def collection_buckets(items: List[dict], today: Optional[str] = None) -> List[dict]:
+    """Group live listings into the curated shelves ('Take your pick'). Pure, unit-tested.
+    items: {id, paid, min_amount, volatility_label, launch_date, subscribers_4w, ...}; ordering rules per shelf."""
+    from datetime import date as _date
+    today_d = _date.fromisoformat(today) if today else _date.today()
+    def days_since(s):
+        try:
+            return (today_d - _date.fromisoformat(str(s)[:10])).days
+        except Exception:  # noqa: BLE001
+            return None
+    out = []
+    for key, title, sub, icon in COLLECTIONS:
+        if key == "most_subscribed":
+            rows = sorted([i for i in items if (i.get("subscribers_4w") or 0) > 0], key=lambda i: -(i.get("subscribers_4w") or 0))
+        elif key == "free":
+            rows = sorted([i for i in items if not i.get("paid")], key=lambda i: -(i.get("return_pct") or 0))
+        elif key == "under_10k":
+            rows = sorted([i for i in items if i.get("min_amount") and i["min_amount"] <= 10000], key=lambda i: i["min_amount"])
+        elif key == "low_vol":
+            rows = sorted([i for i in items if i.get("volatility_label") == "Low"], key=lambda i: -(i.get("return_pct") or 0))
+        else:
+            rows = sorted([i for i in items if (d := days_since(i.get("launch_date"))) is not None and d <= 30], key=lambda i: str(i.get("launch_date")), reverse=True)
+        if rows:
+            out.append({"key": key, "title": title, "sub": sub, "icon": icon, "items": rows[:8]})
+    return out
+
+
 def strip_html(s: str, limit: int = 160) -> str:
     t = re.sub(r"<[^>]+>", " ", s or "")
     t = re.sub(r"\s+", " ", t).strip()
@@ -118,27 +154,34 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         hol = await market_calendar.holidays(db, r.get("market_holidays") or [])
         return inv.market_state(holidays=hol)
 
-    async def _ticks() -> Optional[List[dict]]:
-        if time.time() - _tick_cache["at"] < 60 and _tick_cache["data"] is not None:
+    async def _ticks(user_id: Optional[str] = None) -> Optional[List[dict]]:
+        if time.time() - _tick_cache["at"] < 60 and _tick_cache["data"]:
             return _tick_cache["data"]
-        try:
-            import market_data
-            row = await db.kite_sessions.find_one({"account": "market-data"})
-            if not row or not row.get("access_token"):
-                return _tick_cache["data"]
-            k = market_data._new_client(row["access_token"])
-            q = await run_in_threadpool(lambda: k.quote([s for s, _ in INDICES]))
-            out = []
-            for sym, label in INDICES:
-                d = q.get(sym) or {}
-                ltp, close = float(d.get("last_price") or 0), float((d.get("ohlc") or {}).get("close") or 0)
-                if ltp:
-                    out.append({"label": label, "ltp": round(ltp, 2), "change_pct": round((ltp - close) * 100.0 / close, 2) if close else None})
-            _tick_cache.update({"at": time.time(), "data": out})
-            return out
-        except Exception as e:  # noqa: BLE001
-            logger.info("index ticks unavailable: %s", str(e)[:120])
-            return _tick_cache["data"]
+        import market_data
+        tokens = []
+        row = await db.kite_sessions.find_one({"account": "market-data"})
+        if row and row.get("access_token") and not row.get("needs_reconnect"):
+            tokens.append(("market", row["access_token"]))
+        if user_id:
+            conn = await db.broker_connections.find_one({"user_id": user_id, "broker": "kite"})
+            if conn and conn.get("access_token") and not conn.get("expired_at"):
+                tokens.append(("investor", conn["access_token"]))
+        for src, tok in tokens:
+            try:
+                k = market_data._new_client(tok)
+                q = await run_in_threadpool(lambda: k.quote([s for s, _ in INDICES]))
+                out = []
+                for sym, label in INDICES:
+                    d = q.get(sym) or {}
+                    ltp, close = float(d.get("last_price") or 0), float((d.get("ohlc") or {}).get("close") or 0)
+                    if ltp:
+                        out.append({"label": label, "ltp": round(ltp, 2), "change_pct": round((ltp - close) * 100.0 / close, 2) if close else None})
+                if out:
+                    _tick_cache.update({"at": time.time(), "data": out})
+                    return out
+            except Exception as e:  # noqa: BLE001
+                logger.info("index ticks via %s session unavailable: %s", src, str(e)[:120])
+        return _tick_cache["data"] or []
 
     async def _meta(ids: List[str]) -> Dict[str, dict]:
         if not ids:
@@ -189,8 +232,9 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
 
         subs = await db.subscriptions.find({"user_id": uid, "status": "active", "expires_at": {"$gt": now}}, {"_id": 0, "portfolio_id": 1, "expires_at": 1, "plan_months": 1}).to_list(50)
         next_renewal = _aware(min((s["expires_at"] for s in subs if s.get("expires_at")), default=None))
-        paid = await db.payment_orders.find({"user_id": uid, "status": "paid"}, {"_id": 0, "amount": 1}).to_list(500)
-        fees = round(sum(float(p.get("amount") or 0) for p in paid) / 100.0, 2)
+        paid = await db.payment_orders.find({"user_id": uid, "status": "paid"}, {"_id": 0, "amount": 1, "subscription_id": 1}).to_list(500)
+        cancelled_subs = {s["id"] for s in await db.subscriptions.find({"user_id": uid, "status": {"$in": ["cancelled", "revoked", "refunded"]}}, {"_id": 0, "id": 1}).to_list(500)}
+        fees = round(sum(float(p.get("amount") or 0) for p in paid if p.get("subscription_id") not in cancelled_subs) / 100.0, 2)
 
         # --- nudges ---
         nudges: List[dict] = []
@@ -275,7 +319,16 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 posts.append({"id": r["id"], "portfolio_id": r["portfolio_id"], "portfolio_name": m.get("name"), "manager": m.get("manager"), "title": r.get("title"),
                               "excerpt": "Subscribers only. Subscribe to read this update." if locked else strip_html(r.get("body")), "locked": locked, "at": _iso(r.get("created_at"))})
 
-        ticks = await _ticks()
+        # --- take your pick: curated shelves over every live listing (cached 5 min) ---
+        shelves = await _shelves(watch_ids)
+        featured = []
+        seen_f = set()
+        for src, label in ((trending["most_viewed"], "Trending this week"), (trending["new_launches"], "New launch"), (trending["most_invested"], "Most invested")):
+            for r in src:                                   # one banner per source, so the pair reads as two stories
+                if r["id"] not in seen_f and len(featured) < 2:
+                    seen_f.add(r["id"]); featured.append({**r, "label": label}); break
+
+        ticks = await _ticks(uid)
         nifty = next((t.get("change_pct") for t in ticks or [] if t.get("label") == "NIFTY 50"), None)
         return {
             "overview": {"value": value, "invested": invested, "returns": returns, "returns_pct": round(returns * 100.0 / invested, 2) if invested else None, "day_pct": my_day,
@@ -287,7 +340,28 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             "interests": interests,
             "trending": trending,
             "posts": posts,
+            "collections": shelves,
+            "featured": featured,
             "watchlist": watch_ids,
         }
+
+    _shelf_cache: Dict[str, Any] = {"at": 0.0, "items": []}
+
+    async def _shelves(watch_ids: List[str]) -> List[dict]:
+        if time.time() - _shelf_cache["at"] > 300:
+            docs = await portfolios.find({"status": "approved"}, {"_id": 0, "id": 1, "name": 1, "subtitle": 1, "owner_id": 1, "owner_name": 1, "cover": 1, "subscription": 1, "launch_date": 1, "tags": 1, "strategy": 1, "status": 1}).to_list(500)
+            ids = [d["id"] for d in docs]
+            meta, perf_all = await _meta(ids), {}
+            async for p in perf.find({"_id": {"$in": ids}}, {"metrics": 1, "min_investment": 1, "series": {"$slice": -2}}):
+                perf_all[p["_id"]] = p
+            d28 = datetime.now(timezone.utc) - timedelta(days=28)
+            subs_agg = {x["_id"]: x["n"] for x in await db.subscriptions.aggregate([{"$match": {"started_at": {"$gte": d28}, "status": "active"}}, {"$group": {"_id": "$portfolio_id", "n": {"$sum": 1}}}]).to_list(500)}
+            items = []
+            for d in docs:
+                m, p = meta.get(d["id"]) or {}, perf_all.get(d["id"]) or {}
+                items.append({**m, "subtitle": d.get("subtitle") or "", "min_amount": ((p.get("min_investment") or {}).get("amount")), **_summary(p), "subscribers_4w": subs_agg.get(d["id"], 0)})
+            _shelf_cache.update({"at": time.time(), "items": items})
+        items = [{**i, "watching": i["id"] in watch_ids} for i in _shelf_cache["items"]]
+        return collection_buckets(items)
 
     return router

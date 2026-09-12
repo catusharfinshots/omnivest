@@ -33,6 +33,21 @@ def test_context_line_reads_like_a_person():
     assert dbm.context_line(m, None, None, 1, "Mon") == "Market is closed. Your 1 after-market order executes on Mon."
 
 
+def test_collection_shelves_only_show_what_they_promise():
+    items = [
+        {"id": "a", "paid": True, "min_amount": 24000, "volatility_label": "High", "launch_date": "2026-09-09", "subscribers_4w": 3, "return_pct": 1.7},
+        {"id": "b", "paid": False, "min_amount": 4900, "volatility_label": "Low", "launch_date": "2026-08-01", "subscribers_4w": 0, "return_pct": 6.7},
+        {"id": "c", "paid": True, "min_amount": 9720, "volatility_label": "High", "launch_date": "2026-07-01", "subscribers_4w": 1, "return_pct": 7.5},
+    ]
+    shelves = {s["key"]: [i["id"] for i in s["items"]] for s in dbm.collection_buckets(items, today="2026-09-12")}
+    assert shelves["most_subscribed"] == ["a", "c"]           # b has no subscribers: not on that shelf
+    assert shelves["free"] == ["b"]
+    assert shelves["under_10k"] == ["b", "c"]                 # cheapest first
+    assert shelves["low_vol"] == ["b"]
+    assert shelves["new"] == ["a"]                            # only the last 30 days
+    assert dbm.collection_buckets([]) == []                    # empty shelves are dropped, never shown empty
+
+
 def test_strip_html_excerpt():
     assert dbm.strip_html("<p>Hello <b>world</b></p>  <br>again", 12) == "Hello world…"
     assert dbm.strip_html(None) == ""
