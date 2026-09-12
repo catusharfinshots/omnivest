@@ -30,7 +30,7 @@ const PAGE_META = {
   '/investments': { t: 'Your investments', d: 'What you hold through Omnivest, checked against your Zerodha account.' },
   '/account': { t: 'Your account', d: 'Your profile, subscriptions and settings on Omnivest.' },
   '/notifications': { t: 'Notifications', d: 'Order updates, portfolio health and account events on Omnivest.' },
-  '/dashboard': { t: 'Your investments', d: 'What you hold through Omnivest, checked against your Zerodha account.' },
+  '/dashboard': { t: 'Dashboard', d: 'Everything your money touches on Omnivest, on one screen.' },
 };
 
 export default function Layout() {

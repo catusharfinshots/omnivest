@@ -53,7 +53,7 @@ export default function Home() {
   const [faqs, setFaqs] = useState([]);
   const [openFaq, setOpenFaq] = useState(0);
   const { openAuth, isAuthed, user } = useAuth();
-  const authedHome = isAuthed ? (user?.role === 'analyst' ? '/partner' : user?.role === 'admin' ? '/admin' : '/investments') : null;
+  const authedHome = isAuthed ? (user?.role === 'analyst' ? '/partner' : user?.role === 'admin' ? '/admin' : '/dashboard') : null;
   useEffect(() => {
     let active = true;
     axios.get(`${API}/content`).then(({ data }) => {
@@ -125,8 +125,8 @@ export default function Home() {
           <p className="lead">{c.hero.sub}</p>
           <div className="hero-cta">
             {authedHome
-              ? <Link to={authedHome} className="btn btn-primary" data-testid="home-authed-cta">{user?.role === 'analyst' ? 'Open your partner console' : user?.role === 'admin' ? 'Open the admin console' : 'Go to your investments'} →</Link>
-              : <button onClick={() => openAuth({ next: '/investments' })} className="btn btn-primary">{c.hero.primaryCta} →</button>}
+              ? <Link to={authedHome} className="btn btn-primary" data-testid="home-authed-cta">{user?.role === 'analyst' ? 'Open your partner console' : user?.role === 'admin' ? 'Open the admin console' : 'Go to your dashboard'} →</Link>
+              : <button onClick={() => openAuth({ next: '/dashboard' })} className="btn btn-primary">{c.hero.primaryCta} →</button>}
             <Link to="/model-portfolios" className="btn btn-outline"><Compass className="h-4 w-4" aria-hidden="true" /> {c.hero.secondaryCta}</Link>
           </div>
           <div className="ratings">

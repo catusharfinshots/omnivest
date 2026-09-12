@@ -8,10 +8,10 @@ export default function SignupPage() {
   const [params] = useSearchParams();
   const nav = useNavigate();
   const invite = params.get('invite') || '';
-  const next = invite ? '/analyst' : '/investments';
+  const next = invite ? '/analyst' : '/dashboard';
 
   useEffect(() => {
-    if (isAuthed) { nav(user?.role === 'analyst' ? '/analyst' : '/investments'); return; }
+    if (isAuthed) { nav(user?.role === 'analyst' ? '/analyst' : '/dashboard'); return; }
     openAuth({ invite: invite || undefined, next });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

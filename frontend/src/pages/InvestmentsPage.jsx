@@ -14,7 +14,7 @@ const INR = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractio
 const IST = 'Asia/Kolkata';
 const clock = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: IST }) : '');
 const day = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: IST }) : '');
-const PILL = { complete: ['bg-[#E3F4EB] text-[#096B3E]', 'Complete'], in_progress: ['bg-[#EFF6FF] text-[#1D4ED8]', 'Orders placed'], incomplete: ['bg-[#FBE4E4] text-[#B91C1C]', 'Incomplete'], exited: ['bg-[#EEEAF4] text-[#526071]', 'Exited'], exited_outside: ['bg-[#EEEAF4] text-[#526071]', 'Sold outside Omnivest'], unchecked: ['bg-[#FEF3C7] text-[#9A4A05]', 'Not checked yet'], empty: ['bg-[#EEEAF4] text-[#526071]', 'Nothing placed'] };
+const PILL = { complete: ['bg-[#E3F4EB] text-[#096B3E]', 'Complete'], in_progress: ['bg-[#EFF6FF] text-[#1D4ED8]', 'Orders placed'], incomplete: ['bg-[#FBE4E4] text-[#B91C1C]', 'Incomplete'], exited: ['bg-[#EEEAF4] text-[#526071]', 'Exited'], exited_outside: ['bg-[#EEEAF4] text-[#526071]', 'Sold outside Omnivest'], unchecked: ['bg-[#FEF3C7] text-[#9A4A05]', 'Not checked yet'], empty: ['bg-[#EEEAF4] text-[#526071]', 'Cancelled'] };
 const ST = { held: ['bg-[#E3F4EB] text-[#096B3E]', 'Held'], ordered: ['bg-[#EFF6FF] text-[#1D4ED8]', 'Ordered'], partial: ['bg-[#FEF3C7] text-[#9A4A05]', 'Partial'], missing: ['bg-[#FBE4E4] text-[#B91C1C]', 'Missing'], sold: ['bg-[#EEEAF4] text-[#526071]', 'Sold outside'] };
 
 /** The one actionable sentence per card, from data we already have (Tushar: "this is how a great product guy thinks"). */

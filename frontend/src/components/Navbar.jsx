@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Link2, CheckCircle2, LayoutDashboard, LogOut, User, ShieldCheck, ClipboardList, BadgeCheck, HelpCircle, MessageCircle, Home, Bell } from 'lucide-react';
+import { Menu, X, Link2, CheckCircle2, LayoutDashboard, LogOut, User, ShieldCheck, ClipboardList, BadgeCheck, HelpCircle, MessageCircle, Home, Bell, TrendingUp } from 'lucide-react';
 import omniMark from '../assets/omnivest-mark-white.svg';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
 const navItems = [
+  { label: 'Dashboard', to: '/dashboard', authed: true },
   { label: 'Model Portfolios', to: '/model-portfolios' },
   { label: 'AIF', to: '/aif' },
   { label: 'Advisory', to: '/advisory' },
@@ -18,7 +19,7 @@ function Logo() {
   const { isAuthed, user } = useAuth();
   const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
   // A logged-in investor's home is their investments (smallcase: the logo stays on the dashboard); guests get the landing page.
-  const home = !isAuthed ? '/' : user?.role === 'analyst' ? '/partner' : user?.role === 'admin' ? '/admin' : '/investments';
+  const home = !isAuthed ? '/' : user?.role === 'analyst' ? '/partner' : user?.role === 'admin' ? '/admin' : '/dashboard';
   return (
     <Link to={home} onClick={scrollTop} data-testid="nav-logo-home" className="flex items-center gap-2 shrink-0">
       <span className="relative inline-flex h-8 w-8 items-center justify-center rounded-lg grad-card text-white shadow-sm">
@@ -40,7 +41,7 @@ export default function Navbar() {
   const doLogout = () => { logout(); navigate('/'); };
   const primaryCta = onPartnerPage
     ? { label: 'Partner login', action: () => openAuth({ next: '/partner', flow: 'partner' }), testid: 'nav-partner-login' }
-    : { label: 'Log in', action: () => openAuth({ next: '/investments' }), testid: 'nav-get-started' };
+    : { label: 'Log in', action: () => openAuth({ next: '/dashboard' }), testid: 'nav-get-started' };
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#E6E8F0] bg-white/85 backdrop-blur-md">
@@ -48,7 +49,7 @@ export default function Navbar() {
         <div className="flex items-center gap-5">
           <Logo />
           <nav className="hidden lg:flex items-center gap-1">
-            {navItems.map((item) => (
+            {navItems.filter((item) => !item.authed || (isAuthed && user?.role !== 'analyst' && user?.role !== 'admin')).map((item) => (
               <NavLink key={item.label} to={item.to}
                 className={({ isActive }) => `btn-ghost ${isActive ? 'text-[#6C2BD9]' : ''}`}>
                 {item.label}
@@ -82,7 +83,8 @@ export default function Navbar() {
                   <Link to="/partner" data-testid="nav-analyst-console" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><LineChart className="h-4 w-4" /> Analyst console</Link>
                 )}
                 {user?.role !== 'analyst' && (<>
-                  <Link to="/investments" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><LayoutDashboard className="h-4 w-4" /> Investments</Link>
+                  <Link to="/dashboard" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><LayoutDashboard className="h-4 w-4" /> Dashboard</Link>
+                  <Link to="/investments" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><TrendingUp className="h-4 w-4" /> Investments</Link>
                   <Link to="/orders" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]" data-testid="nav-orders"><ClipboardList className="h-4 w-4" /> Orders</Link>
                   <Link to="/account#subscriptions" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><BadgeCheck className="h-4 w-4" /> Subscriptions</Link>
                   <Link to="/account" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]" data-testid="nav-account"><User className="h-4 w-4" /> Profile</Link>
@@ -113,14 +115,14 @@ export default function Navbar() {
       {open && (
         <div className="lg:hidden border-t border-[#E6E8F0] bg-white">
           <div className="container-x py-4 flex flex-col gap-1">
-            {navItems.map((item) => (
+            {navItems.filter((item) => !item.authed || (isAuthed && user?.role !== 'analyst' && user?.role !== 'admin')).map((item) => (
               <Link key={item.label} to={item.to} onClick={() => setOpen(false)} className="py-2 text-sm font-medium">
                 {item.label}
               </Link>
             ))}
             {isAuthed ? (
               <div className="pt-3 flex flex-col gap-2">
-                {user?.role !== 'analyst' && <Link to="/investments" onClick={() => setOpen(false)} className="btn-outline"><LayoutDashboard className="h-4 w-4" /> Investments</Link>}
+                {user?.role !== 'analyst' && <Link to="/dashboard" onClick={() => setOpen(false)} className="btn-outline"><LayoutDashboard className="h-4 w-4" /> Dashboard</Link>}
                 {user?.role === 'admin' && <Link to="/admin" onClick={() => setOpen(false)} data-testid="nav-admin-console-mobile" className="btn-ghost justify-start"><ShieldCheck className="h-4 w-4" /> Admin console</Link>}
                 {user?.role === 'analyst' && <Link to="/partner" onClick={() => setOpen(false)} data-testid="nav-analyst-console-mobile" className="btn-ghost justify-start"><LineChart className="h-4 w-4" /> Analyst console</Link>}
                 <Link to="/brokers/connect" onClick={() => setOpen(false)} className="btn-ghost justify-start"><Link2 className="h-4 w-4" /> Connect broker</Link>

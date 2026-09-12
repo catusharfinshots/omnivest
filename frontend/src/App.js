@@ -20,6 +20,7 @@ import SIPCalculator from './pages/SIPCalculator';
 import LearnPage from './pages/LearnPage';
 import LearnPost from './pages/LearnPost';
 import InvestmentsPage from './pages/InvestmentsPage';
+import DashboardPage from './pages/DashboardPage';
 import AccountPage from './pages/AccountPage';
 import NotificationsPage from './pages/NotificationsPage';
 import BusinessPage from './pages/BusinessPage';
@@ -103,7 +104,7 @@ function App() {
               <Route path="/learn" element={<LearnPage />} />
               <Route path="/learn/:slug" element={<LearnPost />} />
               <Route path="/investments" element={<InvestmentsPage />} />
-              <Route path="/dashboard" element={<Navigate to="/investments" replace />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/account" element={<AccountPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/business" element={<BusinessPage />} />

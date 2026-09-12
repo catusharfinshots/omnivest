@@ -156,6 +156,12 @@ api_router.include_router(build_legal_router(db))
 from investing import build_router as build_invest_router  # noqa: E402
 api_router.include_router(build_invest_router(db))
 
+# Dashboard (logged-in home) and watchlist
+from dashboard import build_router as build_dashboard_router  # noqa: E402
+api_router.include_router(build_dashboard_router(db))
+from watchlist import build_router as build_watchlist_router  # noqa: E402
+api_router.include_router(build_watchlist_router(db))
+
 # In-app notifications (bell + /notifications), written by the code paths that learn things
 from notifications import build_router as build_notifications_router  # noqa: E402
 api_router.include_router(build_notifications_router(db))

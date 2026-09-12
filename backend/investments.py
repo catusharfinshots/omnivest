@@ -164,7 +164,7 @@ def _now():
 def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     router = APIRouter(prefix="/investments", tags=["investments"])
     require_user = build_current_user_dep(db)
-    batches, snaps, portfolios = db[inv.COLL], db[COLL], db["portfolios"]
+    batches, snaps, portfolios = db[inv.COLL], db[COLL], db.analyst_portfolios
 
     async def _conn(user: dict) -> Optional[dict]:
         conn = await db.broker_connections.find_one({"user_id": user["id"], "broker": "kite"})

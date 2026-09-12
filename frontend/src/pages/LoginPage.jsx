@@ -26,7 +26,7 @@ export default function LoginPage() {
     try {
       const user = await login({ email, password });
       toast.success(`Welcome back, ${user.name.split(' ')[0]}`);
-      nav(params.get('next') || (user.role === 'admin' ? '/admin' : user.role === 'analyst' ? '/partner' : '/investments'));
+      nav(params.get('next') || (user.role === 'admin' ? '/admin' : user.role === 'analyst' ? '/partner' : '/dashboard'));
     } catch (err) {
       toast.error(err?.response?.data?.detail || 'Invalid email or password');
     } finally {
@@ -48,7 +48,7 @@ export default function LoginPage() {
         </div>
 
         <div className="surface p-5 sm:p-8 shadow-[0_30px_60px_-30px_rgba(108,43,217,0.35)]" data-testid="login-card">
-          <button type="button" onClick={() => openAuth({ next: params.get('next') || '/investments' })} className="w-full rounded-2xl border border-[#E8E1F0] hover:border-[#6C2BD9] bg-white p-4 text-left flex items-center gap-4 transition-colors" data-testid="login-investor">
+          <button type="button" onClick={() => openAuth({ next: params.get('next') || '/dashboard' })} className="w-full rounded-2xl border border-[#E8E1F0] hover:border-[#6C2BD9] bg-white p-4 text-left flex items-center gap-4 transition-colors" data-testid="login-investor">
             <span className="h-11 w-11 shrink-0 rounded-xl grad-card text-white grid place-items-center"><Smartphone className="h-5 w-5" /></span>
             <span className="min-w-0">
               <span className="block font-semibold text-[#1A1030]">I'm an investor</span>

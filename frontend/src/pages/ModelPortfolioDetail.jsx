@@ -1,3 +1,4 @@
+import WatchButton from '../components/WatchButton';
 import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
@@ -175,6 +176,7 @@ export default function ModelPortfolioDetail() {
         <div className="container-x pt-3 pb-4 sm:pt-6 sm:pb-8">
           <div className="flex items-center justify-between gap-4">
             <button onClick={() => navigate('/model-portfolios')} aria-label="All model portfolios" className="inline-flex items-center gap-1.5 h-10 -ml-2 px-2 rounded-lg text-sm text-[#526071] hover:text-[#6C2BD9]"><ArrowLeft className="h-5 w-5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">All model portfolios</span></button>
+            {isDb && <WatchButton portfolioId={basket.id} compact />}
             <ShareButton path={`/model-portfolios/${basket.id}`} shortCode={isDb ? basket.id.replace(/-/g, '').slice(0, 8) : undefined} title={`${basket.name} | Omnivest`} text={`Check out ${basket.name} on Omnivest.`} onShare={() => track('share_click', { portfolio_id: basket.id })} />
           </div>
           <div className="mt-2 sm:mt-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-6">

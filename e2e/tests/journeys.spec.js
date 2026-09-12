@@ -41,7 +41,7 @@ test.describe('Investor', () => {
     if (testInfo.project.name === 'desktop') await page.getByTestId('nav-get-started').click();
     else await page.getByTestId('mobtab-login').click();
     await otpLogin(page, phone, { name: 'Journey Investor' });
-    await expect(page).toHaveURL(/\/investments/);
+    await expect(page).toHaveURL(/\/dashboard/);
     if (testInfo.project.name !== 'desktop') await expect(page.getByTestId('mobtab-dashboard')).toBeVisible();
     // cleanup: remove the test user
     const tok = await adminToken(request);
