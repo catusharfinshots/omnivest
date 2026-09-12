@@ -91,7 +91,6 @@ def context_line(market: dict, nifty_pct: Optional[float], my_pct: Optional[floa
 
 
 COLLECTIONS = [
-    ("most_subscribed", "Most subscribed", "Most subscribed in the last 4 weeks", "flame"),
     ("free", "Free to start", "No subscription; invest from the minimum", "gift"),
     ("under_10k", "Under ₹10,000", "Portfolios you can start with a small amount", "wallet"),
     ("low_vol", "Steady movers", "Low-volatility portfolios", "shield"),
@@ -111,9 +110,7 @@ def collection_buckets(items: List[dict], today: Optional[str] = None) -> List[d
             return None
     out = []
     for key, title, sub, icon in COLLECTIONS:
-        if key == "most_subscribed":
-            rows = sorted([i for i in items if (i.get("subscribers_4w") or 0) > 0], key=lambda i: -(i.get("subscribers_4w") or 0))
-        elif key == "free":
+        if key == "free":
             rows = sorted([i for i in items if not i.get("paid")], key=lambda i: -(i.get("return_pct") or 0))
         elif key == "under_10k":
             rows = sorted([i for i in items if i.get("min_amount") and i["min_amount"] <= 10000], key=lambda i: i["min_amount"])
@@ -291,19 +288,26 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         # --- trending ---
         d30, d7 = now - timedelta(days=30), now - timedelta(days=7)
         inv_agg = await batches.aggregate([{"$match": {"placed_at": {"$gte": d30}, "kind": {"$in": ["invest", "fix"]}, "archived_at": {"$exists": False}}},
-                                          {"$group": {"_id": "$portfolio_id", "amount": {"$sum": "$amount_adjusted"}, "n": {"$sum": 1}}}, {"$sort": {"amount": -1}}, {"$limit": 5}]).to_list(5)
+                                          {"$group": {"_id": "$portfolio_id", "amount": {"$sum": "$amount_adjusted"}, "n": {"$sum": 1}}}, {"$sort": {"amount": -1}}, {"$limit": 30}]).to_list(30)
         view_agg = await events.aggregate([{"$match": {"type": "portfolio_view", "ts": {"$gte": d7}, "portfolio_id": {"$ne": None}}},
-                                           {"$group": {"_id": "$portfolio_id", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}, {"$limit": 5}]).to_list(5)
+                                           {"$group": {"_id": "$portfolio_id", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}, {"$limit": 30}]).to_list(30)
         new_docs = await portfolios.find({"status": "approved", "launch_date": {"$ne": None}}, {"_id": 0, "id": 1, "launch_date": 1}).sort("launch_date", -1).to_list(5)
-        t_ids = list({*[x["_id"] for x in inv_agg], *[x["_id"] for x in view_agg], *[d["id"] for d in new_docs]})
+        sub_agg = await db.subscriptions.aggregate([{"$match": {"started_at": {"$gte": now - timedelta(days=28)}, "status": "active"}},
+                                                    {"$group": {"_id": "$portfolio_id", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}, {"$limit": 30}]).to_list(30)
+        live_count = await portfolios.count_documents({"status": "approved"})
+        t_ids = list({*[x["_id"] for x in inv_agg], *[x["_id"] for x in view_agg], *[x["_id"] for x in sub_agg], *[d["id"] for d in new_docs]})
         t_meta, t_perf = await _meta(t_ids), await _perf(t_ids)
         def row(pid, extra):
             m = t_meta.get(pid)
             return {**m, **_summary(t_perf.get(pid)), **extra} if m and m.get("live") else None
+        most_invested = [r for r in (row(x["_id"], {"amount": round(float(x["amount"] or 0)), "batches": x["n"]}) for x in inv_agg) if r][:3]
+        new_launches = [r for r in (row(d["id"], {"launched": d.get("launch_date")}) for d in new_docs) if r][:3]
+        # a ranking of one or two is not a ranking: Trending and the shelves wait for three live listings (Tushar, 12 Sep 2026)
+        ranked = live_count >= 3
         trending = {
-            "most_invested": [r for r in (row(x["_id"], {"amount": round(float(x["amount"] or 0)), "batches": x["n"]}) for x in inv_agg) if r][:3],
-            "most_viewed": [r for r in (row(x["_id"], {"views": x["n"]}) for x in view_agg) if r][:3],
-            "new_launches": [r for r in (row(d["id"], {"launched": d.get("launch_date")}) for d in new_docs) if r][:3],
+            "most_invested": most_invested if ranked else [],
+            "most_viewed": [r for r in (row(x["_id"], {"views": x["n"]}) for x in view_agg) if r][:3] if ranked else [],
+            "most_subscribed": [r for r in (row(x["_id"], {"subscribers": x["n"]}) for x in sub_agg) if r][:3] if ranked else [],
         }
 
         # --- partner posts for portfolios the investor follows ---
@@ -320,10 +324,10 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                               "excerpt": "Subscribers only. Subscribe to read this update." if locked else strip_html(r.get("body")), "locked": locked, "at": _iso(r.get("created_at"))})
 
         # --- take your pick: curated shelves over every live listing (cached 5 min) ---
-        shelves = await _shelves(watch_ids)
+        shelves = await _shelves(watch_ids) if ranked else []
         featured = []
         seen_f = set()
-        for src, label in ((trending["most_viewed"], "Trending this week"), (trending["new_launches"], "New launch"), (trending["most_invested"], "Most invested")):
+        for src, label in ((most_invested, "Most invested this month"), (new_launches, "New launch"), (trending["most_viewed"], "Trending this week")):
             for r in src:                                   # one banner per source, so the pair reads as two stories
                 if r["id"] not in seen_f and len(featured) < 2:
                     seen_f.add(r["id"]); featured.append({**r, "label": label}); break
@@ -341,7 +345,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             "trending": trending,
             "posts": posts,
             "collections": shelves,
-            "featured": featured,
+            "featured": featured[: (2 if ranked else 1)],
+            "live_listings": live_count,
             "watchlist": watch_ids,
         }
 

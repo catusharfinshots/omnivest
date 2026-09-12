@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Eye, EyeOff, Loader2, Wrench, Clock, User, Link2, BadgeCheck, AlertTriangle, Info, PieChart, Landmark, Compass, Building2, LineChart, Lock, Flame, Gift, Wallet, Shield, Sparkles, ArrowRight, BookOpen } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Wrench, Clock, User, Link2, BadgeCheck, AlertTriangle, Info, PieChart, Landmark, Compass, Building2, LineChart, Lock, Gift, Wallet, Shield, Sparkles, ArrowRight, BookOpen } from 'lucide-react';
 import { learnPosts } from '../mock';
 import { useAuth } from '../context/AuthContext';
 import CoverArt from '../components/CoverArt';
@@ -14,7 +14,7 @@ const day = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeri
 const dayY = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: IST }) : '');
 const pct = (v, signed = true) => (v == null ? '—' : `${signed && v > 0 ? '+' : ''}${Number(v).toFixed(1)}%`);
 const NUDGE = { broker: [Link2, 'bg-[#F1EDF7] text-[#6C2BD9]'], expired: [AlertTriangle, 'bg-[#FEF3C7] text-[#9A4A05]'], fix: [Wrench, 'bg-[#FEF3C7] text-[#9A4A05]'], pending: [Clock, 'bg-[#EFF6FF] text-[#1D4ED8]'], profile: [User, 'bg-[#F1EDF7] text-[#5320A8]'], renewal: [BadgeCheck, 'bg-[#E3F4EB] text-[#096B3E]'] };
-const SHELF_ICON = { flame: [Flame, 'from-[#FF7A59] to-[#F04438]'], gift: [Gift, 'from-[#6C2BD9] to-[#9F67FF]'], wallet: [Wallet, 'from-[#0EA5E9] to-[#2563EB]'], shield: [Shield, 'from-[#10B981] to-[#0A7D48]'], sparkles: [Sparkles, 'from-[#F59E0B] to-[#EF4444]'] };
+const SHELF_ICON = { gift: [Gift, 'from-[#6C2BD9] to-[#9F67FF]'], wallet: [Wallet, 'from-[#0EA5E9] to-[#2563EB]'], shield: [Shield, 'from-[#10B981] to-[#0A7D48]'], sparkles: [Sparkles, 'from-[#F59E0B] to-[#EF4444]'] };
 const THUMB = ['from-[#6C2BD9] to-[#9F67FF]', 'from-[#0EA5E9] to-[#2563EB]', 'from-[#10B981] to-[#0A7D48]', 'from-[#F59E0B] to-[#EF4444]', 'from-[#EC4899] to-[#8B5CF6]', 'from-[#14B8A6] to-[#0EA5E9]'];
 const BANNER = ['from-[#4C1D95] via-[#6C2BD9] to-[#9F67FF]', 'from-[#0F2A1F] via-[#0A7D48] to-[#10B981]'];
 const PRODUCTS = [
@@ -166,17 +166,22 @@ export default function DashboardPage() {
         )}
 
         {/* 4. Trending */}
+        {['most_invested', 'most_viewed', 'most_subscribed'].some((k) => (d?.trending?.[k] || []).length) && (
         <section className="mt-6" data-testid="dash-trending">
           <div className="flex items-end justify-between gap-3 flex-wrap">
             <div><h2 className="font-heading font-bold text-[18px] text-[#0F1729]">Trending on Omnivest</h2><div className="text-[12.5px] text-[#667085]">Ranked from what investors did in the last 7 days</div></div>
             <div className="flex gap-1.5 flex-wrap">{[['all', 'All'], ['free', 'Free'], ['paid', 'Paid'], ['low', 'Low volatility']].map(([k, l]) => <button key={k} type="button" onClick={() => setChip(k)} className={`h-10 sm:h-8 px-3 rounded-full text-[12px] font-semibold border ${chip === k ? 'bg-[#1A1030] text-white border-[#1A1030]' : 'bg-white border-[#E8E1F0] text-[#334155]'}`}>{l}</button>)}</div>
           </div>
-          <div className="mt-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <Ranked title="Most invested" sub="30 days · by amount" rows={filt(d?.trending?.most_invested)} metric={(r) => <>since launch<b className={`block text-[12.5px] ${(r.return_pct || 0) >= 0 ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>{pct(r.return_pct)}</b></>} />
-            <Ranked title="Most viewed" sub="7 days" rows={filt(d?.trending?.most_viewed)} metric={(r) => <>views<b className="block text-[12.5px] text-[#0F1729] num">{r.views}</b></>} />
-            <Ranked title="New launches" sub="newest first" rows={filt(d?.trending?.new_launches)} metric={(r) => <>launched<b className="block text-[12.5px] text-[#0F1729]">{r.launched ? day(r.launched) : '—'}</b></>} />
-          </div>
+          {(() => { const cols = [
+            ['Most invested', '30 days · by amount', filt(d?.trending?.most_invested), (r) => <>since launch<b className={`block text-[12.5px] ${(r.return_pct || 0) >= 0 ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>{pct(r.return_pct)}</b></>],
+            ['Most viewed', '7 days', filt(d?.trending?.most_viewed), (r) => <>views<b className="block text-[12.5px] text-[#0F1729] num">{r.views}</b></>],
+            ['Most subscribed', '28 days', filt(d?.trending?.most_subscribed), (r) => <>subscribers<b className="block text-[12.5px] text-[#0F1729] num">{r.subscribers}</b></>],
+          ].filter(([, , rows]) => rows.length); return (
+          <div className={`mt-3 grid sm:grid-cols-2 gap-3 ${cols.length >= 3 ? 'lg:grid-cols-3' : cols.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-1 lg:max-w-md'}`}>
+            {cols.map(([t, sub, rows, metric]) => <Ranked key={t} title={t} sub={sub} rows={rows} metric={metric} />)}
+          </div>); })()}
         </section>
+        )}
 
         {/* 4b. Take your pick */}
         {(d?.collections || []).length > 0 && (() => { const shelves = d.collections; const cur = shelves[Math.min(shelf, shelves.length - 1)]; const rows = (cur?.items || []).filter((r) => pick === 'all' || (pick === 'free' ? !r.paid : r.paid)); return (

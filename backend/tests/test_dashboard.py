@@ -40,7 +40,7 @@ def test_collection_shelves_only_show_what_they_promise():
         {"id": "c", "paid": True, "min_amount": 9720, "volatility_label": "High", "launch_date": "2026-07-01", "subscribers_4w": 1, "return_pct": 7.5},
     ]
     shelves = {s["key"]: [i["id"] for i in s["items"]] for s in dbm.collection_buckets(items, today="2026-09-12")}
-    assert shelves["most_subscribed"] == ["a", "c"]           # b has no subscribers: not on that shelf
+    assert "most_subscribed" not in shelves                    # behaviour rankings live in Trending, not on the shelves
     assert shelves["free"] == ["b"]
     assert shelves["under_10k"] == ["b", "c"]                 # cheapest first
     assert shelves["low_vol"] == ["b"]
