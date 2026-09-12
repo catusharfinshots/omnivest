@@ -99,6 +99,12 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=1, max_length=128)
 
 
+class ProfileUpdate(BaseModel):
+    """What an investor may change about themselves. Phone (the login) and role never come through here."""
+    name: str = Field(..., min_length=1, max_length=80)
+    email: Optional[EmailStr] = None
+
+
 async def seed_users(db: AsyncIOMotorDatabase) -> None:
     """Idempotently ensure a demo investor and an admin exist."""
     # email is optional (phone users have none) -> partial unique index on string emails only
@@ -207,5 +213,27 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     @router.get("/me")
     async def me(user: dict = Depends(current_user)):
         return {"user": public_user(user)}
+
+    @router.put("/me")
+    async def update_me(payload: ProfileUpdate, user: dict = Depends(current_user)):
+        name = payload.name.strip()
+        if not name:
+            raise HTTPException(status_code=422, detail="Please enter your name")
+        email = payload.email.lower().strip() if payload.email else None
+        if email and email != (user.get("email") or "").lower():
+            if await db.users.find_one({"email": email, "id": {"$ne": user["id"]}}):
+                raise HTTPException(status_code=409, detail="An account with this email already exists")
+        upd = {"name": name, "updated_at": datetime.now(timezone.utc)}
+        if email:
+            upd["email"] = email
+        ops = {"$set": upd}
+        if payload.email is None and "email" in payload.model_fields_set:
+            ops["$unset"] = {"email": ""}
+        try:
+            await db.users.update_one({"id": user["id"]}, ops)
+        except DuplicateKeyError:
+            raise HTTPException(status_code=409, detail="An account with this email already exists")
+        fresh = await db.users.find_one({"id": user["id"]})
+        return {"user": public_user(fresh)}
 
     return router

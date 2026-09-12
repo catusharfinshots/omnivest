@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Link2, CheckCircle2, LayoutDashboard, LogOut, User, ShieldCheck, ClipboardList } from 'lucide-react';
+import { Menu, X, Link2, CheckCircle2, LayoutDashboard, LogOut, User, ShieldCheck, ClipboardList, BadgeCheck, HelpCircle, MessageCircle, Home } from 'lucide-react';
 import omniMark from '../assets/omnivest-mark-white.svg';
 import { useAuth } from '../context/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -14,9 +14,12 @@ const navItems = [
 ];
 
 function Logo() {
+  const { isAuthed, user } = useAuth();
   const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  // A logged-in investor's home is their investments (smallcase: the logo stays on the dashboard); guests get the landing page.
+  const home = !isAuthed ? '/' : user?.role === 'analyst' ? '/partner' : user?.role === 'admin' ? '/admin' : '/investments';
   return (
-    <Link to="/" onClick={scrollTop} data-testid="nav-logo-home" className="flex items-center gap-2 shrink-0">
+    <Link to={home} onClick={scrollTop} data-testid="nav-logo-home" className="flex items-center gap-2 shrink-0">
       <span className="relative inline-flex h-8 w-8 items-center justify-center rounded-lg grad-card text-white shadow-sm">
         <img src={omniMark} alt="" className="h-5 w-5" />
       </span>
@@ -67,8 +70,8 @@ export default function Navbar() {
               </PopoverTrigger>
               <PopoverContent align="end" className="w-56 p-2 rounded-xl border-[#E6E8F0]">
                 <div className="px-3 py-2">
-                  <div className="text-sm font-semibold text-[#0F1729] truncate">{user?.name}</div>
-                  <div className="text-xs text-[#526071] truncate">{user?.email}</div>
+                  <div className="text-sm font-semibold text-[#0F1729] truncate">{user?.name || <Link to="/account" className="text-[#6C2BD9]">Add your name</Link>}</div>
+                  <div className="text-xs text-[#526071] truncate">{user?.email || user?.phone}</div>
                 </div>
                 <div className="h-px bg-[#E6E8F0] my-1" />
                 {user?.role === 'admin' && (
@@ -80,8 +83,15 @@ export default function Navbar() {
                 {user?.role !== 'analyst' && (<>
                   <Link to="/investments" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><LayoutDashboard className="h-4 w-4" /> Investments</Link>
                   <Link to="/orders" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]" data-testid="nav-orders"><ClipboardList className="h-4 w-4" /> Orders</Link>
+                  <Link to="/account#subscriptions" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><BadgeCheck className="h-4 w-4" /> Subscriptions</Link>
+                  <Link to="/account" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]" data-testid="nav-account"><User className="h-4 w-4" /> Profile</Link>
                 </>)}
                 <Link to="/brokers/connect" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><Link2 className="h-4 w-4" /> Connect broker</Link>
+                <div className="h-px bg-[#E6E8F0] my-1" />
+                <Link to="/faq" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><HelpCircle className="h-4 w-4" /> FAQ</Link>
+                <Link to="/contact" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><MessageCircle className="h-4 w-4" /> Contact us</Link>
+                <Link to="/" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB] text-[#526071]"><Home className="h-4 w-4" /> Omnivest home</Link>
+                <div className="h-px bg-[#E6E8F0] my-1" />
                 <button onClick={doLogout} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-[#B91C1C] hover:bg-[#FEF2F2]"><LogOut className="h-4 w-4" /> Log out</button>
               </PopoverContent>
             </Popover>

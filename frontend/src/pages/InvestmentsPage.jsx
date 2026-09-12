@@ -6,7 +6,6 @@ import { TrendingUp, RefreshCw, Loader2, Link2, CheckCircle2, AlertTriangle, Wre
 import { useAuth } from '../context/AuthContext';
 import { useBroker } from '../context/BrokerContext';
 import CoverArt from '../components/CoverArt';
-import MySubscriptions from '../components/MySubscriptions';
 import ActionModal from '../components/ActionModal';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -210,6 +209,12 @@ export default function InvestmentsPage() {
           </div>
         )}
 
+        {!user?.name && (
+          <div className="mt-4 surface p-4 flex flex-col sm:flex-row sm:items-center gap-3" data-testid="investments-profile-nudge">
+            <div className="flex-1"><div className="font-semibold text-[#0F1729]">Complete your profile</div><div className="text-[12.5px] text-[#526071]">Add your name and email so your orders and receipts carry them.</div></div>
+            <Link to="/account" className="btn-primary h-10 shrink-0">Add your details</Link>
+          </div>
+        )}
         <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3" data-testid="investments-tiles">
           <Tile label="Current value" value={INR(totals.current)} sub={`${active.length} portfolio${active.length === 1 ? '' : 's'}${data?.live ? ' · live prices' : ''}`} />
           <Tile label="Invested" value={INR(totals.invested)} sub="cost of shares held" />
@@ -234,7 +239,6 @@ export default function InvestmentsPage() {
                 {showExited && <div className="space-y-4 mt-2">{exited.map((inv) => <Card key={inv.portfolio_id} inv={inv} balance={balance} market={data?.market} onFix={() => {}} onExit={() => {}} onMarkExited={() => {}} open0={false} />)}</div>}
               </div>
             )}
-            <MySubscriptions token={token} />
           </div>
           <aside className="space-y-4">
             {kite ? (

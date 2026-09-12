@@ -93,10 +93,17 @@ export function AuthProvider({ children }) {
   }, []);
   const closeAuth = useCallback(() => setAuthOpen(false), []);
 
+  const updateProfile = useCallback(async (payload) => {
+    const { data } = await axios.put(`${API}/auth/me`, payload, { headers: { Authorization: `Bearer ${token}` } });
+    persist(null, data.user);
+    return data.user;
+  }, [token, persist]);
+
   const value = {
     user,
     token,
     loading,
+    updateProfile,
     isAuthed: !!user && !!token,
     signup,
     login,

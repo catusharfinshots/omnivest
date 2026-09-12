@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, LayoutGrid, LayoutDashboard, User, Link2, LogOut, LogIn, Handshake } from 'lucide-react';
+import { Home, LayoutGrid, LayoutDashboard, User, Link2, LogOut, LogIn, Handshake, ClipboardList, BadgeCheck, HelpCircle, MessageCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
@@ -74,10 +74,17 @@ export default function MobileBottomNav() {
             {isAuthed ? (
               <>
                 <div className="px-3 py-2">
-                  <div className="text-sm font-semibold text-[#0F1729] truncate">{user?.name}</div>
-                  <div className="text-xs text-[#526071] truncate">{user?.email}</div>
+                  <div className="text-sm font-semibold text-[#0F1729] truncate">{user?.name || 'Add your name'}</div>
+                  <div className="text-xs text-[#526071] truncate">{user?.email || user?.phone}</div>
                 </div>
                 <div className="h-px bg-[#E6E8F0] my-1" />
+                {!isAnalyst && (<>
+                  <Link to="/account" data-testid="mobnav-account" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><User className="h-4 w-4" /> Profile</Link>
+                  <Link to="/orders" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><ClipboardList className="h-4 w-4" /> Orders</Link>
+                  <Link to="/account#subscriptions" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><BadgeCheck className="h-4 w-4" /> Subscriptions</Link>
+                </>)}
+                <Link to="/faq" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><HelpCircle className="h-4 w-4" /> FAQ</Link>
+                <Link to="/contact" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><MessageCircle className="h-4 w-4" /> Contact us</Link>
                 <Link to="/brokers/connect" data-testid="mobnav-connect-broker" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><Link2 className="h-4 w-4" /> Connect broker</Link>
                 <button onClick={doLogout} data-testid="mobnav-logout" className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-[#B91C1C] hover:bg-[#FEF2F2]"><LogOut className="h-4 w-4" /> Log out</button>
               </>

@@ -52,7 +52,8 @@ export default function Home() {
   const [portfolios, setPortfolios] = useState([]);
   const [faqs, setFaqs] = useState([]);
   const [openFaq, setOpenFaq] = useState(0);
-  const { openAuth } = useAuth();
+  const { openAuth, isAuthed, user } = useAuth();
+  const authedHome = isAuthed ? (user?.role === 'analyst' ? '/partner' : user?.role === 'admin' ? '/admin' : '/investments') : null;
   useEffect(() => {
     let active = true;
     axios.get(`${API}/content`).then(({ data }) => {
@@ -123,7 +124,9 @@ export default function Home() {
           <h1>{c.hero.headline} <span className="accent">{c.hero.highlight}</span></h1>
           <p className="lead">{c.hero.sub}</p>
           <div className="hero-cta">
-            <button onClick={() => openAuth({ next: '/investments' })} className="btn btn-primary">{c.hero.primaryCta} →</button>
+            {authedHome
+              ? <Link to={authedHome} className="btn btn-primary" data-testid="home-authed-cta">{user?.role === 'analyst' ? 'Open your partner console' : user?.role === 'admin' ? 'Open the admin console' : 'Go to your investments'} →</Link>
+              : <button onClick={() => openAuth({ next: '/investments' })} className="btn btn-primary">{c.hero.primaryCta} →</button>}
             <Link to="/model-portfolios" className="btn btn-outline"><Compass className="h-4 w-4" aria-hidden="true" /> {c.hero.secondaryCta}</Link>
           </div>
           <div className="ratings">

@@ -28,6 +28,7 @@ const PAGE_META = {
   '/signup': { t: 'Get started', d: 'Create your Omnivest account and start investing.' },
   '/partner': { t: 'Become a Partner', d: 'Partner with Omnivest as a SEBI-registered research analyst.' },
   '/investments': { t: 'Your investments', d: 'What you hold through Omnivest, checked against your Zerodha account.' },
+  '/account': { t: 'Your account', d: 'Your profile, subscriptions and settings on Omnivest.' },
   '/dashboard': { t: 'Your investments', d: 'What you hold through Omnivest, checked against your Zerodha account.' },
 };
 
