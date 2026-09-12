@@ -11,6 +11,7 @@ const INR = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractio
 const INR2 = (n) => (n ? Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—');
 const IST = 'Asia/Kolkata';
 const when = (iso) => (iso ? `${new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: IST })} IST` : '');
+const clock = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: IST }) : '');
 const short = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: IST }) : '');
 const TONE = { COMPLETE: 'bg-[#E3F4EB] text-[#096B3E]', OPEN: 'bg-[#EFF6FF] text-[#1D4ED8]', REJECTED: 'bg-[#FBE4E4] text-[#B91C1C]', CANCELLED: 'bg-[#FBE4E4] text-[#B91C1C]', ARCHIVED: 'bg-[#EEEAF4] text-[#526071]' };
 const mine = (o) => o.cancelled_by === 'investor';
@@ -42,7 +43,7 @@ function Batch({ b, onRepair, onCancel, busy, openDefault }) {
       <div className="flex items-start justify-between gap-3 px-4 sm:px-5 py-4">
         <div className="min-w-0">
           <div className="font-semibold text-[#0F1729] text-[15px] sm:text-[16px] truncate">{b.portfolio_name}</div>
-          <div className="text-[12px] text-[#667085] mt-0.5">Invest · {when(b.placed_at)}{b.mode === 'amo' ? ' · after-market' : ''}{archived ? <span className="text-[#526071]"> · cancelled by you {when(b.archived_at)}</span> : null}</div>
+          <div className="text-[12px] text-[#667085] mt-0.5">Invest · {when(b.placed_at)}{b.mode === 'amo' ? ' · after-market' : ''}{archived ? <span className="text-[#526071]"> · cancelled by you at {clock(b.archived_at)} IST</span> : null}</div>
         </div>
         <span className={`shrink-0 text-[11px] font-bold rounded-full px-2.5 py-1 ${pill.cls}`}>{pill.text}</span>
       </div>
@@ -57,7 +58,7 @@ function Batch({ b, onRepair, onCancel, busy, openDefault }) {
           {archived && (
             <div className="mx-4 sm:mx-5 mt-3 rounded-xl bg-[#F1EDF7] text-[#3F3A50] px-3 py-2.5 text-[12.5px] flex items-start gap-2" data-testid="order-archived">
               <Archive className="h-4 w-4 shrink-0 mt-0.5 text-[#6C2BD9]" />
-              <span>You cancelled this batch{c.complete ? `, keeping the ${c.complete} order${c.complete > 1 ? 's' : ''} that had already filled` : ' before anything filled'}. Nothing more will happen with it. To invest in {b.portfolio_name} again, open the portfolio and tap Invest now.</span>
+              <span>You cancelled this batch on <b>{when(b.archived_at)}</b>{c.complete ? `, keeping the ${c.complete} order${c.complete > 1 ? 's' : ''} that had already filled` : ', before anything filled'}. Nothing more will happen with it. To invest in {b.portfolio_name} again, open the portfolio and tap Invest now.</span>
             </div>
           )}
           {reasons.length > 0 && (
@@ -80,7 +81,7 @@ function Batch({ b, onRepair, onCancel, busy, openDefault }) {
                       <td className="px-2 py-2.5 text-right num">{INR2(o.limit_price)}</td>
                       <td className="px-2 py-2.5 text-right num">{o.filled_qty || 0} / {o.qty}</td>
                       <td className="px-2 py-2.5 text-right num">{INR2(o.avg_price)}</td>
-                      <td className="px-4 sm:px-5 py-2.5 text-right whitespace-nowrap"><span className={`text-[11px] font-bold rounded-md px-2 py-0.5 ${tone(o)}`}>{label(o)}</span>{o.message && (!o.order_id || label(o) === 'Rejected') ? <button type="button" onClick={() => setWhy(why === o.symbol ? null : o.symbol)} className="ml-2 text-[12px] font-semibold text-[#5320A8]">Why?</button> : null}</td>
+                      <td className="px-4 sm:px-5 py-2.5 text-right whitespace-nowrap"><span className={`text-[11px] font-bold rounded-md px-2 py-0.5 ${tone(o)}`}>{label(o)}</span>{mine(o) && o.cancelled_at ? <div className="text-[11px] text-[#667085] mt-0.5">{clock(o.cancelled_at)} IST</div> : null}{o.message && (!o.order_id || label(o) === 'Rejected') ? <button type="button" onClick={() => setWhy(why === o.symbol ? null : o.symbol)} className="ml-2 text-[12px] font-semibold text-[#5320A8]">Why?</button> : null}</td>
                     </tr>
                     {why === o.symbol && <tr className="bg-[#FBFAFD]"><td colSpan={7} className="px-4 sm:px-5 py-2 text-[12px] text-[#526071]"><b className="text-[#0F1729]">Zerodha said:</b> {o.message}</td></tr>}
                   </React.Fragment>
@@ -98,7 +99,7 @@ function Batch({ b, onRepair, onCancel, busy, openDefault }) {
         </>
       ) : (
         <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-t border-[#F1EDF7] text-[12.5px] text-[#526071]">
-          <span>{archived ? <>Cancelled by you · {c.complete} of {c.total} filled</> : <>{c.complete} of {c.total} filled · buy value <b className="text-[#0F1729] num">{INR(value)}</b>{c.rejected ? <span className="text-[#B91C1C]"> · {c.rejected} rejected</span> : ''}</>}</span>
+          <span>{archived ? <>Cancelled by you {when(b.archived_at)} · {c.complete} of {c.total} filled</> : <>{c.complete} of {c.total} filled · buy value <b className="text-[#0F1729] num">{INR(value)}</b>{c.rejected ? <span className="text-[#B91C1C]"> · {c.rejected} rejected</span> : ''}</>}</span>
           <button type="button" onClick={() => setOpen(true)} className="inline-flex items-center gap-1 font-semibold text-[#5320A8] h-9">Details <ChevronDown className="h-3.5 w-3.5" /></button>
         </div>
       )}

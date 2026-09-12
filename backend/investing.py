@@ -345,6 +345,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         out = {kk: v for kk, v in b.items() if kk not in ("_id", "user_id")}
         for kk in ("placed_at", "updated_at", "archived_at"):
             out[kk] = _iso(out.get(kk))
+        out["orders"] = [{**o, **{kk: _iso(o[kk]) for kk in ("cancelled_at", "repaired_at") if o.get(kk)}} for o in b.get("orders") or []]
         out["archived"] = is_archived(b)
         return out
 
