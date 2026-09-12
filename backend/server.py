@@ -156,6 +156,10 @@ api_router.include_router(build_legal_router(db))
 from investing import build_router as build_invest_router  # noqa: E402
 api_router.include_router(build_invest_router(db))
 
+# Zerodha -> Omnivest order status pushes (Kite Connect postback URL registered in the developer app)
+from kite_postback import build_router as build_kite_postback_router  # noqa: E402
+api_router.include_router(build_kite_postback_router(db))
+
 # Listing updates feed (partner posts, subscriber-only gating, admin moderation)
 from posts import build_router as build_posts_router  # noqa: E402
 api_router.include_router(build_posts_router(db))

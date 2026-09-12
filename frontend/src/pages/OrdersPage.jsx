@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -15,7 +15,9 @@ const clock = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { hour: 'num
 const short = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: IST }) : '');
 const TONE = { COMPLETE: 'bg-[#E3F4EB] text-[#096B3E]', OPEN: 'bg-[#EFF6FF] text-[#1D4ED8]', REJECTED: 'bg-[#FBE4E4] text-[#B91C1C]', CANCELLED: 'bg-[#FBE4E4] text-[#B91C1C]', ARCHIVED: 'bg-[#EEEAF4] text-[#526071]' };
 const mine = (o) => o.cancelled_by === 'investor';
-const label = (o) => { const s = (o.status || '').toUpperCase(); if (!o.order_id) return 'Rejected'; if (s === 'COMPLETE') return 'Filled'; if (s === 'REJECTED') return 'Rejected'; if (s === 'CANCELLED') return mine(o) ? 'Cancelled by you' : 'Cancelled'; if (s.includes('AMO')) return 'After-market'; return 'Open'; };
+const label = (o) => { const s = (o.status || '').toUpperCase(); if (!o.order_id) return 'Rejected'; if (s === 'COMPLETE') return 'Filled'; if (s === 'REJECTED') return 'Rejected'; if (s === 'CANCELLED') return mine(o) ? 'Cancelled by you' : o.cancelled_by === 'kite' ? 'Cancelled in Kite' : 'Cancelled'; if (s.includes('AMO')) return 'After-market'; return 'Open'; };
+/** One plain sentence per problem order. A cancel done inside the Kite app is not a Zerodha refusal. */
+const cause = (o) => (o.cancelled_by === 'kite' ? 'Cancelled inside Kite, not from Omnivest, so your portfolio is now incomplete. Repair places the missing orders again at today\'s price.' : plainCause(o.message));
 const tone = (o) => (!o.order_id ? TONE.REJECTED : mine(o) ? TONE.ARCHIVED : TONE[(o.status || '').toUpperCase()] || TONE.OPEN);
 
 /** Zerodha's raw rejection text -> one plain sentence an investor can act on. The raw text stays under "Why?". */
@@ -35,8 +37,10 @@ function Batch({ b, onRepair, onCancel, busy, openDefault }) {
   const value = b.orders.reduce((s, o) => s + (o.filled_qty && o.avg_price ? o.filled_qty * o.avg_price : 0), 0);
   const archived = !!b.archived;
   const rejected = archived ? [] : b.orders.filter((o) => !mine(o) && (!o.order_id || ['REJECTED', 'CANCELLED'].includes((o.status || '').toUpperCase())));
-  const reasons = [...new Set(rejected.map((o) => plainCause(o.message)))];
-  const pill = archived ? { cls: TONE.ARCHIVED, text: c.complete ? `Archived · ${c.complete} of ${c.total} filled` : 'Archived' } : c.rejected ? { cls: TONE.REJECTED, text: `${c.placed} of ${c.total} placed` } : c.complete === c.total ? { cls: TONE.COMPLETE, text: 'All filled' } : { cls: TONE.OPEN, text: b.mode === 'amo' && !c.complete ? `${c.placed} of ${c.total} placed · after-market` : `${c.complete} of ${c.total} filled` };
+  const reasons = [...new Set(rejected.map(cause))];
+  const inKite = rejected.filter((o) => o.cancelled_by === 'kite').length;
+  const headline = rejected.length === 0 ? '' : inKite === rejected.length ? `${rejected.length === c.total ? `All ${c.total}` : rejected.length} order${rejected.length > 1 ? 's were' : ' was'} cancelled in Kite:` : rejected.length === c.total ? `All ${c.total} orders were refused by Zerodha:` : `${rejected.length} order${rejected.length > 1 ? 's were' : ' was'} refused by Zerodha:`;
+  const pill = archived ? { cls: TONE.ARCHIVED, text: c.complete ? `Archived · ${c.complete} of ${c.total} filled` : 'Archived' } : c.rejected ? { cls: TONE.REJECTED, text: `${c.rejected} of ${c.total} need${c.rejected > 1 ? '' : 's'} repair` } : c.complete === c.total ? { cls: TONE.COMPLETE, text: 'All filled' } : { cls: TONE.OPEN, text: b.mode === 'amo' && !c.complete ? `${c.placed} of ${c.total} placed · after-market` : `${c.complete} of ${c.total} filled` };
   const chosen = Math.round(b.amount_requested || 0);
   return (
     <section className={`surface overflow-hidden ${archived ? 'opacity-90' : ''}`} data-testid="order-batch" data-archived={archived ? '1' : undefined}>
@@ -64,7 +68,7 @@ function Batch({ b, onRepair, onCancel, busy, openDefault }) {
           {reasons.length > 0 && (
             <div className="mx-4 sm:mx-5 mt-3 rounded-xl bg-[#FEF3C7] text-[#9A4A05] px-3 py-2.5 text-[12.5px] flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3" data-testid="order-cause">
               <AlertTriangle className="h-4 w-4 shrink-0 hidden sm:block" />
-              <span className="flex-1"><b>{rejected.length === c.total ? `All ${c.total} orders were refused by Zerodha:` : `${rejected.length} order${rejected.length > 1 ? 's were' : ' was'} refused by Zerodha:`}</b> {reasons.join(' ')}</span>
+              <span className="flex-1"><b>{headline}</b> {reasons.join(' ')}</span>
               <button type="button" onClick={() => onRepair(b.id)} disabled={busy} className="shrink-0 h-10 px-3 rounded-lg bg-white border border-[#F1D48A] font-bold text-[#9A4A05] disabled:opacity-60" data-testid="order-repair-btn">{busy ? <Loader2 className="h-4 w-4 animate-spin inline" /> : <Wrench className="h-4 w-4 inline mr-1" />} Repair {rejected.length} order{rejected.length > 1 ? 's' : ''}</button>
             </div>
           )}
@@ -81,7 +85,7 @@ function Batch({ b, onRepair, onCancel, busy, openDefault }) {
                       <td className="px-2 py-2.5 text-right num">{INR2(o.limit_price)}</td>
                       <td className="px-2 py-2.5 text-right num">{o.filled_qty || 0} / {o.qty}</td>
                       <td className="px-2 py-2.5 text-right num">{INR2(o.avg_price)}</td>
-                      <td className="px-4 sm:px-5 py-2.5 text-right whitespace-nowrap"><span className={`text-[11px] font-bold rounded-md px-2 py-0.5 ${tone(o)}`}>{label(o)}</span>{mine(o) && o.cancelled_at ? <div className="text-[11px] text-[#667085] mt-0.5">{clock(o.cancelled_at)} IST</div> : null}{o.message && (!o.order_id || label(o) === 'Rejected') ? <button type="button" onClick={() => setWhy(why === o.symbol ? null : o.symbol)} className="ml-2 text-[12px] font-semibold text-[#5320A8]">Why?</button> : null}</td>
+                      <td className="px-4 sm:px-5 py-2.5 text-right whitespace-nowrap"><span className={`text-[11px] font-bold rounded-md px-2 py-0.5 ${tone(o)}`}>{label(o)}</span>{o.cancelled_by && o.cancelled_at ? <div className="text-[11px] text-[#667085] mt-0.5">{clock(o.cancelled_at)} IST</div> : null}{o.message && (!o.order_id || label(o) === 'Rejected') ? <button type="button" onClick={() => setWhy(why === o.symbol ? null : o.symbol)} className="ml-2 text-[12px] font-semibold text-[#5320A8]">Why?</button> : null}</td>
                     </tr>
                     {why === o.symbol && <tr className="bg-[#FBFAFD]"><td colSpan={7} className="px-4 sm:px-5 py-2 text-[12px] text-[#526071]"><b className="text-[#0F1729]">Zerodha said:</b> {o.message}</td></tr>}
                   </React.Fragment>
@@ -89,10 +93,10 @@ function Batch({ b, onRepair, onCancel, busy, openDefault }) {
               </tbody>
             </table>
           </div>
-          <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-t border-[#F1EDF7] text-[12px] text-[#667085]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 px-4 sm:px-5 py-3 border-t border-[#F1EDF7] text-[12px] text-[#667085]">
             <span>{archived ? 'Nothing more will happen with this batch.' : value === 0 && b.mode === 'amo' && c.rejected === 0 ? 'Fills update at market open.' : 'Every order keeps Zerodha\'s reference and status.'}</span>
-            <div className="flex items-center gap-3">
-              {c.open > 0 && <button type="button" onClick={() => onCancel(b)} disabled={busy} className="inline-flex items-center gap-1 font-semibold text-[#B91C1C] h-9 disabled:opacity-60" data-testid="order-cancel-btn"><Ban className="h-3.5 w-3.5" /> Cancel {c.open} open</button>}
+            <div className="flex items-center gap-4 self-end sm:self-auto">
+              {c.open > 0 && <button type="button" onClick={() => onCancel(b)} disabled={busy} className="inline-flex items-center gap-1 font-semibold text-[#B91C1C] h-9 whitespace-nowrap disabled:opacity-60" data-testid="order-cancel-btn"><Ban className="h-3.5 w-3.5" /> Cancel {c.open} open</button>}
               <button type="button" onClick={() => setOpen(false)} className="inline-flex items-center gap-1 font-semibold text-[#5320A8] h-9">Hide <ChevronUp className="h-3.5 w-3.5" /></button>
             </div>
           </div>
@@ -124,19 +128,43 @@ export default function OrdersPage() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [refreshedAt, setRefreshedAt] = useState(null);
-  const load = async (announce = false) => {
+  const seen = useRef(null);   // order_id -> label, to announce what Zerodha pushed since the last look
+  const announceChanges = (rows) => {
+    const now = {};
+    rows.forEach((b) => b.orders.forEach((o) => { if (o.order_id) now[o.order_id] = { l: label(o), s: o.symbol, p: b.portfolio_name }; }));
+    if (seen.current) {
+      const changed = Object.entries(now).filter(([id, v]) => seen.current[id] && seen.current[id].l !== v.l);
+      if (changed.length) {
+        const first = changed[0][1];
+        toast.info(changed.length === 1 ? `Zerodha update: ${first.s} is now ${first.l} (${first.p})` : `Zerodha update: ${changed.length} orders changed in ${first.p}, e.g. ${first.s} is now ${first.l}`);
+      }
+    }
+    seen.current = now;
+  };
+  const load = async (announce = false, quick = false) => {
     if (announce) setRefreshing(true);
     try {
-      const [{ data }, m] = await Promise.all([axios.get(`${API}/invest/batches`, h), axios.get(`${API}/invest/market`).catch(() => ({ data: null }))]);
-      setBatches(data.batches || []); setMarket(m.data);
+      const [{ data }, m] = await Promise.all([axios.get(`${API}/invest/batches${quick ? '?quick=1' : ''}`, h), quick ? Promise.resolve({ data: null }) : axios.get(`${API}/invest/market`).catch(() => ({ data: null }))]);
+      setBatches(data.batches || []); if (m.data) setMarket(m.data);
+      announceChanges(data.batches || []);
       if (data.refreshed) setRefreshedAt(new Date());
       if (announce) {
         if (data.refreshed) toast.success('Statuses updated from Zerodha');
         else toast.warning('Zerodha is not connected, so these are the last known statuses. Connect Zerodha again to refresh.');
       }
-    } catch { setBatches([]); if (announce) toast.error('Could not reach Zerodha. Try again in a moment.'); }
+    } catch { if (!quick) setBatches([]); if (announce) toast.error('Could not reach Zerodha. Try again in a moment.'); }
     finally { if (announce) setRefreshing(false); }
   };
+  // Zerodha pushes every order change to our server (Kite postback); while this page is visible we pick those up from
+  // our own database every 8 s, so a cancel or fill done inside Kite shows here without a Refresh tap.
+  useEffect(() => {
+    if (!isAuthed) return undefined;
+    const tick = () => { if (document.visibilityState === 'visible' && !busy) load(false, true); };
+    const id = setInterval(tick, 8000);
+    document.addEventListener('visibilitychange', tick);
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthed, busy]);
   useEffect(() => {
     const onMsg = (ev) => { if (ev.data?.source === 'basketly-kite-callback' && ev.data.status === 'success') { refreshKite?.(); load(); } };
     window.addEventListener('message', onMsg);
@@ -203,7 +231,7 @@ export default function OrdersPage() {
         <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3" data-testid="orders-tiles">
           <Tile label="Invested via Omnivest" value={INR(totals.invested)} sub="buy value of filled orders" />
           <Tile label="Open orders" value={totals.open} sub={market && !market.open ? 'execute at market open' : 'with Zerodha now'} />
-          <Tile label="Needs attention" value={totals.attention} sub={totals.attention ? 'rejected · repair to place again' : 'nothing to fix'} tone={totals.attention ? 'text-[#B91C1C]' : ''} />
+          <Tile label="Needs attention" value={totals.attention} sub={totals.attention ? 'refused or cancelled in Kite · repair to place again' : 'nothing to fix'} tone={totals.attention ? 'text-[#B91C1C]' : ''} />
           <Tile label="Market" value={market ? (market.open ? 'Open' : market.mode === 'amo' ? 'Closed · AMO' : 'Closed') : '—'} sub={market ? (market.open ? 'orders execute now' : `opens ${short(market.next_open_ist)}`) : ''} />
         </div>
 
@@ -237,6 +265,7 @@ export default function OrdersPage() {
               <p><b className="text-[#0F1729]">What is Repair?</b><br />Fresh orders at a fresh limit price, only for the stocks whose orders were rejected or cancelled, so your holdings match the portfolio.</p>
               <p><b className="text-[#0F1729]">Insufficient funds?</b><br />Add money in Kite, then Repair.</p>
               <p><b className="text-[#0F1729]">Changed your mind?</b><br />Cancel the open orders from the batch. It moves to Archived; filled orders stay in your account and Repair is not offered.</p>
+              <p><b className="text-[#0F1729]">Cancelled something inside Kite?</b><br />Zerodha tells Omnivest within seconds and the order shows as cancelled in Kite. Repair places it again so the portfolio stays complete.</p>
               <p><b className="text-[#0F1729]">Still stuck?</b> <Link to="/faq" className="text-[#5320A8] font-semibold">Read the FAQ</Link> or <Link to="/contact" className="text-[#5320A8] font-semibold">contact us</Link>.</p>
             </div>
           </aside>

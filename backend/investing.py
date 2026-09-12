@@ -334,6 +334,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                    "avg_price": float(x.get("average_price") or 0) or None, "message": (x.get("status_message") or "")[:200]}
             if o.get("cancelled_by") == "investor":
                 upd["message"] = o.get("message") or "Cancelled from Omnivest"
+            elif st == "CANCELLED" and not o.get("cancelled_by"):
+                upd["cancelled_by"] = "kite"; upd["cancelled_at"] = _now()
             if any(o.get(kk) != v for kk, v in upd.items()):
                 o.update(upd); changed = True
         if changed:
@@ -343,9 +345,9 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
 
     def _public(b: dict) -> dict:
         out = {kk: v for kk, v in b.items() if kk not in ("_id", "user_id")}
-        for kk in ("placed_at", "updated_at", "archived_at"):
+        for kk in ("placed_at", "updated_at", "archived_at", "postback_at"):
             out[kk] = _iso(out.get(kk))
-        out["orders"] = [{**o, **{kk: _iso(o[kk]) for kk in ("cancelled_at", "repaired_at") if o.get(kk)}} for o in b.get("orders") or []]
+        out["orders"] = [{**o, **{kk: _iso(o[kk]) for kk in ("cancelled_at", "repaired_at", "postback_at") if o.get(kk)}} for o in b.get("orders") or []]
         out["archived"] = is_archived(b)
         return out
 
@@ -372,11 +374,13 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         return {"batch": _public(batch), "market": b["market"]}
 
     @router.get("/batches")
-    async def my_batches(user: dict = Depends(require_user), portfolio_id: Optional[str] = None):
+    async def my_batches(user: dict = Depends(require_user), portfolio_id: Optional[str] = None, quick: bool = False):
         q: Dict[str, Any] = {"user_id": user["id"]}
         if portfolio_id:
             q["portfolio_id"] = portfolio_id
         rows = await batches.find(q).sort("placed_at", -1).to_list(50)
+        if quick:
+            return {"batches": [_public(b) for b in rows], "refreshed": False, "quick": True}
         out, outcome = [], {"refreshed": False}
         for b in rows[:10]:
             out.append(_public(await _refresh(b, user, outcome)))
