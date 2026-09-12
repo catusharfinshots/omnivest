@@ -123,7 +123,7 @@ export default function Home() {
           <h1>{c.hero.headline} <span className="accent">{c.hero.highlight}</span></h1>
           <p className="lead">{c.hero.sub}</p>
           <div className="hero-cta">
-            <button onClick={() => openAuth({ next: '/dashboard' })} className="btn btn-primary">{c.hero.primaryCta} →</button>
+            <button onClick={() => openAuth({ next: '/investments' })} className="btn btn-primary">{c.hero.primaryCta} →</button>
             <Link to="/model-portfolios" className="btn btn-outline"><Compass className="h-4 w-4" aria-hidden="true" /> {c.hero.secondaryCta}</Link>
           </div>
           <div className="ratings">

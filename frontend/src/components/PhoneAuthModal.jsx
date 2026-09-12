@@ -53,7 +53,7 @@ export default function PhoneAuthModal() {
       const user = await verifyOtp({ phone, code, name: name || undefined, invite_code: authInvite || undefined, flow: authFlow });
       closeAuth();
       toast.success('You are signed in');
-      const dest = authNext || (user.role === 'analyst' ? '/analyst' : '/dashboard');
+      const dest = authNext || (user.role === 'analyst' ? '/analyst' : '/investments');
       navigate(dest);
     } catch (err) {
       setError(err?.response?.data?.detail || 'Invalid or expired code');

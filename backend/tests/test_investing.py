@@ -58,7 +58,9 @@ def test_market_state_windows():
 
 def test_counts():
     c = inv.counts_of([{"order_id": "1", "status": "COMPLETE"}, {"order_id": "2", "status": "OPEN"}, {"order_id": None, "status": "REJECTED"}, {"order_id": "4", "status": "CANCELLED"}])
-    assert c == {"total": 4, "placed": 3, "complete": 1, "open": 1, "rejected": 2, "cancelled": 0}
+    assert c == {"total": 4, "placed": 3, "complete": 1, "open": 1, "rejected": 2, "cancelled": 0, "resolved": 0}
+    r = inv.counts_of([{"order_id": "1", "status": "CANCELLED", "cancelled_by": "kite", "resolved_outside_at": "2026-09-15"}])
+    assert r["resolved"] == 1 and r["rejected"] == 0            # bought in Kite afterwards: nothing to repair
 
 
 def test_kite_status_families_normalise():

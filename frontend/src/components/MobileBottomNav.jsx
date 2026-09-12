@@ -17,11 +17,11 @@ export default function MobileBottomNav() {
   const isPort = pathname.startsWith('/model-portfolios');
   // Partners' "home base" is the analyst console, not the investor dashboard.
   const isAnalyst = user?.role === 'analyst';
-  const dashTarget = isAnalyst ? '/partner' : '/dashboard';
-  const isDash = pathname.startsWith(isAnalyst ? '/partner' : '/dashboard');
+  const dashTarget = isAnalyst ? '/partner' : '/investments';
+  const isDash = pathname.startsWith(isAnalyst ? '/partner' : '/investments') || pathname.startsWith('/dashboard') || pathname.startsWith('/orders');
 
   const goDashboard = (e) => {
-    if (!isAuthed) { e.preventDefault(); openAuth({ next: '/dashboard' }); }
+    if (!isAuthed) { e.preventDefault(); openAuth({ next: '/investments' }); }
   };
   const doLogout = () => { logout(); navigate('/'); };
 
@@ -44,7 +44,7 @@ export default function MobileBottomNav() {
 
         {isAuthed ? (
           <Link to={dashTarget} onClick={goDashboard} data-testid="mobtab-dashboard" className={`${base} ${isDash ? active : idle}`}>
-            <LayoutDashboard className="h-5 w-5" /> {isAnalyst ? 'Console' : 'Dashboard'}
+            <LayoutDashboard className="h-5 w-5" /> {isAnalyst ? 'Console' : 'Investments'}
           </Link>
         ) : (
           <Link to="/partner" data-testid="mobtab-partners" className={`${base} ${pathname.startsWith('/partner') ? active : idle}`}>
@@ -53,7 +53,7 @@ export default function MobileBottomNav() {
         )}
 
         {!isAuthed ? (
-          <button type="button" onClick={() => openAuth(pathname.startsWith('/partner') ? { next: '/partner', flow: 'partner' } : { next: '/dashboard' })} data-testid="mobtab-login" className={`${base} ${idle}`}>
+          <button type="button" onClick={() => openAuth(pathname.startsWith('/partner') ? { next: '/partner', flow: 'partner' } : { next: '/investments' })} data-testid="mobtab-login" className={`${base} ${idle}`}>
             <LogIn className="h-5 w-5" /> Log in
           </button>
         ) : (
@@ -87,8 +87,8 @@ export default function MobileBottomNav() {
                   <button onClick={() => openAuth({ next: '/partner', flow: 'partner' })} data-testid="mobnav-partner-login" className="btn-primary w-full justify-center"><LogIn className="h-4 w-4" /> Partner login</button>
                 ) : (
                   <>
-                    <button onClick={() => openAuth({ next: '/dashboard' })} data-testid="mobnav-signin" className="btn-outline w-full justify-center"><LogIn className="h-4 w-4" /> Sign in</button>
-                    <button onClick={() => openAuth({ next: '/dashboard' })} className="btn-primary w-full justify-center">Get started</button>
+                    <button onClick={() => openAuth({ next: '/investments' })} data-testid="mobnav-signin" className="btn-outline w-full justify-center"><LogIn className="h-4 w-4" /> Sign in</button>
+                    <button onClick={() => openAuth({ next: '/investments' })} className="btn-primary w-full justify-center">Get started</button>
                   </>
                 )}
               </div>

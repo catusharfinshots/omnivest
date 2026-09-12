@@ -152,13 +152,15 @@ def kite_ts(s: Optional[str]) -> Optional[datetime]:
 
 def counts_of(orders: List[dict]) -> dict:
     """rejected = needs Repair (refused by Zerodha, or cancelled outside Omnivest); cancelled = the investor's own choice."""
-    c = {"total": len(orders), "placed": 0, "complete": 0, "open": 0, "rejected": 0, "cancelled": 0}
+    c = {"total": len(orders), "placed": 0, "complete": 0, "open": 0, "rejected": 0, "cancelled": 0, "resolved": 0}
     for o in orders:
         st = norm_status(o.get("status"))
         if o.get("order_id"):
             c["placed"] += 1
         if st == "COMPLETE":
             c["complete"] += 1
+        elif o.get("resolved_outside_at"):
+            c["resolved"] += 1                 # refused/cancelled here, but the stock is held anyway (bought in Kite)
         elif st == "CANCELLED" and o.get("cancelled_by") == "investor":
             c["cancelled"] += 1
         elif st in ("REJECTED", "CANCELLED") or not o.get("order_id"):
@@ -371,7 +373,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         out = {kk: v for kk, v in b.items() if kk not in ("_id", "user_id")}
         for kk in ("placed_at", "updated_at", "archived_at", "postback_at"):
             out[kk] = _iso(out.get(kk))
-        out["orders"] = [{**o, **{kk: _iso(o[kk]) for kk in ("cancelled_at", "repaired_at", "postback_at") if o.get(kk)}} for o in b.get("orders") or []]
+        out["orders"] = [{**o, **{kk: _iso(o[kk]) for kk in ("cancelled_at", "repaired_at", "postback_at", "resolved_outside_at") if o.get(kk)}} for o in b.get("orders") or []]
         out["archived"] = is_archived(b)
         return out
 
@@ -429,7 +431,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         b = await _refresh(b, user)
         if is_archived(b):
             raise HTTPException(status_code=409, detail={"code": "archived", "message": "This batch was cancelled by you and is archived. Invest again from the portfolio page."})
-        todo = [o for o in b["orders"] if o.get("cancelled_by") != "investor" and (norm_status(o.get("status")) in ("REJECTED", "CANCELLED") or not o.get("order_id"))]
+        todo = [o for o in b["orders"] if o.get("cancelled_by") != "investor" and not o.get("resolved_outside_at") and (norm_status(o.get("status")) in ("REJECTED", "CANCELLED") or not o.get("order_id"))]
         if not todo:
             return {"batch": _public(b), "repaired": 0}
         conn = await _conn(user)

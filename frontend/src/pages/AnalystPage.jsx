@@ -33,7 +33,7 @@ export default function AnalystPage() {
           <h1 className="text-xl font-bold">This is the analyst console</h1>
           <p className="mt-2 text-sm text-[#6B6480]">Hi {user.name}. This area is only for research analysts. Head to your dashboard to manage your investments.</p>
           <div className="mt-5 flex gap-2">
-            <button onClick={() => navigate('/dashboard')} className="btn-primary flex-1">Go to dashboard</button>
+            <button onClick={() => navigate('/investments')} className="btn-primary flex-1">Go to dashboard</button>
             <button onClick={() => { logout(); navigate('/'); }} className="btn-outline flex-1">Sign out</button>
           </div>
         </div>

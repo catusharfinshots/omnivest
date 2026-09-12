@@ -15,10 +15,10 @@ const clock = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { hour: 'num
 const short = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: IST }) : '');
 const TONE = { COMPLETE: 'bg-[#E3F4EB] text-[#096B3E]', OPEN: 'bg-[#EFF6FF] text-[#1D4ED8]', REJECTED: 'bg-[#FBE4E4] text-[#B91C1C]', CANCELLED: 'bg-[#FBE4E4] text-[#B91C1C]', ARCHIVED: 'bg-[#EEEAF4] text-[#526071]' };
 const mine = (o) => o.cancelled_by === 'investor';
-const label = (o) => { const s = (o.status || '').toUpperCase(); if (!o.order_id) return 'Rejected'; if (s.startsWith('COMPLETE')) return 'Filled'; if (s.includes('REJECT')) return 'Rejected'; if (s.includes('CANCEL')) return mine(o) ? 'Cancelled by you' : o.cancelled_by === 'kite' ? 'Cancelled in Kite' : 'Cancelled'; if (s.includes('AMO')) return 'After-market'; return 'Open'; };
+const label = (o) => { const s = (o.status || '').toUpperCase(); if (o.resolved_outside_at) return 'Bought in Kite'; if (!o.order_id) return 'Rejected'; if (s.startsWith('COMPLETE')) return 'Filled'; if (s.includes('REJECT')) return 'Rejected'; if (s.includes('CANCEL')) return mine(o) ? 'Cancelled by you' : o.cancelled_by === 'kite' ? 'Cancelled in Kite' : 'Cancelled'; if (s.includes('AMO')) return 'After-market'; return 'Open'; };
 /** One plain sentence per problem order. A cancel done inside the Kite app is not a Zerodha refusal. */
 const cause = (o) => (o.cancelled_by === 'kite' ? 'Cancelled inside Kite, not from Omnivest, so your portfolio is now incomplete. Repair places the missing orders again at today\'s price.' : plainCause(o.message));
-const tone = (o) => { if (!o.order_id) return TONE.REJECTED; if (mine(o)) return TONE.ARCHIVED; const l = label(o); return l === 'Filled' ? TONE.COMPLETE : l === 'Rejected' || l.startsWith('Cancelled') ? TONE.REJECTED : TONE.OPEN; };
+const tone = (o) => { if (o.resolved_outside_at) return TONE.COMPLETE; if (!o.order_id) return TONE.REJECTED; if (mine(o)) return TONE.ARCHIVED; const l = label(o); return l === 'Filled' ? TONE.COMPLETE : l === 'Rejected' || l.startsWith('Cancelled') ? TONE.REJECTED : TONE.OPEN; };
 
 /** Zerodha's raw rejection text -> one plain sentence an investor can act on. The raw text stays under "Why?". */
 function plainCause(msg = '') {
@@ -144,7 +144,7 @@ export default function OrdersPage() {
   const load = async (announce = false, quick = false) => {
     if (announce) setRefreshing(true);
     try {
-      const [{ data }, m] = await Promise.all([axios.get(`${API}/invest/batches${quick ? '?quick=1' : ''}`, h), quick ? Promise.resolve({ data: null }) : axios.get(`${API}/invest/market`).catch(() => ({ data: null }))]);
+      const [{ data }, m] = await Promise.all([axios.get(`${API}/invest/batches?${quick ? 'quick=1&' : ''}${params.get('portfolio') ? `portfolio_id=${encodeURIComponent(params.get('portfolio'))}` : ''}`, h), quick ? Promise.resolve({ data: null }) : axios.get(`${API}/invest/market`).catch(() => ({ data: null }))]);
       setBatches(data.batches || []); if (m.data) setMarket(m.data);
       announceChanges(data.batches || []);
       if (data.refreshed) setRefreshedAt(new Date());
@@ -212,7 +212,7 @@ export default function OrdersPage() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="font-heading text-[26px] sm:text-4xl font-bold text-[#0F1729] flex items-center gap-2"><ClipboardList className="h-6 w-6 text-[#6C2BD9]" /> Your orders</h1>
-            <p className="text-[14px] text-[#526071] mt-1">Every order placed through Omnivest in your Zerodha account, with Zerodha's live status.</p>
+            <p className="text-[14px] text-[#526071] mt-1">Every order placed through Omnivest in your Zerodha account, with Zerodha's live status. For what you actually hold, see <Link to="/investments" className="text-[#5320A8] font-semibold">Your investments</Link>.</p>
           </div>
           <div className="shrink-0 text-right">
             <button type="button" onClick={() => load(true)} disabled={refreshing} className="btn-outline h-10 disabled:opacity-60" aria-label="Refresh statuses from Zerodha" data-testid="orders-refresh">{refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} <span className="hidden sm:inline">Refresh</span></button>

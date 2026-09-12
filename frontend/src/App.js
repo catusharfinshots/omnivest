@@ -19,7 +19,7 @@ import Calculators from './pages/Calculators';
 import SIPCalculator from './pages/SIPCalculator';
 import LearnPage from './pages/LearnPage';
 import LearnPost from './pages/LearnPost';
-import DashboardPage from './pages/DashboardPage';
+import InvestmentsPage from './pages/InvestmentsPage';
 import BusinessPage from './pages/BusinessPage';
 import LegalPage from './pages/LegalPage';
 import ContactPage from './pages/ContactPage';
@@ -100,7 +100,8 @@ function App() {
               <Route path="/calculators/sip" element={<SIPCalculator />} />
               <Route path="/learn" element={<LearnPage />} />
               <Route path="/learn/:slug" element={<LearnPost />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/investments" element={<InvestmentsPage />} />
+              <Route path="/dashboard" element={<Navigate to="/investments" replace />} />
               <Route path="/business" element={<BusinessPage />} />
               <Route path="/terms" element={<LegalPage slug="terms" />} />
               <Route path="/privacy" element={<LegalPage slug="privacy" />} />

@@ -70,7 +70,7 @@ export default function BrokerConnectPage() {
 
   return (
     <div className="container-x py-10 lg:py-14">
-      <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm font-semibold text-[#6C2BD9]"><ArrowLeft className="h-4 w-4" /> Back to dashboard</Link>
+      <Link to="/investments" className="inline-flex items-center gap-1 text-sm font-semibold text-[#6C2BD9]"><ArrowLeft className="h-4 w-4" /> Back to investments</Link>
 
       <div className="mt-4 flex items-end justify-between gap-4 flex-wrap">
         <div>
@@ -125,7 +125,7 @@ export default function BrokerConnectPage() {
                 {isKite ? (
                   isConnected ? (
                     <>
-                      <Link to="/dashboard" className="btn-outline flex-1">View holdings</Link>
+                      <Link to="/investments" className="btn-outline flex-1">See your investments</Link>
                       <button onClick={onDisconnect} className="btn-outline text-[#B91C1C] border-[#FCA5A5] hover:border-[#F04438]"><XCircle className="h-4 w-4" /> Disconnect</button>
                     </>
                   ) : (

@@ -43,14 +43,14 @@ export default function BasketDetail() {
     invest({ basketId: basket.id, basketName: basket.name, amount });
     setInvestOpen(false);
     toast.success('Invested — order placed (simulated)', { description: `₹${amount.toLocaleString('en-IN')} in ${basket.name}` });
-    setTimeout(() => nav('/dashboard'), 600);
+    setTimeout(() => nav('/investments'), 600);
   };
   const placeSip = () => {
     if (amount < 500) { toast.error('SIP minimum is ₹500'); return; }
     startSip({ basketId: basket.id, basketName: basket.name, amount, frequency: sipFreq, mode: sipMode });
     setSipOpen(false);
     toast.success('SIP started (simulated)', { description: `₹${amount.toLocaleString('en-IN')} ${sipFreq} · ${sipMode}` });
-    setTimeout(() => nav('/dashboard'), 600);
+    setTimeout(() => nav('/investments'), 600);
   };
 
   return (

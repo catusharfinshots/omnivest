@@ -27,7 +27,8 @@ const PAGE_META = {
   '/login': { t: 'Sign in', d: 'Sign in to your Omnivest account.' },
   '/signup': { t: 'Get started', d: 'Create your Omnivest account and start investing.' },
   '/partner': { t: 'Become a Partner', d: 'Partner with Omnivest as a SEBI-registered research analyst.' },
-  '/dashboard': { t: 'Dashboard', d: 'Your Omnivest portfolio, SIPs and holdings.' },
+  '/investments': { t: 'Your investments', d: 'What you hold through Omnivest, checked against your Zerodha account.' },
+  '/dashboard': { t: 'Your investments', d: 'What you hold through Omnivest, checked against your Zerodha account.' },
 };
 
 export default function Layout() {
