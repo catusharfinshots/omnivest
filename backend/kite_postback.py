@@ -21,6 +21,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from broker_kite import KITE_API_SECRET
 from investing import COLL, _now, counts_of, kite_ts, norm_status
+import notifications as notif
 
 logger = logging.getLogger("kite_postback")
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -79,9 +80,11 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             logger.info("kite postback for unknown order %s (%s)", oid, payload.get("status"))
             return {"ok": True, "matched": False}
         order = next(o for o in b["orders"] if str(o.get("order_id")) == oid)
+        before = [dict(o) for o in b["orders"]]
         if apply_postback(order, payload, now):
             b["counts"] = counts_of(b["orders"])
             await batches.update_one({"id": b["id"]}, {"$set": {"orders": b["orders"], "counts": b["counts"], "updated_at": now, "postback_at": now}})
+            await notif.push_many(db, b["user_id"], notif.order_events(before, b["orders"], b))
             logger.info("kite postback applied %s %s -> %s (batch %s)", order.get("symbol"), oid, order.get("status"), b["id"])
         return {"ok": True, "matched": True, "batch": b["id"]}
 

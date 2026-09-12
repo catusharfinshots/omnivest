@@ -152,6 +152,14 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             except Exception:
                 await orders.update_one({"id": order["id"]}, {"$unset": {"fulfilling_at": "", "fulfilling_by": ""}})
                 raise
+            try:
+                import notifications as notif
+                months = int(order["plan_months"])
+                await notif.push(db, order["user_id"], "account", "subscribed", f"Subscribed to {(listing or {}).get('name') or 'a portfolio'}",
+                                 f"{months}-month plan · ₹{order['amount'] / 100.0:,.0f}. You can now see every stock and invest from the portfolio page.",
+                                 f"/model-portfolios/{order['portfolio_id']}", key=f"sub:{s['id']}")
+            except Exception:  # noqa: BLE001
+                pass
             await db.audit_log.insert_one({"id": str(uuid.uuid4()), "type": "subscription_paid", "portfolio_id": order["portfolio_id"], "subscription_id": s["id"],
                                            "user_id": order["user_id"], "plan_months": order["plan_months"], "amount": order["amount"], "payment_id": payment_id,
                                            "via": how, "at": _now().isoformat()})

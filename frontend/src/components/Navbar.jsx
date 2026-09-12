@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Link2, CheckCircle2, LayoutDashboard, LogOut, User, ShieldCheck, ClipboardList, BadgeCheck, HelpCircle, MessageCircle, Home } from 'lucide-react';
+import { Menu, X, Link2, CheckCircle2, LayoutDashboard, LogOut, User, ShieldCheck, ClipboardList, BadgeCheck, HelpCircle, MessageCircle, Home, Bell } from 'lucide-react';
 import omniMark from '../assets/omnivest-mark-white.svg';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
 const navItems = [
@@ -57,7 +58,7 @@ export default function Navbar() {
         </div>
 
         <div className="hidden lg:flex items-center gap-2">
-
+          {isAuthed && <NotificationBell />}
           {isAuthed ? (
             <Popover>
               <PopoverTrigger asChild>
@@ -85,6 +86,7 @@ export default function Navbar() {
                   <Link to="/orders" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]" data-testid="nav-orders"><ClipboardList className="h-4 w-4" /> Orders</Link>
                   <Link to="/account#subscriptions" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><BadgeCheck className="h-4 w-4" /> Subscriptions</Link>
                   <Link to="/account" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]" data-testid="nav-account"><User className="h-4 w-4" /> Profile</Link>
+                  <Link to="/notifications" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><Bell className="h-4 w-4" /> Notifications</Link>
                 </>)}
                 <Link to="/brokers/connect" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><Link2 className="h-4 w-4" /> Connect broker</Link>
                 <div className="h-px bg-[#E6E8F0] my-1" />
@@ -100,9 +102,12 @@ export default function Navbar() {
           )}
         </div>
 
-        <button className="lg:hidden h-10 w-10 grid place-items-center rounded-lg hover:bg-[#F5F7FB]" onClick={() => setOpen(v => !v)} aria-label="Menu">
+        <div className="lg:hidden flex items-center gap-2">
+        {isAuthed && <NotificationBell compact />}
+        <button className="h-10 w-10 grid place-items-center rounded-lg hover:bg-[#F5F7FB]" onClick={() => setOpen(v => !v)} aria-label="Menu">
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
+        </div>
       </div>
 
       {open && (

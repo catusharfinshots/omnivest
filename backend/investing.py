@@ -30,6 +30,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from auth import build_current_user_dep
 from broker_kite import _kite_client
+import notifications as notif
 import subscriptions as subs
 
 logger = logging.getLogger(__name__)
@@ -351,6 +352,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 await db.broker_connections.update_one({"_id": conn["_id"]}, {"$set": {"expired_at": _now()}})
             return batch
         changed = False
+        before = [dict(o) for o in batch["orders"]]
         for o in batch["orders"]:
             x = book.get(str(o.get("order_id"))) if o.get("order_id") else None
             if not x:
@@ -368,7 +370,17 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if changed:
             batch["counts"] = counts_of(batch["orders"]); batch["updated_at"] = _now()
             await batches.update_one({"id": batch["id"]}, {"$set": {"orders": batch["orders"], "counts": batch["counts"], "updated_at": batch["updated_at"]}})
+            await notif.push_many(db, batch["user_id"], notif.order_events(before, batch["orders"], batch))
         return batch
+
+    def _next_open_text(state: dict) -> str:
+        try:
+            return datetime.fromisoformat(state["next_open_ist"]).strftime("%a %d %b at %-I:%M %p") if state.get("next_open_ist") else ""
+        except Exception:  # noqa: BLE001  (Windows strftime has no %-I)
+            try:
+                return datetime.fromisoformat(state["next_open_ist"]).strftime("%a %d %b at %I:%M %p").replace(" 0", " ")
+            except Exception:  # noqa: BLE001
+                return ""
 
     def _public(b: dict) -> dict:
         out = {kk: v for kk, v in b.items() if kk not in ("_id", "user_id")}
@@ -393,6 +405,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                  "amount_requested": b["amount_requested"], "amount_adjusted": b["amount_adjusted"], "orders": placed, "counts": counts_of(placed),
                  "broker": "kite", "kite_user": b["broker"].get("client_id"), "placed_at": _now(), "updated_at": _now()}
         await batches.insert_one(dict(batch))
+        await notif.push(db, user["id"], **notif.placed_event(batch, _next_open_text(b["market"])))
         try:
             await db.events.insert_one({"id": str(uuid.uuid4()), "event": "invest_placed", "portfolio_id": batch["portfolio_id"], "user_id": user["id"],
                                         "props": {"batch_id": batch["id"], "amount": batch["amount_adjusted"], "orders": batch["counts"]}, "at": _now()})
@@ -455,6 +468,11 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             b["archived_at"] = b["updated_at"]; b["archived_by"] = "investor"
             upd.update({"archived_at": b["archived_at"], "archived_by": "investor"})
         await batches.update_one({"id": b["id"]}, {"$set": upd})
+        if n:
+            kept = b["counts"].get("complete") or 0
+            await notif.push(db, user["id"], "order", "archived", "Batch archived" if b.get("archived_at") else f"{n} order{'s' if n > 1 else ''} cancelled",
+                             f"You cancelled {n} open order{'s' if n > 1 else ''} for {b.get('portfolio_name')}." + (f" The {kept} that had filled stay in your account." if kept else " Nothing more will happen with that batch."),
+                             f"/orders?batch={b['id']}", key=f"batch:{b['id']}:archived:{int(b['updated_at'].timestamp())}")
         if failed and n == 0:
             raise HTTPException(status_code=502, detail={"code": "cancel", "message": f"Zerodha did not cancel: {failed[0]['error']}", "failed": failed})
         return {"batch": _public(b), "cancelled": n, "failed": failed}

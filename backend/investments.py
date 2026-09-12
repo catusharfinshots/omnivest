@@ -32,6 +32,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from auth import build_current_user_dep
 from broker_kite import _kite_client
 import investing as inv
+import notifications as notif
 
 logger = logging.getLogger("investments")
 COLL = "investments"
@@ -252,6 +253,10 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                    "first_invested_at": bs[0].get("placed_at"), "batches": len(bs), "exited_at": prev.get("exited_at"), "updated_at": now}
             await snaps.update_one({"user_id": user["id"], "portfolio_id": pid}, {"$set": doc}, upsert=True)
             doc["portfolio"] = await _meta(pid, bs[0].get("portfolio_name") or "")
+            if a["health"] in ("incomplete", "exited_outside"):
+                ev = notif.incomplete_event(pid, doc["portfolio"]["name"], a["rows"])
+                if ev:
+                    await notif.push(db, user["id"], **ev)
             out.append(_public_snap(doc))
         return out
 
@@ -386,6 +391,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                  "kind": action, "mode": variety, "buffer_pct": p["buffer"], "amount_requested": p["amount"], "amount_adjusted": p["amount"], "orders": placed, "counts": counts,
                  "broker": "kite", "kite_user": (p["conn"].get("profile") or {}).get("user_id_kite"), "placed_at": now, "updated_at": now}
         await batches.insert_one(dict(batch))
+        await notif.push(db, user["id"], **notif.placed_event(batch, _next_open(p["state"])))
         if action == "exit" and counts["placed"]:
             await snaps.update_one({"user_id": user["id"], "portfolio_id": pid}, {"$set": {"exited_at": now, "updated_at": now}}, upsert=True)
         try:
@@ -394,6 +400,12 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             pass
         batch.pop("_id", None)
         return {"batch": {**batch, "placed_at": inv._iso(now), "updated_at": inv._iso(now)}, "market": p["state"]}
+
+    def _next_open(state: dict) -> str:
+        try:
+            return datetime.fromisoformat(state["next_open_ist"]).strftime("%a %d %b at %I:%M %p").replace(" 0", " ") if state.get("next_open_ist") else ""
+        except Exception:  # noqa: BLE001
+            return ""
 
     async def _place_one(k, o: dict, variety: str) -> dict:
         import asyncio

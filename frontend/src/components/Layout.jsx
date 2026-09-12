@@ -29,6 +29,7 @@ const PAGE_META = {
   '/partner': { t: 'Become a Partner', d: 'Partner with Omnivest as a SEBI-registered research analyst.' },
   '/investments': { t: 'Your investments', d: 'What you hold through Omnivest, checked against your Zerodha account.' },
   '/account': { t: 'Your account', d: 'Your profile, subscriptions and settings on Omnivest.' },
+  '/notifications': { t: 'Notifications', d: 'Order updates, portfolio health and account events on Omnivest.' },
   '/dashboard': { t: 'Your investments', d: 'What you hold through Omnivest, checked against your Zerodha account.' },
 };
 

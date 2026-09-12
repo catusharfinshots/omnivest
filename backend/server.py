@@ -156,6 +156,10 @@ api_router.include_router(build_legal_router(db))
 from investing import build_router as build_invest_router  # noqa: E402
 api_router.include_router(build_invest_router(db))
 
+# In-app notifications (bell + /notifications), written by the code paths that learn things
+from notifications import build_router as build_notifications_router  # noqa: E402
+api_router.include_router(build_notifications_router(db))
+
 # Investments: holdings-vs-target reconcile, Fix (buy the difference) and Exit (sell everything held)
 from investments import build_router as build_investments_router  # noqa: E402
 api_router.include_router(build_investments_router(db))

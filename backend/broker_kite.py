@@ -126,6 +126,21 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         )
         return {"ok": True, "profile": profile}
 
+    async def _notify_expired(user_id: str):
+        """Agreed 12 Sep 2026: once per day, and only if the investor has something pending (open batch or incomplete portfolio)."""
+        try:
+            pending = await db.invest_batches.find_one({"user_id": user_id, "archived_at": {"$exists": False}, "counts.open": {"$gt": 0}}, {"_id": 1})
+            incomplete = None if pending else await db.investments.find_one({"user_id": user_id, "health": {"$in": ["incomplete", "in_progress"]}}, {"_id": 1})
+            if not (pending or incomplete):
+                return
+            from datetime import timezone as _tz, timedelta as _td
+            ist_day = (datetime.now(_tz.utc) + _td(hours=5, minutes=30)).strftime("%Y-%m-%d")
+            import notifications as notif
+            await notif.push(db, user_id, "account", "expired", "Zerodha login expired",
+                             "Connect again to place, cancel or check orders. Zerodha ends every login at about 6 AM.", "/brokers/connect", key=f"kite:expired:{ist_day}")
+        except Exception as e:  # noqa: BLE001
+            logger.info("expired notification skipped: %s", str(e)[:120])
+
     @router.get("/status")
     async def status(user_id: str = Query(...)):
         """Connected only if the stored token still works. Kite Connect sessions expire around 6 AM IST every day;
@@ -147,6 +162,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 msg = str(e).lower()
                 if "token" in msg or "api_key" in msg or "session" in msg:
                     await db.broker_connections.update_one({"_id": conn["_id"]}, {"$set": {"expired_at": datetime.utcnow()}})
+                    await _notify_expired(user_id)
                     return {"connected": False, "expired": True, **base}
                 logger.info("kite status check inconclusive: %s", str(e)[:120])
         return {"connected": True, **base}

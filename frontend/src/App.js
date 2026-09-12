@@ -21,6 +21,7 @@ import LearnPage from './pages/LearnPage';
 import LearnPost from './pages/LearnPost';
 import InvestmentsPage from './pages/InvestmentsPage';
 import AccountPage from './pages/AccountPage';
+import NotificationsPage from './pages/NotificationsPage';
 import BusinessPage from './pages/BusinessPage';
 import LegalPage from './pages/LegalPage';
 import ContactPage from './pages/ContactPage';
@@ -104,6 +105,7 @@ function App() {
               <Route path="/investments" element={<InvestmentsPage />} />
               <Route path="/dashboard" element={<Navigate to="/investments" replace />} />
               <Route path="/account" element={<AccountPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/business" element={<BusinessPage />} />
               <Route path="/terms" element={<LegalPage slug="terms" />} />
               <Route path="/privacy" element={<LegalPage slug="privacy" />} />
