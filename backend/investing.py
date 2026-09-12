@@ -298,18 +298,24 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 await asyncio.sleep(0.6 * (attempt + 1))
         return {**o, "order_id": None, "status": "REJECTED", "message": last or "Order was not accepted", "filled_qty": 0, "avg_price": None}
 
-    async def _refresh(batch: dict, user: dict) -> dict:
-        """Pull the latest status/fill for every order in the batch from Kite (best effort)."""
+    async def _refresh(batch: dict, user: dict, outcome: Optional[dict] = None) -> dict:
+        """Pull the latest status/fill for every order in the batch from Kite (best effort).
+        `outcome["refreshed"]` tells the caller whether Zerodha was actually reached."""
         if all((o.get("status") or "").upper() in FINAL for o in batch["orders"] if o.get("order_id")):
             return batch
         conn = await db.broker_connections.find_one({"user_id": user["id"], "broker": "kite"})
-        if not conn:
+        if not conn or conn.get("expired_at"):
             return batch
         try:
             k = _kite_client(conn["access_token"])
             book = {str(x.get("order_id")): x for x in (await run_in_threadpool(k.orders) or [])}
+            if outcome is not None:
+                outcome["refreshed"] = True
         except Exception as e:  # noqa: BLE001
             logger.info("order refresh skipped: %s", str(e)[:120])
+            msg = str(e).lower()
+            if "token" in msg or "api_key" in msg or "session" in msg:
+                await db.broker_connections.update_one({"_id": conn["_id"]}, {"$set": {"expired_at": _now()}})
             return batch
         changed = False
         for o in batch["orders"]:
@@ -360,11 +366,13 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if portfolio_id:
             q["portfolio_id"] = portfolio_id
         rows = await batches.find(q).sort("placed_at", -1).to_list(50)
-        out = []
+        out, outcome = [], {"refreshed": False}
         for b in rows[:10]:
-            out.append(_public(await _refresh(b, user)))
+            out.append(_public(await _refresh(b, user, outcome)))
         out += [_public(b) for b in rows[10:]]
-        return {"batches": out}
+        if not outcome["refreshed"] and rows and all((o.get("status") or "").upper() in FINAL for b in rows[:10] for o in b["orders"] if o.get("order_id")):
+            outcome["refreshed"] = True   # nothing left to ask Zerodha about
+        return {"batches": out, "refreshed": outcome["refreshed"]}
 
     @router.get("/batches/{bid}")
     async def one_batch(bid: str, user: dict = Depends(require_user)):

@@ -117,8 +117,12 @@ export default function OrdersPage() {
     if (announce) setRefreshing(true);
     try {
       const [{ data }, m] = await Promise.all([axios.get(`${API}/invest/batches`, h), axios.get(`${API}/invest/market`).catch(() => ({ data: null }))]);
-      setBatches(data.batches || []); setMarket(m.data); setRefreshedAt(new Date());
-      if (announce) toast.success('Statuses updated from Zerodha');
+      setBatches(data.batches || []); setMarket(m.data);
+      if (data.refreshed) setRefreshedAt(new Date());
+      if (announce) {
+        if (data.refreshed) toast.success('Statuses updated from Zerodha');
+        else toast.warning('Zerodha is not connected, so these are the last known statuses. Connect Zerodha again to refresh.');
+      }
     } catch { setBatches([]); if (announce) toast.error('Could not reach Zerodha. Try again in a moment.'); }
     finally { if (announce) setRefreshing(false); }
   };
@@ -173,7 +177,9 @@ export default function OrdersPage() {
           </div>
           <div className="shrink-0 text-right">
             <button type="button" onClick={() => load(true)} disabled={refreshing} className="btn-outline h-10 disabled:opacity-60" aria-label="Refresh statuses from Zerodha" data-testid="orders-refresh">{refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} <span className="hidden sm:inline">Refresh</span></button>
-            {refreshedAt && <div className="text-[11px] text-[#667085] mt-1">Zerodha status as of {refreshedAt.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: IST })} IST</div>}
+            {refreshedAt && connections.kite
+              ? <div className="text-[11px] text-[#667085] mt-1">Zerodha status as of {refreshedAt.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: IST })} IST</div>
+              : batches && batches.length > 0 && <div className="text-[11px] text-[#9A4A05] mt-1">Last known status, Zerodha not connected</div>}
           </div>
         </div>
 
