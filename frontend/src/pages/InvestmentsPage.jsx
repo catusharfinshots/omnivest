@@ -14,18 +14,24 @@ const INR = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractio
 const IST = 'Asia/Kolkata';
 const clock = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: IST }) : '');
 const day = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: IST }) : '');
-const PILL = { complete: ['bg-[#E3F4EB] text-[#096B3E]', 'Complete'], incomplete: ['bg-[#FBE4E4] text-[#B91C1C]', 'Incomplete'], exited: ['bg-[#EEEAF4] text-[#526071]', 'Exited'], exited_outside: ['bg-[#EEEAF4] text-[#526071]', 'Sold outside Omnivest'], unchecked: ['bg-[#FEF3C7] text-[#9A4A05]', 'Not checked yet'], empty: ['bg-[#EEEAF4] text-[#526071]', 'Nothing placed'] };
-const ST = { held: ['bg-[#E3F4EB] text-[#096B3E]', 'Held'], partial: ['bg-[#FEF3C7] text-[#9A4A05]', 'Partial'], missing: ['bg-[#FBE4E4] text-[#B91C1C]', 'Missing'], sold: ['bg-[#EEEAF4] text-[#526071]', 'Sold outside'] };
+const PILL = { complete: ['bg-[#E3F4EB] text-[#096B3E]', 'Complete'], in_progress: ['bg-[#EFF6FF] text-[#1D4ED8]', 'Orders placed'], incomplete: ['bg-[#FBE4E4] text-[#B91C1C]', 'Incomplete'], exited: ['bg-[#EEEAF4] text-[#526071]', 'Exited'], exited_outside: ['bg-[#EEEAF4] text-[#526071]', 'Sold outside Omnivest'], unchecked: ['bg-[#FEF3C7] text-[#9A4A05]', 'Not checked yet'], empty: ['bg-[#EEEAF4] text-[#526071]', 'Nothing placed'] };
+const ST = { held: ['bg-[#E3F4EB] text-[#096B3E]', 'Held'], ordered: ['bg-[#EFF6FF] text-[#1D4ED8]', 'Ordered'], partial: ['bg-[#FEF3C7] text-[#9A4A05]', 'Partial'], missing: ['bg-[#FBE4E4] text-[#B91C1C]', 'Missing'], sold: ['bg-[#EEEAF4] text-[#526071]', 'Sold outside'] };
 
 /** The one actionable sentence per card, from data we already have (Tushar: "this is how a great product guy thinks"). */
-function smartLine(inv, balance) {
+const nextOpen = (market) => (market?.next_open_ist ? new Date(market.next_open_ist).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: IST }) : 'the next market session');
+function smartLine(inv, balance, market) {
   const miss = inv.rows.filter((r) => r.missing_qty > 0);
+  const pend = inv.rows.filter((r) => r.pending_qty > 0);
+  if (inv.health === 'in_progress') {
+    return { tone: 'info', text: <><b>{pend.length} order{pend.length > 1 ? 's are' : ' is'} with Zerodha</b> and execute{pend.length > 1 ? '' : 's'} at {nextOpen(market)}. Nothing to do until then; this page updates itself once they fill.</> };
+  }
   if (inv.health === 'incomplete' && miss.length) {
     const cost = miss.reduce((s, r) => s + r.missing_qty * r.ltp, 0) * 1.005;
     const need = Math.ceil(cost * 1.02);
     const short = balance == null ? null : Math.max(0, Math.ceil((need - balance) / 10) * 10);
     const sold = miss.filter((r) => r.status === 'sold');
     return { tone: 'warn', text: <>
+      {pend.length ? <>{pend.length} order{pend.length > 1 ? 's are' : ' is'} with Zerodha for {nextOpen(market)}. </> : ''}
       <b>{miss.length} stock{miss.length > 1 ? 's are' : ' is'} {sold.length === miss.length ? 'no longer held' : 'missing'}: {miss.map((r) => r.symbol).join(', ')}.</b>{' '}
       {sold.length ? 'They were sold outside Omnivest. ' : ''}Buying {miss.length > 1 ? 'them' : 'it'} today needs about <b>{INR(need)}</b> and brings every stock back to its target weight.
       {short != null && short > 0 ? <> Your Zerodha balance is {INR(balance)}, so add <b>{INR(short)}</b> first.</> : short === 0 ? ' Your Zerodha balance covers it.' : ''}
@@ -41,13 +47,13 @@ function smartLine(inv, balance) {
   return null;
 }
 
-function Card({ inv, balance, onFix, onExit, open0 }) {
+function Card({ inv, balance, market, onFix, onExit, open0 }) {
   const [open, setOpen] = useState(open0);
   const [p, ptext] = PILL[inv.health] || PILL.unchecked;
-  const line = smartLine(inv, balance);
-  const pillText = inv.health === 'incomplete' ? `${ptext} · ${inv.held_count} of ${inv.total_count} held` : ptext;
+  const line = smartLine(inv, balance, market);
+  const pillText = inv.health === 'incomplete' ? `${ptext} · ${inv.held_count} of ${inv.total_count} held${inv.pending_count ? ` · ${inv.pending_count} ordered` : ''}` : inv.health === 'in_progress' ? `${ptext} · ${inv.pending_count} of ${inv.total_count} ordered` : ptext;
   const canFix = inv.health === 'incomplete' && !inv.stale;
-  const canExit = ['complete', 'incomplete'].includes(inv.health) && !inv.stale && inv.rows.some((r) => r.held_qty > 0);
+  const canExit = ['complete', 'incomplete', 'in_progress'].includes(inv.health) && !inv.stale && inv.rows.some((r) => r.held_qty > 0);
   return (
     <section className={`surface overflow-hidden ${['exited', 'exited_outside'].includes(inv.health) ? 'opacity-90' : ''}`} data-testid="investment-card" data-health={inv.health}>
       <div className="flex items-start gap-3.5 px-4 sm:px-5 py-4">
@@ -65,7 +71,7 @@ function Card({ inv, balance, onFix, onExit, open0 }) {
         <span>Stocks held<b className="block text-[#0F1729] num text-[15px]">{inv.held_count} of {inv.total_count}</b></span>
       </div>
       {line && (
-        <div className={`mx-4 sm:mx-5 mt-3 rounded-xl px-3 py-2.5 text-[13px] leading-relaxed flex gap-2 items-start ${line.tone === 'warn' ? 'bg-[#FEF3C7] text-[#9A4A05]' : line.tone === 'ok' ? 'bg-[#EEF7F1] text-[#0F5132]' : 'bg-[#F1EDF7] text-[#3F3A50]'}`} data-testid="investment-smart">
+        <div className={`mx-4 sm:mx-5 mt-3 rounded-xl px-3 py-2.5 text-[13px] leading-relaxed flex gap-2 items-start ${line.tone === 'warn' ? 'bg-[#FEF3C7] text-[#9A4A05]' : line.tone === 'ok' ? 'bg-[#EEF7F1] text-[#0F5132]' : line.tone === 'info' ? 'bg-[#EFF6FF] text-[#1D4ED8]' : 'bg-[#F1EDF7] text-[#3F3A50]'}`} data-testid="investment-smart">
           {line.tone === 'warn' ? <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" /> : line.tone === 'ok' ? <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" /> : <Info className="h-4 w-4 shrink-0 mt-0.5" />}
           <span>{line.text}</span>
         </div>
@@ -79,7 +85,7 @@ function Card({ inv, balance, onFix, onExit, open0 }) {
                 <tr key={r.symbol} className="border-t border-[#F5F2FA]">
                   <td className="px-4 sm:px-5 py-2.5"><div className="font-semibold text-[#0F1729]">{r.symbol}</div>{r.name ? <div className="text-[11.5px] text-[#667085]">{r.name}</div> : null}</td>
                   <td className="px-2 py-2.5 text-right num">{Math.round(r.weight_target)}%</td>
-                  <td className="px-2 py-2.5 text-right num">{r.held_qty}{r.held_qty < r.target_qty ? <span className="text-[#667085] text-[11px]"> / {r.target_qty}</span> : ''}</td>
+                  <td className="px-2 py-2.5 text-right num">{r.held_qty}{r.held_qty < r.target_qty ? <span className="text-[#667085] text-[11px]"> / {r.target_qty}</span> : ''}{r.pending_qty ? <div className="text-[11px] text-[#1D4ED8]">{r.pending_qty} ordered</div> : null}</td>
                   <td className="px-2 py-2.5 text-right num">{r.weight_actual ? `${r.weight_actual.toFixed(1)}%` : '0%'}</td>
                   <td className="px-2 py-2.5 text-right num">{r.value ? INR(r.value) : '—'}</td>
                   <td className="px-4 sm:px-5 py-2.5 text-right whitespace-nowrap"><span className={`text-[11px] font-bold rounded-md px-2 py-0.5 ${c}`}>{t}</span></td>
@@ -148,10 +154,10 @@ export default function InvestmentsPage() {
   }, []);
 
   const items = data?.investments || [];
-  const RANK = { incomplete: 0, unchecked: 1, complete: 2 };
+  const RANK = { incomplete: 0, unchecked: 1, in_progress: 2, complete: 3 };
   const active = items.filter((i) => !['exited', 'exited_outside', 'empty'].includes(i.health)).sort((a, b) => (RANK[a.health] ?? 3) - (RANK[b.health] ?? 3) || String(b.first_invested_at || '').localeCompare(String(a.first_invested_at || '')));
   const exited = items.filter((i) => ['exited', 'exited_outside', 'empty'].includes(i.health));
-  const totals = useMemo(() => active.reduce((t, i) => ({ invested: t.invested + (i.invested || 0), current: t.current + (i.current || 0), fix: t.fix + (i.health === 'incomplete' ? 1 : 0), ok: t.ok + (i.health === 'complete' ? 1 : 0) }), { invested: 0, current: 0, fix: 0, ok: 0 }), [active]);
+  const totals = useMemo(() => active.reduce((t, i) => ({ invested: t.invested + (i.invested || 0), current: t.current + (i.current || 0), fix: t.fix + (i.health === 'incomplete' ? 1 : 0), ok: t.ok + (i.health === 'complete' ? 1 : 0), wip: t.wip + (i.health === 'in_progress' ? 1 : 0) }), { invested: 0, current: 0, fix: 0, ok: 0, wip: 0 }), [active]);
   const ret = totals.current - totals.invested;
   const since = active.map((i) => i.first_invested_at).filter(Boolean).sort()[0];
   const checkedAt = items.map((i) => i.checked_at).filter(Boolean).sort().slice(-1)[0];
@@ -188,7 +194,7 @@ export default function InvestmentsPage() {
           <Tile label="Current value" value={INR(totals.current)} sub={`${active.length} portfolio${active.length === 1 ? '' : 's'}${data?.live ? ' · live prices' : ''}`} />
           <Tile label="Invested" value={INR(totals.invested)} sub="cost of shares held" />
           <Tile label="Returns" value={`${ret >= 0 ? '+' : '−'}${INR(Math.abs(ret))}${totals.invested ? ` · ${(Math.abs(ret) * 100 / totals.invested).toFixed(1)}%` : ''}`} sub={since ? `since ${day(since)}` : ''} tone={ret >= 0 ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'} />
-          <Tile label="Portfolio health" value={totals.fix ? `${totals.fix} need${totals.fix > 1 ? '' : 's'} a fix` : active.length ? 'All complete' : '—'} sub={`${totals.ok} complete${totals.fix ? ` · ${totals.fix} incomplete` : ''}`} tone={totals.fix ? 'text-[#9A4A05]' : ''} />
+          <Tile label="Portfolio health" value={totals.fix ? `${totals.fix} need${totals.fix > 1 ? '' : 's'} a fix` : totals.wip ? `${totals.wip} in progress` : active.length ? 'All complete' : '—'} sub={[totals.ok ? `${totals.ok} complete` : '', totals.wip ? `${totals.wip} orders placed` : '', totals.fix ? `${totals.fix} incomplete` : ''].filter(Boolean).join(' · ') || 'nothing invested yet'} tone={totals.fix ? 'text-[#9A4A05]' : totals.wip ? 'text-[#1D4ED8]' : ''} />
         </div>
 
         <div className="mt-5 grid lg:grid-cols-[1fr_300px] gap-5 items-start">
@@ -201,11 +207,11 @@ export default function InvestmentsPage() {
                 <Link to="/model-portfolios" className="btn-primary mt-4 inline-flex">Browse portfolios</Link>
               </div>
             )}
-            {active.map((inv, i) => <Card key={inv.portfolio_id} inv={inv} balance={balance} onFix={(x) => setAction({ kind: 'fix', inv: x })} onExit={(x) => setAction({ kind: 'exit', inv: x })} open0={i === 0 || inv.health === 'incomplete'} />)}
+            {active.map((inv, i) => <Card key={inv.portfolio_id} inv={inv} balance={balance} market={data?.market} onFix={(x) => setAction({ kind: 'fix', inv: x })} onExit={(x) => setAction({ kind: 'exit', inv: x })} open0={i === 0 || inv.health === 'incomplete'} />)}
             {exited.length > 0 && (
               <div data-testid="investments-exited">
                 <button type="button" onClick={() => setShowExited((v) => !v)} className="inline-flex items-center gap-2 h-10 text-[13px] font-semibold text-[#526071]" aria-expanded={showExited}><Archive className="h-4 w-4" /> Exited · {exited.length} portfolio{exited.length > 1 ? 's' : ''} {showExited ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}</button>
-                {showExited && <div className="space-y-4 mt-2">{exited.map((inv) => <Card key={inv.portfolio_id} inv={inv} balance={balance} onFix={() => {}} onExit={() => {}} open0={false} />)}</div>}
+                {showExited && <div className="space-y-4 mt-2">{exited.map((inv) => <Card key={inv.portfolio_id} inv={inv} balance={balance} market={data?.market} onFix={() => {}} onExit={() => {}} open0={false} />)}</div>}
               </div>
             )}
             <MySubscriptions token={token} />
@@ -235,7 +241,7 @@ export default function InvestmentsPage() {
             <div className="surface p-5 text-[12.5px] text-[#526071] space-y-3">
               <div className="font-semibold text-[#0F1729] text-[15px]">How this works</div>
               <p><b className="text-[#0F1729]">How is this checked?</b><br />On every visit we read your Zerodha holdings and today's positions and compare them with each portfolio's target. Orders placed anywhere count; Omnivest never assumes.</p>
-              <p><b className="text-[#0F1729]">What is Fix portfolio?</b><br />Only the difference: buy what is missing. You review the exact orders and funds before anything is placed.</p>
+              <p><b className="text-[#0F1729]">What is Fix portfolio?</b><br />Only the difference: buy what is neither held nor already ordered. You review the exact orders and funds before anything is placed.</p>
               <p><b className="text-[#0F1729]">Bought or sold something in Kite?</b><br />It shows here on the next check. A stock sold outside Omnivest is marked so; Fix buys it back.</p>
               <p><b className="text-[#0F1729]">Exit</b><br />Sells everything this portfolio holds, with review first. The portfolio moves to Exited.</p>
               <p><b className="text-[#0F1729]">Still stuck?</b> <Link to="/faq" className="text-[#5320A8] font-semibold">Read the FAQ</Link> or <Link to="/contact" className="text-[#5320A8] font-semibold">contact us</Link>.</p>

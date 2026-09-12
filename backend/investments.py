@@ -82,10 +82,13 @@ def targets_from_batches(batches: List[dict]) -> Dict[str, dict]:
             s = (o.get("symbol") or "").upper()
             if not s:
                 continue
-            row = t.setdefault(s, {"symbol": s, "name": o.get("name") or "", "exchange": o.get("exchange") or "NSE", "weight_target": float(o.get("weight_target") or 0), "qty": 0, "filled": 0})
+            row = t.setdefault(s, {"symbol": s, "name": o.get("name") or "", "exchange": o.get("exchange") or "NSE", "weight_target": float(o.get("weight_target") or 0), "qty": 0, "filled": 0, "pending": 0})
             row["qty"] += sign * int(o.get("qty") or 0)
-            if inv.norm_status(o.get("status")) == "COMPLETE" or int(o.get("filled_qty") or 0):
+            st = inv.norm_status(o.get("status"))
+            if st == "COMPLETE" or int(o.get("filled_qty") or 0):
                 row["filled"] += sign * int(o.get("filled_qty") or o.get("qty") or 0)
+            if sign > 0 and o.get("order_id") and st not in inv.FINAL:
+                row["pending"] += max(0, int(o.get("qty") or 0) - int(o.get("filled_qty") or 0))   # open with Zerodha: on the way
             row["name"] = row["name"] or o.get("name") or ""
             if o.get("weight_target"):
                 row["weight_target"] = float(o["weight_target"])
@@ -100,31 +103,38 @@ def assess(targets: Dict[str, dict], held: Dict[str, int], prices: Dict[str, flo
         ltp = float(prices.get(s) or 0)
         value = round(h * ltp, 2)
         cost = round(h * float((avg or {}).get(s) or ltp), 2)
-        if h <= 0:
-            status = "missing"
-        elif h < t["qty"]:
+        pending = min(int(t.get("pending") or 0), max(0, int(t["qty"]) - h))
+        missing = max(0, int(t["qty"]) - h - pending)
+        if h >= t["qty"]:
+            status = "held"
+        elif missing == 0 and pending > 0:
+            status = "ordered"                    # the rest is with Zerodha, executes at the next session
+        elif h > 0:
             status = "partial"
         else:
-            status = "held"
-        if status != "held" and t.get("filled", 0) > h:
+            status = "missing"
+        if status in ("partial", "missing") and t.get("filled", 0) > h:
             status = "sold"                       # our orders filled more than the account holds now
         rows.append({"symbol": s, "name": t.get("name") or "", "exchange": t.get("exchange") or "NSE", "weight_target": round(t.get("weight_target") or 0, 2),
-                     "target_qty": int(t["qty"]), "held_qty": h, "missing_qty": max(0, int(t["qty"]) - h), "ltp": ltp, "value": value, "cost": cost, "status": status})
+                     "target_qty": int(t["qty"]), "held_qty": h, "pending_qty": pending, "missing_qty": missing, "ltp": ltp, "value": value, "cost": cost, "status": status})
         total_value += value
         invested += cost
     for r in rows:
         r["weight_actual"] = round(r["value"] * 100.0 / total_value, 2) if total_value else 0.0
     held_n = sum(1 for r in rows if r["status"] == "held")
+    pending_n = sum(1 for r in rows if r["pending_qty"] > 0)
     if not rows:
         health = "empty"
     elif held_n == len(rows):
         health = "complete"
     elif all(r["held_qty"] == 0 for r in rows) and any(r["status"] == "sold" for r in rows):
         health = "exited_outside"
+    elif all(r["missing_qty"] == 0 for r in rows):
+        health = "in_progress"                    # nothing to fix: orders are with Zerodha
     else:
         health = "incomplete"
     worst = max((abs(r["weight_actual"] - r["weight_target"]) for r in rows), default=0.0)
-    return {"rows": rows, "health": health, "held_count": held_n, "total_count": len(rows), "current": round(total_value, 2), "invested": round(invested, 2),
+    return {"rows": rows, "health": health, "held_count": held_n, "pending_count": pending_n, "total_count": len(rows), "current": round(total_value, 2), "invested": round(invested, 2),
             "returns": round(total_value - invested, 2), "returns_pct": round((total_value - invested) * 100.0 / invested, 2) if invested else 0.0,
             "worst_deviation_pp": round(worst, 2)}
 
@@ -277,13 +287,13 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if conn:
             try:
                 items = await _live(user, conn, groups)
-                return {"investments": items, "live": True, "kite_user": (conn.get("profile") or {}).get("user_id_kite")}
+                return {"investments": items, "live": True, "kite_user": (conn.get("profile") or {}).get("user_id_kite"), "market": (await _state())[0]}
             except Exception as e:  # noqa: BLE001
                 msg = str(e).lower()
                 if "token" in msg or "api_key" in msg or "session" in msg:
                     await db.broker_connections.update_one({"_id": conn["_id"]}, {"$set": {"expired_at": _now()}})
                 logger.warning("live reconcile failed: %s", str(e)[:160])
-        return {"investments": await _snapshots(user, groups), "live": False}
+        return {"investments": await _snapshots(user, groups), "live": False, "market": (await _state())[0]}
 
     async def _plan(user: dict, pid: str, action: str) -> dict:
         conn = await _conn(user)

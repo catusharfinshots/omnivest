@@ -48,10 +48,38 @@ def test_assess_marks_missing_partial_held_and_sold():
     # the investor sold EIEL in Kite after it filled through Omnivest
     c = ivm.assess(t, {"IONEXCHANG": 11, "EMSLIMITED": 13}, PRICES)
     assert {r["symbol"]: r["status"] for r in c["rows"]}["EIEL"] == "sold"
-    # partial fill: the order filled 10 of 24 and the account holds 10 -> partial, not sold
+    # partial fill with the rest still open: 10 of 24 filled and held, 14 with Zerodha -> ordered, nothing to buy
     tp = ivm.targets_from_batches([{**BATCH, "orders": [{**BATCH["orders"][3], "filled_qty": 10, "status": "OPEN"}]}])
     d = ivm.assess(tp, {"EIEL": 10}, PRICES)
-    assert {r["symbol"]: r["status"] for r in d["rows"]}["EIEL"] == "partial" and d["rows"][0]["missing_qty"] == 14
+    assert d["rows"][0]["status"] == "ordered" and d["rows"][0]["missing_qty"] == 0 and d["rows"][0]["pending_qty"] == 14
+    # the same after the day ends (order lapsed, status CANCELLED): partial, Fix buys the 14
+    tl = ivm.targets_from_batches([{**BATCH, "orders": [{**BATCH["orders"][3], "filled_qty": 10, "status": "CANCELLED"}]}])
+    e = ivm.assess(tl, {"EIEL": 10}, PRICES)
+    assert e["rows"][0]["status"] == "partial" and e["rows"][0]["missing_qty"] == 14
+
+
+def test_open_orders_count_as_on_the_way_and_are_never_bought_again():
+    # Tushar's real batch on Sat 12 Sep: 3 AMO orders waiting for Tuesday, 2 cancelled in Kite, nothing held yet
+    b = {**BATCH, "orders": [
+        {**BATCH["orders"][0]},                                                              # WABAG cancelled in Kite
+        {**BATCH["orders"][1], "status": "AMO REQ RECEIVED", "filled_qty": 0},
+        {**BATCH["orders"][2], "status": "AMO REQ RECEIVED", "filled_qty": 0},
+        {**BATCH["orders"][3], "status": "AMO REQ RECEIVED", "filled_qty": 0},
+        {**BATCH["orders"][4]},                                                              # DENTA cancelled in Kite
+    ]}
+    t = ivm.targets_from_batches([b])
+    assert t["EIEL"]["pending"] == 24 and t["WABAG"]["pending"] == 0
+    a = ivm.assess(t, {}, PRICES)
+    st = {r["symbol"]: r["status"] for r in a["rows"]}
+    assert st == {"WABAG": "missing", "IONEXCHANG": "ordered", "EMSLIMITED": "ordered", "EIEL": "ordered", "DENTA": "missing"}
+    assert {r["symbol"]: r["missing_qty"] for r in a["rows"] if r["missing_qty"]} == {"WABAG": 2, "DENTA": 17}     # Fix buys 2, never 5
+    assert a["health"] == "incomplete" and a["pending_count"] == 3
+    # only pending, nothing missing -> in progress, no Fix
+    ok = ivm.assess(ivm.targets_from_batches([{**b, "orders": b["orders"][1:4]}]), {}, PRICES)
+    assert ok["health"] == "in_progress" and all(r["missing_qty"] == 0 for r in ok["rows"])
+    # a partial fill: 10 of 24 filled, 14 still open -> ordered, not missing
+    pf = ivm.assess(ivm.targets_from_batches([{**b, "orders": [{**BATCH["orders"][3], "status": "OPEN", "filled_qty": 10}]}]), {"EIEL": 10}, PRICES)
+    assert pf["rows"][0]["status"] == "ordered" and pf["rows"][0]["pending_qty"] == 14 and pf["rows"][0]["missing_qty"] == 0
 
 
 def test_allocation_serves_the_earlier_investment_first():
