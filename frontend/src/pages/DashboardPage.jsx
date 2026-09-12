@@ -6,6 +6,7 @@ import { learnPosts } from '../mock';
 import { useAuth } from '../context/AuthContext';
 import CoverArt from '../components/CoverArt';
 import WatchButton from '../components/WatchButton';
+import { openInvite } from '../lib/referral';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const IST = 'Asia/Kolkata';
@@ -129,6 +130,11 @@ export default function DashboardPage() {
             ) : <div className="mt-3 text-[13px] text-[#526071]">No subscription fees paid yet. Free portfolios cost nothing; this box starts tracking the day you subscribe to a paid one.</div>)}
           </section>
         </div>
+
+        <button type="button" onClick={openInvite} className="mt-4 w-full text-left rounded-2xl bg-gradient-to-r from-[#4C1D95] via-[#6C2BD9] to-[#9F67FF] text-white px-5 py-4 flex items-center justify-between gap-4 hover:brightness-110 transition-all" data-testid="dash-invite">
+          <span className="flex items-center gap-3 min-w-0"><span className="h-10 w-10 rounded-xl bg-white/15 grid place-items-center shrink-0"><Gift className="h-5 w-5" /></span><span className="min-w-0"><span className="block font-semibold text-[15px]">Invite friends to Omnivest</span><span className="block text-[12.5px] text-white/85">Share your link. See who joined and who started investing, right here.</span></span></span>
+          <span className="shrink-0 rounded-full bg-white text-[#1A1030] px-4 py-2 text-[13px] font-semibold">Invite</span>
+        </button>
 
         {/* 2b. Featured */}
         {(d?.featured || []).length > 0 && (

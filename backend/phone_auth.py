@@ -61,6 +61,7 @@ class VerifyReq(BaseModel):
     code: str = Field(..., pattern=r"^\d{4,10}$")
     name: Optional[str] = Field(default=None, max_length=80)
     invite_code: Optional[str] = Field(default=None, max_length=300)
+    referral_code: Optional[str] = Field(default=None, max_length=20)      # a friend's share link (/r/<code>)
     flow: str = Field(default="customer", pattern="^(customer|partner)$")
 
 
@@ -202,6 +203,9 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         }
         try:
             await db.users.insert_one(dict(user))
+            if body.referral_code and role == "investor":
+                import referrals as referrals_mod
+                await referrals_mod.attribute_signup(db, user["id"], body.referral_code)
         except Exception:
             if consumed:
                 await invites_mod.release_invite(db, consumed["id"])

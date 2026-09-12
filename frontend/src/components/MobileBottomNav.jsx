@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, LayoutGrid, LayoutDashboard, User, Link2, LogOut, LogIn, Handshake, ClipboardList, BadgeCheck, HelpCircle, MessageCircle } from 'lucide-react';
+import { Home, LayoutGrid, LayoutDashboard, User, Link2, LogOut, LogIn, Handshake, ClipboardList, BadgeCheck, HelpCircle, MessageCircle, Gift } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { openInvite } from '../lib/referral';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
 const base = 'flex flex-col items-center justify-center gap-0.5 h-full text-[12px] font-medium transition-colors';
@@ -24,6 +25,7 @@ export default function MobileBottomNav() {
     if (!isAuthed) { e.preventDefault(); openAuth({ next: '/dashboard' }); }
   };
   const doLogout = () => { logout(); navigate('/'); };
+  const [acctOpen, setAcctOpen] = React.useState(false);
 
   // A listing page carries its own fixed action bar (Subscribe / Invest), like smallcase; no tab bar underneath it.
   if (/^\/model-portfolios\/[^/]+/.test(pathname)) return null;
@@ -57,7 +59,7 @@ export default function MobileBottomNav() {
             <LogIn className="h-5 w-5" /> Log in
           </button>
         ) : (
-        <Popover>
+        <Popover open={acctOpen} onOpenChange={setAcctOpen}>
           <PopoverTrigger asChild>
             <button data-testid="mobtab-account" className={`${base} ${idle}`}>
               {isAuthed ? (
@@ -70,7 +72,7 @@ export default function MobileBottomNav() {
               Account
             </button>
           </PopoverTrigger>
-          <PopoverContent side="top" align="end" sideOffset={10} className="w-56 p-2 rounded-xl border-[#E6E8F0] mr-2">
+          <PopoverContent side="top" align="end" sideOffset={10} className="w-56 p-2 rounded-xl border-[#E6E8F0] mr-2" onClick={(e) => { if (e.target.closest('a,button')) setAcctOpen(false); }}>
             {isAuthed ? (
               <>
                 <div className="px-3 py-2">
@@ -82,6 +84,7 @@ export default function MobileBottomNav() {
                   <Link to="/account" data-testid="mobnav-account" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><User className="h-4 w-4" /> Profile</Link>
                   <Link to="/orders" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><ClipboardList className="h-4 w-4" /> Orders</Link>
                   <Link to="/account#subscriptions" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><BadgeCheck className="h-4 w-4" /> Subscriptions</Link>
+                  <button type="button" onClick={openInvite} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]" data-testid="mobnav-invite"><Gift className="h-4 w-4" /> Invite friends</button>
                 </>)}
                 <Link to="/faq" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><HelpCircle className="h-4 w-4" /> FAQ</Link>
                 <Link to="/contact" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><MessageCircle className="h-4 w-4" /> Contact us</Link>

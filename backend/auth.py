@@ -92,6 +92,7 @@ class SignupRequest(BaseModel):
     password: str = Field(..., min_length=6, max_length=128)
     role: str = Field(default="investor")
     invite_code: Optional[str] = Field(default=None, max_length=300)
+    referral_code: Optional[str] = Field(default=None, max_length=20)
 
 
 class LoginRequest(BaseModel):
@@ -192,6 +193,9 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         }
         try:
             await db.users.insert_one(user)
+            if payload.referral_code and user.get("role") == "investor":
+                import referrals as referrals_mod
+                await referrals_mod.attribute_signup(db, user["id"], payload.referral_code)
         except Exception:
             if consumed_invite:
                 await invites_mod.release_invite(db, consumed_invite["id"])

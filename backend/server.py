@@ -156,6 +156,10 @@ api_router.include_router(build_legal_router(db))
 from investing import build_router as build_invest_router  # noqa: E402
 api_router.include_router(build_invest_router(db))
 
+# Share with friends: referral links, attribution, credits, admin table
+from referrals import build_router as build_referrals_router  # noqa: E402
+api_router.include_router(build_referrals_router(db, os.environ.get("PUBLIC_SITE_URL", "https://omnivest.in").rstrip("/")))
+
 # Dashboard (logged-in home) and watchlist
 from dashboard import build_router as build_dashboard_router  # noqa: E402
 api_router.include_router(build_dashboard_router(db))

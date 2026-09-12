@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Link2, CheckCircle2, LayoutDashboard, LogOut, User, ShieldCheck, ClipboardList, BadgeCheck, HelpCircle, MessageCircle, Home, Bell, TrendingUp } from 'lucide-react';
+import { Menu, X, Link2, CheckCircle2, LayoutDashboard, LogOut, User, ShieldCheck, ClipboardList, BadgeCheck, HelpCircle, MessageCircle, Home, Bell, TrendingUp, Gift } from 'lucide-react';
 import omniMark from '../assets/omnivest-mark-white.svg';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
+import { openInvite } from '../lib/referral';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
 const navItems = [
@@ -32,6 +33,7 @@ function Logo() {
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [acctOpen, setAcctOpen] = useState(false);   // controlled so a click on any menu link closes it
   const navigate = useNavigate();
   const { isAuthed, user, logout, openAuth } = useAuth();
   // One page, one audience: the partner page's header offers the partner
@@ -59,9 +61,10 @@ export default function Navbar() {
         </div>
 
         <div className="hidden lg:flex items-center gap-2">
+          {isAuthed && user?.role !== 'analyst' && <button type="button" onClick={openInvite} className="h-10 w-10 grid place-items-center rounded-full border border-[#D8C7F1] bg-[#F1EDF7] text-[#6C2BD9] hover:border-[#6C2BD9]" aria-label="Invite friends" data-testid="nav-invite"><Gift className="h-4 w-4" /></button>}
           {isAuthed && <NotificationBell />}
           {isAuthed ? (
-            <Popover>
+            <Popover open={acctOpen} onOpenChange={setAcctOpen}>
               <PopoverTrigger asChild>
                 <button className="inline-flex items-center gap-2 rounded-full border border-[#E6E8F0] pl-1 pr-3 py-1 hover:border-[#6C2BD9] transition-colors">
                   <span className="h-7 w-7 rounded-full grad-card text-white grid place-items-center text-xs font-bold">
@@ -70,7 +73,7 @@ export default function Navbar() {
                   <span className="text-xs font-semibold text-[#0F1729] max-w-[90px] truncate">{user?.name?.split(' ')[0] || 'Account'}</span>
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-56 p-2 rounded-xl border-[#E6E8F0]">
+              <PopoverContent align="end" className="w-56 p-2 rounded-xl border-[#E6E8F0]" onClick={(e) => { if (e.target.closest('a,button')) setAcctOpen(false); }}>
                 <div className="px-3 py-2">
                   <div className="text-sm font-semibold text-[#0F1729] truncate">{user?.name || <Link to="/account" className="text-[#6C2BD9]">Add your name</Link>}</div>
                   <div className="text-xs text-[#526071] truncate">{user?.email || user?.phone}</div>
@@ -89,6 +92,7 @@ export default function Navbar() {
                   <Link to="/account#subscriptions" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><BadgeCheck className="h-4 w-4" /> Subscriptions</Link>
                   <Link to="/account" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]" data-testid="nav-account"><User className="h-4 w-4" /> Profile</Link>
                   <Link to="/notifications" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><Bell className="h-4 w-4" /> Notifications</Link>
+                  <button type="button" onClick={openInvite} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]" data-testid="nav-invite-menu"><Gift className="h-4 w-4" /> Invite friends</button>
                 </>)}
                 <Link to="/brokers/connect" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><Link2 className="h-4 w-4" /> Connect broker</Link>
                 <div className="h-px bg-[#E6E8F0] my-1" />

@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
+import { storedReferral, clearReferral } from '../lib/referral';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -47,7 +48,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signup = useCallback(async ({ name, email, password, role, invite_code }) => {
-    const { data } = await axios.post(`${API}/auth/signup`, { name, email, password, role, invite_code });
+    const { data } = await axios.post(`${API}/auth/signup`, { name, email, password, role, invite_code, referral_code: storedReferral() || undefined });
+    clearReferral();
     persist(data.token, data.user);
     return data.user;
   }, [persist]);
@@ -67,7 +69,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const verifyOtp = useCallback(async ({ phone, code, name, invite_code, flow = 'customer' }) => {
-    const { data } = await axios.post(`${API}/auth/phone/verify-otp`, { phone, code, name, invite_code, flow });
+    const { data } = await axios.post(`${API}/auth/phone/verify-otp`, { phone, code, name, invite_code, flow, referral_code: storedReferral() || undefined });
+    clearReferral();
     persist(data.token, data.user);
     return data.user;
   }, [persist]);

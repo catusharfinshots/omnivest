@@ -28,3 +28,4 @@ requests==2.34.2
 bleach>=6.1
 Pillow>=10.1
 pytest-xdist==3.8.0
+segno>=1.6

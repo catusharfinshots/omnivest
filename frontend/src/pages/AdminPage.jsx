@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, 
 import AboutAdmin from '../components/admin/AboutAdmin';
 import MarketDataAdmin from '../components/admin/MarketDataAdmin';
 import ListingSettingsAdmin from '../components/admin/ListingSettingsAdmin';
+import ReferralsAdmin from '../components/admin/ReferralsAdmin';
 import LegalAdmin from '../components/admin/LegalAdmin';
 import SubscriptionsAdmin from '../components/admin/SubscriptionsAdmin';
 import ListingReviewCard from '../components/admin/ListingReviewCard';
@@ -34,6 +35,7 @@ const NAV = [
   { key: 'testimonials', label: 'Testimonials', icon: MessageSquare },
   { key: 'faqs', label: 'FAQ', icon: HelpCircle },
   { key: 'leads', label: 'Leads', icon: Inbox },
+  { key: 'referrals', label: 'Referrals', icon: Inbox },
   { key: 'listings', label: 'Listings (approve)', icon: ClipboardCheck },
   { key: 'engine', label: 'Performance engine', icon: Activity },
   { key: 'partners', label: 'Partner applications', icon: UserPlus },
@@ -52,7 +54,7 @@ const NAV_GROUPS = [
   { label: 'Partners & Listings', keys: ['partners', 'managers', 'partnerpage', 'listings', 'subscriptions', 'engine', 'dropdowns'] },
   { label: 'Site content', keys: ['home', 'about', 'testimonials', 'faqs'] },
   { label: 'Investment catalog', keys: ['collections', 'mutual-funds', 'fds'] },
-  { label: 'Operations', keys: ['leads', 'market'] },
+  { label: 'Operations', keys: ['leads', 'referrals', 'market'] },
   { label: 'System', keys: ['database', 'settings'] },
 ];
 const NAV_STATE_KEY = 'omni-admin-nav-groups-v1';
@@ -71,6 +73,7 @@ const HEADER = {
   testimonials: { title: 'Testimonials', desc: 'Manage investor testimonials.' },
   faqs: { title: 'FAQ', desc: 'Manage frequently asked questions.' },
   leads: { title: 'Leads', desc: 'People who registered interest via the AIF & Advisory pages.' },
+  referrals: { title: 'Referrals', desc: 'Share-with-friends links: who is bringing whom, the reward switch and amounts, credits issued.' },
   listings: { title: 'Research-analyst listings', desc: 'Approve or reject analyst submissions to publish them live.' },
   dropdowns: { title: 'Listing settings', desc: 'Rules every partner listing must meet, subscription economics, NSE market-cap data, and the form dropdown options.' },
   engine: { title: 'Performance engine', desc: 'Monitor the computed track records (market data, freshness, failed symbols), recompute, correct launch dates, and edit the investor disclaimer.' },
@@ -572,6 +575,7 @@ export default function AdminPage() {
               )}
 
               {tab === 'about' && <AboutAdmin token={token} />}
+              {tab === 'referrals' && <ReferralsAdmin token={token} />}
 
               {tab === 'market' && <MarketDataAdmin token={token} />}
               {tab === 'engine' && <PerformanceEngineAdmin token={token} disclaimer={content.performanceDisclaimer} onDisclaimerChange={(v) => patchContent('performanceDisclaimer', v)} onAlerts={setEngineAlerts} />}

@@ -406,6 +406,9 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                  "broker": "kite", "kite_user": b["broker"].get("client_id"), "placed_at": _now(), "updated_at": _now()}
         await batches.insert_one(dict(batch))
         await notif.push(db, user["id"], **notif.placed_event(batch, _next_open_text(b["market"])))
+        if batch["counts"]["placed"]:
+            import referrals as referrals_mod
+            await referrals_mod.convert(db, user["id"])
         try:
             await db.events.insert_one({"id": str(uuid.uuid4()), "event": "invest_placed", "portfolio_id": batch["portfolio_id"], "user_id": user["id"],
                                         "props": {"batch_id": batch["id"], "amount": batch["amount_adjusted"], "orders": batch["counts"]}, "at": _now()})
