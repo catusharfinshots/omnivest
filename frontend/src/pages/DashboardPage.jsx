@@ -149,7 +149,7 @@ export default function DashboardPage() {
         <section className="mt-6" data-testid="dash-trending">
           <div className="flex items-end justify-between gap-3 flex-wrap">
             <div><h2 className="font-heading font-bold text-[18px] text-[#0F1729]">Trending on Omnivest</h2><div className="text-[12.5px] text-[#667085]">Ranked from what investors did in the last 7 days</div></div>
-            <div className="flex gap-1.5 flex-wrap">{[['all', 'All'], ['free', 'Free'], ['paid', 'Paid'], ['low', 'Low volatility']].map(([k, l]) => <button key={k} type="button" onClick={() => setChip(k)} className={`h-8 px-3 rounded-full text-[12px] font-semibold border ${chip === k ? 'bg-[#1A1030] text-white border-[#1A1030]' : 'bg-white border-[#E8E1F0] text-[#334155]'}`}>{l}</button>)}</div>
+            <div className="flex gap-1.5 flex-wrap">{[['all', 'All'], ['free', 'Free'], ['paid', 'Paid'], ['low', 'Low volatility']].map(([k, l]) => <button key={k} type="button" onClick={() => setChip(k)} className={`h-10 sm:h-8 px-3 rounded-full text-[12px] font-semibold border ${chip === k ? 'bg-[#1A1030] text-white border-[#1A1030]' : 'bg-white border-[#E8E1F0] text-[#334155]'}`}>{l}</button>)}</div>
           </div>
           <div className="mt-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <Ranked title="Most invested" sub="30 days · by amount" rows={filt(d?.trending?.most_invested)} metric={(r) => <>since launch<b className={`block text-[12.5px] ${(r.return_pct || 0) >= 0 ? 'text-[#0B7F4A]' : 'text-[#B91C1C]'}`}>{pct(r.return_pct)}</b></>} />

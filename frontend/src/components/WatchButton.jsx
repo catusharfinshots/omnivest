@@ -35,6 +35,6 @@ export default function WatchButton({ portfolioId, watching: initial, compact = 
     finally { setBusy(false); }
   };
   const Icon = on ? BookmarkCheck : Bookmark;
-  if (compact) return <button type="button" onClick={toggle} disabled={busy} aria-pressed={on} aria-label={on ? 'Watching' : 'Add to watchlist'} className={`h-9 w-9 grid place-items-center rounded-full border ${on ? 'bg-[#F1EDF7] border-[#D8C7F1] text-[#5320A8]' : 'bg-white border-[#E8E1F0] text-[#526071]'}`} data-testid="watch-btn"><Icon className="h-4 w-4" /></button>;
-  return <button type="button" onClick={toggle} disabled={busy} aria-pressed={on} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-[12.5px] font-bold border ${on ? 'bg-[#F1EDF7] border-[#D8C7F1] text-[#5320A8]' : 'bg-white border-[#E8E1F0] text-[#5320A8]'}`} data-testid="watch-btn"><Icon className="h-3.5 w-3.5" /> {on ? 'Watching' : 'Watchlist'}</button>;
+  if (compact) return <button type="button" onClick={toggle} disabled={busy} aria-pressed={on} aria-label={on ? 'Watching' : 'Add to watchlist'} className={`h-11 w-11 sm:h-9 sm:w-9 grid place-items-center rounded-full border ${on ? 'bg-[#F1EDF7] border-[#D8C7F1] text-[#5320A8]' : 'bg-white border-[#E8E1F0] text-[#526071]'}`} data-testid="watch-btn"><Icon className="h-4 w-4" /></button>;
+  return <button type="button" onClick={toggle} disabled={busy} aria-pressed={on} className={`inline-flex items-center gap-1.5 h-11 sm:h-9 px-3.5 rounded-full text-[12.5px] font-bold border ${on ? 'bg-[#F1EDF7] border-[#D8C7F1] text-[#5320A8]' : 'bg-white border-[#E8E1F0] text-[#5320A8]'}`} data-testid="watch-btn"><Icon className="h-3.5 w-3.5" /> {on ? 'Watching' : 'Watchlist'}</button>;
 }

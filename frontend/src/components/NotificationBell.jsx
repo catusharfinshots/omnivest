@@ -56,7 +56,7 @@ export default function NotificationBell({ compact = false }) {
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={8} className="w-[420px] max-w-[calc(100vw-24px)] p-0 rounded-2xl border-[#E8E1F0] overflow-hidden" data-testid="notif-panel">
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#F1EDF7]"><b className="text-[15px] text-[#0F1729]">Notifications</b>{unread > 0 && <button type="button" onClick={markAll} className="text-[12px] font-semibold text-[#5320A8]">Mark all as read</button>}</div>
-        <div className="flex gap-1.5 px-3 pt-2.5">{TABS.map(([k, l]) => <button key={k} type="button" onClick={() => setTab(k)} className={`h-8 px-3 rounded-full text-[12px] font-semibold border ${tab === k ? 'bg-[#1A1030] text-white border-[#1A1030]' : 'bg-white border-[#E8E1F0] text-[#334155]'}`}>{l}</button>)}</div>
+        <div className="flex gap-1.5 px-3 pt-2.5">{TABS.map(([k, l]) => <button key={k} type="button" onClick={() => setTab(k)} className={`h-10 sm:h-8 px-3 rounded-full text-[12px] font-semibold border ${tab === k ? 'bg-[#1A1030] text-white border-[#1A1030]' : 'bg-white border-[#E8E1F0] text-[#334155]'}`}>{l}</button>)}</div>
         <div className="max-h-[60vh] overflow-y-auto mt-2">
           {shown.length === 0 && <div className="px-4 py-10 text-center text-[13px] text-[#667085]">Nothing here yet. Order updates, portfolio health and account events will show up as they happen.</div>}
           {shown.map((n) => { const [Icon, cls] = styleOf(n.type); const cta = ctaFor(n.link); return (
