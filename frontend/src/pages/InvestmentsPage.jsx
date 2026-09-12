@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { TrendingUp, RefreshCw, Loader2, Link2, CheckCircle2, AlertTriangle, Wrench, LogOut, ChevronDown, ChevronUp, Archive, ExternalLink, Info } from 'lucide-react';
+import { TrendingUp, RefreshCw, Loader2, Link2, CheckCircle2, AlertTriangle, Wrench, LogOut, ChevronDown, ChevronUp, Archive, ExternalLink, Info, Undo2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBroker } from '../context/BrokerContext';
 import CoverArt from '../components/CoverArt';
@@ -42,17 +42,18 @@ function smartLine(inv, balance, market) {
     return { tone: 'ok', text: <>Every stock is held{dev != null ? <>, all within <b>{dev.toFixed(1)}%</b> of target weight</> : ''}. Adding more keeps the same mix; open the portfolio and tap Invest now.</> };
   }
   if (inv.health === 'exited') return { tone: 'mute', text: <>You exited this portfolio on {day(inv.exited_at)}. The sell orders are in your Orders page.</> };
-  if (inv.health === 'exited_outside') return { tone: 'mute', text: <>Everything this portfolio bought has since been sold in Kite. Mark it as exited, or invest again from the portfolio page.</> };
+  if (inv.health === 'exited_outside') return { tone: 'warn', text: <>Everything this portfolio bought has since been sold in Kite. If you meant to exit, mark it as exited. If not, Buy back places the same quantities again at today's price.</> };
   if (inv.health === 'unchecked') return { tone: 'warn', text: <>Connect Zerodha and we will match these {inv.total_count} stocks against what your account actually holds.</> };
   return null;
 }
 
-function Card({ inv, balance, market, onFix, onExit, open0 }) {
+function Card({ inv, balance, market, onFix, onExit, onMarkExited, open0 }) {
   const [open, setOpen] = useState(open0);
   const [p, ptext] = PILL[inv.health] || PILL.unchecked;
   const line = smartLine(inv, balance, market);
   const pillText = inv.health === 'incomplete' ? `${ptext} · ${inv.held_count} of ${inv.total_count} held${inv.pending_count ? ` · ${inv.pending_count} ordered` : ''}` : inv.health === 'in_progress' ? `${ptext} · ${inv.pending_count} of ${inv.total_count} ordered` : ptext;
-  const canFix = inv.health === 'incomplete' && !inv.stale;
+  const canFix = ['incomplete', 'exited_outside'].includes(inv.health) && !inv.stale && inv.rows.some((r) => r.missing_qty > 0);
+  const extras = inv.rows.filter((r) => r.extra_qty > 0);
   const canExit = ['complete', 'incomplete', 'in_progress'].includes(inv.health) && !inv.stale && inv.rows.some((r) => r.held_qty > 0);
   return (
     <section className={`surface overflow-hidden ${['exited', 'exited_outside'].includes(inv.health) ? 'opacity-90' : ''}`} data-testid="investment-card" data-health={inv.health}>
@@ -74,6 +75,12 @@ function Card({ inv, balance, market, onFix, onExit, open0 }) {
         <div className={`mx-4 sm:mx-5 mt-3 rounded-xl px-3 py-2.5 text-[13px] leading-relaxed flex gap-2 items-start ${line.tone === 'warn' ? 'bg-[#FEF3C7] text-[#9A4A05]' : line.tone === 'ok' ? 'bg-[#EEF7F1] text-[#0F5132]' : line.tone === 'info' ? 'bg-[#EFF6FF] text-[#1D4ED8]' : 'bg-[#F1EDF7] text-[#3F3A50]'}`} data-testid="investment-smart">
           {line.tone === 'warn' ? <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" /> : line.tone === 'ok' ? <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" /> : <Info className="h-4 w-4 shrink-0 mt-0.5" />}
           <span>{line.text}</span>
+        </div>
+      )}
+      {extras.length > 0 && (
+        <div className="mx-4 sm:mx-5 mt-2 rounded-xl px-3 py-2 text-[12.5px] leading-relaxed flex gap-2 items-start bg-[#F1EDF7] text-[#3F3A50]" data-testid="investment-extra">
+          <Info className="h-4 w-4 shrink-0 mt-0.5" />
+          <span>{extras.map((r) => `You hold ${r.held_qty + r.extra_qty} ${r.symbol}, this portfolio needs ${r.target_qty}. The extra ${r.extra_qty} are yours and are not counted here.`).join(' ')}</span>
         </div>
       )}
       {open && (
@@ -101,7 +108,8 @@ function Card({ inv, balance, market, onFix, onExit, open0 }) {
           <button type="button" onClick={() => setOpen((v) => !v)} className="btn-outline h-9 px-3 text-[13px]">{open ? <>Hide <ChevronUp className="h-3.5 w-3.5" /></> : <>Stocks <ChevronDown className="h-3.5 w-3.5" /></>}</button>
           <Link to={`/orders?portfolio=${inv.portfolio_id}`} className="btn-outline h-9 px-3 text-[13px]">Orders</Link>
           {canExit && <button type="button" onClick={() => onExit(inv)} className="btn-outline h-9 px-3 text-[13px]" data-testid="investment-exit"><LogOut className="h-3.5 w-3.5" /> Exit</button>}
-          {canFix && <button type="button" onClick={() => onFix(inv)} className="btn-primary h-9 px-3.5 text-[13px]" data-testid="investment-fix"><Wrench className="h-3.5 w-3.5" /> Fix portfolio · buy {inv.rows.filter((r) => r.missing_qty > 0).length}</button>}
+          {inv.health === 'exited_outside' && <button type="button" onClick={() => onMarkExited(inv)} className="btn-outline h-9 px-3 text-[13px]" data-testid="investment-mark-exited"><Undo2 className="h-3.5 w-3.5" /> Mark as exited</button>}
+          {canFix && <button type="button" onClick={() => onFix(inv)} className="btn-primary h-9 px-3.5 text-[13px]" data-testid="investment-fix"><Wrench className="h-3.5 w-3.5" /> {inv.health === 'exited_outside' ? `Buy back · ${inv.rows.filter((r) => r.missing_qty > 0).length}` : `Fix portfolio · buy ${inv.rows.filter((r) => r.missing_qty > 0).length}`}</button>}
         </div>
       </div>
     </section>
@@ -138,6 +146,11 @@ export default function InvestmentsPage() {
     } catch (e) { setData({ investments: [], live: false }); if (announce) toast.error('Could not check with Zerodha. Try again in a moment.'); }
     finally { if (announce) setChecking(false); }
   };
+  const markExited = async (inv) => {
+    if (!window.confirm(`Mark ${inv.portfolio?.name} as exited? It moves to Exited and nothing is bought or sold.`)) return;
+    try { await axios.post(`${API}/investments/${inv.portfolio_id}/mark-exited`, {}, h); toast.success(`${inv.portfolio?.name} marked as exited`); load(); }
+    catch (e) { toast.error(e?.response?.data?.detail?.message || e?.response?.data?.detail || 'Could not mark as exited'); }
+  };
   const loadBalance = async () => { try { const m = await getKiteMargins(); const eq = m?.equity || {}; setBalance(Number(eq?.available?.live_balance ?? eq?.net ?? 0)); } catch { setBalance(null); } };
 
   useEffect(() => {
@@ -147,6 +160,13 @@ export default function InvestmentsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthed, kite?.connected_at]);
   useEffect(() => {
+    if (!isAuthed || !kite) return undefined;
+    const ask = () => { if (document.visibilityState === 'visible' && !checking && !action) load(false); };
+    const id = setInterval(ask, 30000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthed, kite?.connected_at, checking, action]);
+  useEffect(() => {
     const onMsg = (ev) => { if (ev.data?.source === 'basketly-kite-callback' && ev.data.status === 'success') { refreshKite?.(); } };
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
@@ -154,10 +174,10 @@ export default function InvestmentsPage() {
   }, []);
 
   const items = data?.investments || [];
-  const RANK = { incomplete: 0, unchecked: 1, in_progress: 2, complete: 3 };
-  const active = items.filter((i) => !['exited', 'exited_outside', 'empty'].includes(i.health)).sort((a, b) => (RANK[a.health] ?? 3) - (RANK[b.health] ?? 3) || String(b.first_invested_at || '').localeCompare(String(a.first_invested_at || '')));
-  const exited = items.filter((i) => ['exited', 'exited_outside', 'empty'].includes(i.health));
-  const totals = useMemo(() => active.reduce((t, i) => ({ invested: t.invested + (i.invested || 0), current: t.current + (i.current || 0), fix: t.fix + (i.health === 'incomplete' ? 1 : 0), ok: t.ok + (i.health === 'complete' ? 1 : 0), wip: t.wip + (i.health === 'in_progress' ? 1 : 0) }), { invested: 0, current: 0, fix: 0, ok: 0, wip: 0 }), [active]);
+  const RANK = { incomplete: 0, exited_outside: 0, unchecked: 1, in_progress: 2, complete: 3 };
+  const active = items.filter((i) => !['exited', 'empty'].includes(i.health)).sort((a, b) => (RANK[a.health] ?? 3) - (RANK[b.health] ?? 3) || String(b.first_invested_at || '').localeCompare(String(a.first_invested_at || '')));
+  const exited = items.filter((i) => ['exited', 'empty'].includes(i.health));
+  const totals = useMemo(() => active.reduce((t, i) => ({ invested: t.invested + (i.invested || 0), current: t.current + (i.current || 0), fix: t.fix + (['incomplete', 'exited_outside'].includes(i.health) ? 1 : 0), ok: t.ok + (i.health === 'complete' ? 1 : 0), wip: t.wip + (i.health === 'in_progress' ? 1 : 0) }), { invested: 0, current: 0, fix: 0, ok: 0, wip: 0 }), [active]);
   const ret = totals.current - totals.invested;
   const since = active.map((i) => i.first_invested_at).filter(Boolean).sort()[0];
   const checkedAt = items.map((i) => i.checked_at).filter(Boolean).sort().slice(-1)[0];
@@ -207,11 +227,11 @@ export default function InvestmentsPage() {
                 <Link to="/model-portfolios" className="btn-primary mt-4 inline-flex">Browse portfolios</Link>
               </div>
             )}
-            {active.map((inv, i) => <Card key={inv.portfolio_id} inv={inv} balance={balance} market={data?.market} onFix={(x) => setAction({ kind: 'fix', inv: x })} onExit={(x) => setAction({ kind: 'exit', inv: x })} open0={i === 0 || inv.health === 'incomplete'} />)}
+            {active.map((inv, i) => <Card key={inv.portfolio_id} inv={inv} balance={balance} market={data?.market} onFix={(x) => setAction({ kind: 'fix', inv: x })} onExit={(x) => setAction({ kind: 'exit', inv: x })} onMarkExited={markExited} open0={i === 0 || inv.health === 'incomplete'} />)}
             {exited.length > 0 && (
               <div data-testid="investments-exited">
                 <button type="button" onClick={() => setShowExited((v) => !v)} className="inline-flex items-center gap-2 h-10 text-[13px] font-semibold text-[#526071]" aria-expanded={showExited}><Archive className="h-4 w-4" /> Exited · {exited.length} portfolio{exited.length > 1 ? 's' : ''} {showExited ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}</button>
-                {showExited && <div className="space-y-4 mt-2">{exited.map((inv) => <Card key={inv.portfolio_id} inv={inv} balance={balance} market={data?.market} onFix={() => {}} onExit={() => {}} open0={false} />)}</div>}
+                {showExited && <div className="space-y-4 mt-2">{exited.map((inv) => <Card key={inv.portfolio_id} inv={inv} balance={balance} market={data?.market} onFix={() => {}} onExit={() => {}} onMarkExited={() => {}} open0={false} />)}</div>}
               </div>
             )}
             <MySubscriptions token={token} />
@@ -240,9 +260,9 @@ export default function InvestmentsPage() {
             )}
             <div className="surface p-5 text-[12.5px] text-[#526071] space-y-3">
               <div className="font-semibold text-[#0F1729] text-[15px]">How this works</div>
-              <p><b className="text-[#0F1729]">How is this checked?</b><br />On every visit we read your Zerodha holdings and today's positions and compare them with each portfolio's target. Orders placed anywhere count; Omnivest never assumes.</p>
+              <p><b className="text-[#0F1729]">How is this checked?</b><br />On every visit, and every 30 seconds while this page is open, we read your Zerodha holdings and today's positions and compare them with each portfolio's target. Orders placed anywhere count; Omnivest never assumes.</p>
               <p><b className="text-[#0F1729]">What is Fix portfolio?</b><br />Only the difference: buy what is neither held nor already ordered. You review the exact orders and funds before anything is placed.</p>
-              <p><b className="text-[#0F1729]">Bought or sold something in Kite?</b><br />It shows here on the next check. A stock sold outside Omnivest is marked so; Fix buys it back.</p>
+              <p><b className="text-[#0F1729]">Bought or sold something in Kite?</b><br />It shows here on the next check. A stock sold outside Omnivest is marked so; Buy back places it again, or Mark as exited closes the portfolio. Extra shares you hold beyond a portfolio's need are shown but never counted.</p>
               <p><b className="text-[#0F1729]">Exit</b><br />Sells everything this portfolio holds, with review first. The portfolio moves to Exited.</p>
               <p><b className="text-[#0F1729]">Still stuck?</b> <Link to="/faq" className="text-[#5320A8] font-semibold">Read the FAQ</Link> or <Link to="/contact" className="text-[#5320A8] font-semibold">contact us</Link>.</p>
             </div>

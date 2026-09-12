@@ -27,7 +27,8 @@ def test_held_counts_settled_t1_and_todays_cnc_position():
 
 
 def test_targets_come_from_non_archived_batches_and_exits_subtract():
-    t = ivm.targets_from_batches([BATCH, {**BATCH, "archived_at": "x"}])
+    unfilled = {**BATCH, "archived_at": "x", "orders": [{**o, "status": "CANCELLED", "filled_qty": 0, "cancelled_by": "investor"} for o in BATCH["orders"]]}
+    t = ivm.targets_from_batches([BATCH, unfilled])                      # archived and nothing filled: contributes nothing
     assert t["WABAG"]["qty"] == 2 and t["EIEL"]["qty"] == 24 and t["IONEXCHANG"]["filled"] == 11
     t2 = ivm.targets_from_batches([BATCH, {"kind": "exit", "placed_at": "2026-09-20", "orders": [{"symbol": "EIEL", "qty": 24, "status": "COMPLETE", "filled_qty": 24}]}])
     assert "EIEL" not in t2 and t2["WABAG"]["qty"] == 2
@@ -80,6 +81,26 @@ def test_open_orders_count_as_on_the_way_and_are_never_bought_again():
     # a partial fill: 10 of 24 filled, 14 still open -> ordered, not missing
     pf = ivm.assess(ivm.targets_from_batches([{**b, "orders": [{**BATCH["orders"][3], "status": "OPEN", "filled_qty": 10}]}]), {"EIEL": 10}, PRICES)
     assert pf["rows"][0]["status"] == "ordered" and pf["rows"][0]["pending_qty"] == 14 and pf["rows"][0]["missing_qty"] == 0
+
+
+def test_archived_batch_keeps_only_what_filled():
+    # cancelled from Omnivest after two orders had filled: those shares stay tracked, the cancelled ones do not
+    b = {**BATCH, "archived_at": "x", "orders": [
+        {**BATCH["orders"][1]},                                                          # IONEXCHANG filled 11
+        {**BATCH["orders"][2], "status": "CANCELLED", "filled_qty": 0, "cancelled_by": "investor"},
+        {**BATCH["orders"][3], "status": "CANCELLED", "filled_qty": 10, "cancelled_by": "investor"},   # 10 of 24 filled, rest cancelled
+    ]}
+    t = ivm.targets_from_batches([b])
+    assert t["IONEXCHANG"]["qty"] == 11 and "EMSLIMITED" not in t and t["EIEL"]["qty"] == 10 and t["EIEL"]["pending"] == 0
+    a = ivm.assess(t, {"IONEXCHANG": 11, "EIEL": 10}, PRICES)
+    assert a["health"] == "complete"
+
+
+def test_extra_shares_are_shown_but_never_counted():
+    t = ivm.targets_from_batches([BATCH])
+    a = ivm.assess(t, {"EIEL": 24, "IONEXCHANG": 11, "EMSLIMITED": 13}, PRICES, extra={"EIEL": 6})
+    row = {r["symbol"]: r for r in a["rows"]}["EIEL"]
+    assert row["status"] == "held" and row["held_qty"] == 24 and row["extra_qty"] == 6 and row["value"] == 24 * 208
 
 
 def test_allocation_serves_the_earlier_investment_first():

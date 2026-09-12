@@ -75,19 +75,19 @@ def targets_from_batches(batches: List[dict]) -> Dict[str, dict]:
     """What the investor asked for, per symbol, from every non-archived invest/fix batch (exit batches subtract)."""
     t: Dict[str, dict] = {}
     for b in sorted(batches, key=lambda x: str(x.get("placed_at") or "")):
-        if b.get("archived_at"):
-            continue
+        archived = bool(b.get("archived_at"))          # cancelled by the investor: only what actually filled counts
         sign = -1 if b.get("kind") == "exit" else 1
         for o in b.get("orders") or []:
             s = (o.get("symbol") or "").upper()
             if not s:
                 continue
             row = t.setdefault(s, {"symbol": s, "name": o.get("name") or "", "exchange": o.get("exchange") or "NSE", "weight_target": float(o.get("weight_target") or 0), "qty": 0, "filled": 0, "pending": 0})
-            row["qty"] += sign * int(o.get("qty") or 0)
             st = inv.norm_status(o.get("status"))
-            if st == "COMPLETE" or int(o.get("filled_qty") or 0):
-                row["filled"] += sign * int(o.get("filled_qty") or o.get("qty") or 0)
-            if sign > 0 and o.get("order_id") and st not in inv.FINAL:
+            filled = int(o.get("filled_qty") or (o.get("qty") if st == "COMPLETE" else 0) or 0)
+            row["qty"] += sign * (filled if archived else int(o.get("qty") or 0))
+            if filled:
+                row["filled"] += sign * filled
+            if not archived and sign > 0 and o.get("order_id") and st not in inv.FINAL:
                 row["pending"] += max(0, int(o.get("qty") or 0) - int(o.get("filled_qty") or 0))   # open with Zerodha: on the way
             row["name"] = row["name"] or o.get("name") or ""
             if o.get("weight_target"):
@@ -95,8 +95,9 @@ def targets_from_batches(batches: List[dict]) -> Dict[str, dict]:
     return {s: r for s, r in t.items() if r["qty"] > 0}
 
 
-def assess(targets: Dict[str, dict], held: Dict[str, int], prices: Dict[str, float], avg: Optional[Dict[str, float]] = None) -> dict:
-    """Compare target quantities with what is held (already allocated to this portfolio). Pure."""
+def assess(targets: Dict[str, dict], held: Dict[str, int], prices: Dict[str, float], avg: Optional[Dict[str, float]] = None, extra: Optional[Dict[str, int]] = None) -> dict:
+    """Compare target quantities with what is held (already allocated to this portfolio). `extra` = shares of the same
+    stock in the account beyond every portfolio's target: the investor's own, shown but never counted. Pure."""
     rows, total_value, invested = [], 0.0, 0.0
     for s, t in targets.items():
         h = min(int(held.get(s, 0)), int(t["qty"]))
@@ -116,7 +117,7 @@ def assess(targets: Dict[str, dict], held: Dict[str, int], prices: Dict[str, flo
         if status in ("partial", "missing") and t.get("filled", 0) > h:
             status = "sold"                       # our orders filled more than the account holds now
         rows.append({"symbol": s, "name": t.get("name") or "", "exchange": t.get("exchange") or "NSE", "weight_target": round(t.get("weight_target") or 0, 2),
-                     "target_qty": int(t["qty"]), "held_qty": h, "pending_qty": pending, "missing_qty": missing, "ltp": ltp, "value": value, "cost": cost, "status": status})
+                     "target_qty": int(t["qty"]), "held_qty": h, "pending_qty": pending, "missing_qty": missing, "extra_qty": int((extra or {}).get(s) or 0), "ltp": ltp, "value": value, "cost": cost, "status": status})
         total_value += value
         invested += cost
     for r in rows:
@@ -221,6 +222,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         order = sorted(groups.items(), key=lambda kv: str(kv[1][0].get("placed_at") or ""))
         targets = [targets_from_batches(bs) for _, bs in order]
         alloc = allocate(targets, {s: r["qty"] for s, r in held.items()})
+        extra = {s: r["qty"] - sum(m.get(s, 0) for m in alloc) for s, r in held.items()}
+        extra = {s: q for s, q in extra.items() if q > 0}
         # prices: from holdings where present, Zerodha ltp for the rest
         need = {s: t["exchange"] for tg in targets for s, t in tg.items() if not held.get(s, {}).get("ltp")}
         prices: Dict[str, float] = {s: r["ltp"] for s, r in held.items() if r.get("ltp")}
@@ -238,7 +241,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         kite_user = (conn.get("profile") or {}).get("user_id_kite")
         for (pid, bs), tg, mine in zip(order, targets, alloc):
             prev = await snaps.find_one({"user_id": user["id"], "portfolio_id": pid}) or {}
-            a = assess(tg, mine, prices, avg)
+            a = assess(tg, mine, prices, avg, extra)
             if prev.get("exited_at") and a["health"] in ("empty", "exited_outside"):
                 a["health"] = "exited"
             elif not tg and prev.get("exited_at"):
@@ -407,6 +410,22 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                     break
                 await asyncio.sleep(0.6 * (attempt + 1))
         return {**o, "order_id": None, "status": "REJECTED", "message": last or "Order was not accepted", "filled_qty": 0, "avg_price": None}
+
+    @router.post("/{pid}/mark-exited")
+    async def mark_exited(pid: str, user: dict = Depends(require_user)):
+        """Everything this portfolio bought was sold outside Omnivest and the investor confirms they meant it."""
+        s = await snaps.find_one({"user_id": user["id"], "portfolio_id": pid})
+        if not s:
+            raise HTTPException(status_code=404, detail="No investment in this portfolio")
+        if s.get("held_count") or any(r.get("held_qty") for r in s.get("rows") or []):
+            raise HTTPException(status_code=409, detail={"code": "held", "message": "This portfolio still holds shares. Use Exit to sell them, or Fix to complete it."})
+        now = _now()
+        await snaps.update_one({"_id": s["_id"]}, {"$set": {"exited_at": now, "exited_by": "investor_outside", "health": "exited", "updated_at": now}})
+        try:
+            await db.events.insert_one({"name": "invest_marked_exited", "user_id": user["id"], "portfolio_id": pid, "props": {}, "at": now})
+        except Exception:  # noqa: BLE001
+            pass
+        return {"ok": True, "exited_at": inv._iso(now)}
 
     @router.post("/{pid}/fix")
     async def fix(pid: str, user: dict = Depends(require_user)):

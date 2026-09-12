@@ -4,7 +4,8 @@ Mirrors smallcase's flow (decided with Tushar, 11 Sep 2026):
   amount -> whole-share quantities by weight (min 1 share of every constituent) -> adjusted total
   -> review -> limit orders (last price + buffer, default 0.5%, admin-editable) as delivery (CNC)
   -> regular orders while NSE is open, after-market (AMO) orders otherwise -> status polled from Kite
-  -> Orders page per batch with Repair for rejected/cancelled orders.
+  -> Orders page per batch (history + Cancel). Buying what is missing is Fix on the Investments page (investments.py),
+     which works from live holdings, so there is exactly one buy action.
 
 Everything is recorded in `invest_batches` (who, which portfolio + constituent version, requested and
 adjusted amounts, every order with Kite's order id/status/fill) so the Orders page, the Investments page
@@ -421,38 +422,6 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if not b:
             raise HTTPException(status_code=404, detail="Batch not found")
         return {"batch": _public(await _refresh(b, user))}
-
-    @router.post("/batches/{bid}/repair")
-    async def repair(bid: str, user: dict = Depends(require_user)):
-        """Re-place every rejected/cancelled order at a fresh limit price (smallcase's Repair)."""
-        b = await batches.find_one({"id": bid, "user_id": user["id"]})
-        if not b:
-            raise HTTPException(status_code=404, detail="Batch not found")
-        b = await _refresh(b, user)
-        if is_archived(b):
-            raise HTTPException(status_code=409, detail={"code": "archived", "message": "This batch was cancelled by you and is archived. Invest again from the portfolio page."})
-        todo = [o for o in b["orders"] if o.get("cancelled_by") != "investor" and not o.get("resolved_outside_at") and (norm_status(o.get("status")) in ("REJECTED", "CANCELLED") or not o.get("order_id"))]
-        if not todo:
-            return {"batch": _public(b), "repaired": 0}
-        conn = await _conn(user)
-        k = _kite_client(conn["access_token"])
-        state, buffer = await _state()
-        if state["mode"] == "blocked":
-            raise HTTPException(status_code=409, detail={"code": "blocked", "message": state["note"]})
-        prices = await _prices(k, {o["symbol"]: o.get("exchange") or "NSE" for o in todo})
-        need = sum(o["qty"] * limit_price(prices[o["symbol"]], buffer) for o in todo)
-        fc = funds_check(need, await _funds(k))
-        if fc and not fc["ok"]:
-            raise HTTPException(status_code=409, detail={"code": "funds", "message": f"Add ₹{fc['short']:,} to your Zerodha account to place these orders again.", **fc})
-        variety = "amo" if state["mode"] == "amo" else "regular"
-        n = 0
-        for o in todo:
-            o["ltp"] = prices[o["symbol"]]; o["limit_price"] = limit_price(o["ltp"], buffer); o["value"] = round(o["qty"] * o["limit_price"], 2)
-            fresh = await _place_one(k, o, variety)
-            o.update(fresh); o["repaired_at"] = _now(); n += 1
-        b["counts"] = counts_of(b["orders"]); b["updated_at"] = _now()
-        await batches.update_one({"id": b["id"]}, {"$set": {"orders": b["orders"], "counts": b["counts"], "updated_at": b["updated_at"], "mode": variety}})
-        return {"batch": _public(b), "repaired": n}
 
     @router.post("/batches/{bid}/cancel")
     async def cancel_batch(bid: str, user: dict = Depends(require_user)):
