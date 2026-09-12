@@ -109,6 +109,32 @@ async def convert(db, user_id: str) -> None:
         logger.warning("referral convert failed for %s: %s", user_id, str(e)[:120])
 
 
+async def redeem(db, user_id: str, amount_rs: int, key: str) -> int:
+    """Consume up to `amount_rs` of live credit, oldest expiry first. Idempotent per `key` (one order = one redemption).
+    Returns the amount actually redeemed."""
+    amount_rs = int(amount_rs or 0)
+    if amount_rs <= 0:
+        return 0
+    claim = await db.credit_redemptions.update_one({"user_id": user_id, "key": key}, {"$setOnInsert": {"user_id": user_id, "key": key, "amount": 0, "at": _now()}}, upsert=True)
+    if not claim.upserted_id:
+        prev = await db.credit_redemptions.find_one({"user_id": user_id, "key": key}, {"_id": 0, "amount": 1})
+        return int((prev or {}).get("amount") or 0)
+    now, left, used = _now(), amount_rs, 0
+    rows = await db.credits.find({"user_id": user_id}, {"_id": 1, "amount": 1, "redeemed": 1, "expires_at": 1}).sort("expires_at", 1).to_list(500)
+    for r in rows:
+        exp = r.get("expires_at")
+        if exp and (exp if exp.tzinfo else exp.replace(tzinfo=timezone.utc)) <= now:
+            continue
+        avail = int(r.get("amount") or 0) - int(r.get("redeemed") or 0)
+        if avail <= 0 or left <= 0:
+            continue
+        take = min(avail, left)
+        await db.credits.update_one({"_id": r["_id"]}, {"$inc": {"redeemed": take}})
+        left -= take; used += take
+    await db.credit_redemptions.update_one({"user_id": user_id, "key": key}, {"$set": {"amount": used}})
+    return used
+
+
 async def balance(db, user_id: str) -> dict:
     rows = await db.credits.find({"user_id": user_id}, {"_id": 0}).sort("at", -1).to_list(200)
     now = _now()

@@ -71,6 +71,13 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         c = _cfg()
         return {"enabled": c["enabled"], "key_id": c["key_id"] if c["enabled"] else None, "mode": _mode(c)}
 
+    @router.get("/payments/credit")
+    async def my_credit(user: dict = Depends(require_user)):
+        """Subscription credit the investor can apply at checkout (earned via Share with friends)."""
+        import referrals
+        b = await referrals.balance(db, user["id"])
+        return {"balance": b["balance"], "note": (await referrals.settings(db))["note"]}
+
     @router.post("/payments/orders")
     async def create_order(payload: dict = Body(...), user: dict = Depends(require_user)):
         c = _cfg()
@@ -93,23 +100,35 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if ready["missing"]:
             raise HTTPException(status_code=428, detail={"message": "Complete the checkout steps first", "missing": ready["missing"]})
         amount_paise = int(round(float(plan["price"]) * 100))   # the price the partner set, never what the browser sends
+        # Share-with-friends credit: applied first, the gateway is only asked for what is left
+        import referrals
+        credit_rs = (await referrals.balance(db, user["id"]))["balance"] if payload.get("use_credit", True) else 0
+        apply_rs = min(int(credit_rs), int(amount_paise // 100))
+        credit_paise = apply_rs * 100
+        payable_paise = amount_paise - credit_paise
         receipt = f"omni_{uuid.uuid4().hex[:20]}"
-        if c["mock"]:
+        if payable_paise == 0:
+            order_id = f"order_credit_{uuid.uuid4().hex[:14]}"
+        elif c["mock"]:
             order_id = f"order_mock_{uuid.uuid4().hex[:14]}"
         else:
             try:
                 r = requests.post(f"{RZP_API}/orders", auth=(c["key_id"], c["secret"]), timeout=20,
-                                  json={"amount": amount_paise, "currency": "INR", "receipt": receipt,
-                                        "notes": {"portfolio_id": pid, "user_id": user["id"], "plan_months": str(months)}})
+                                  json={"amount": payable_paise, "currency": "INR", "receipt": receipt,
+                                        "notes": {"portfolio_id": pid, "user_id": user["id"], "plan_months": str(months), "credit_applied": str(credit_paise)}})
                 r.raise_for_status()
                 order_id = r.json()["id"]
             except Exception as e:  # noqa: BLE001
                 raise HTTPException(status_code=502, detail=f"Payment gateway error: {e}")
         doc = {"id": str(uuid.uuid4()), "order_id": order_id, "receipt": receipt, "user_id": user["id"], "portfolio_id": pid,
-               "portfolio_name": listing.get("name"), "plan_months": months, "amount": amount_paise, "currency": "INR",
+               "portfolio_name": listing.get("name"), "plan_months": months, "amount": amount_paise, "credit_applied": credit_paise, "payable": payable_paise, "currency": "INR",
                "consent": ready["consent"], "status": "created", "created_at": _now()}
         await orders.insert_one(dict(doc))
-        return {"order_id": order_id, "amount": amount_paise, "currency": "INR", "key_id": c["key_id"], "mode": _mode(c),
+        if payable_paise == 0:
+            s = await _fulfil(doc, f"credit_{order_id}", "credit")
+            return {"order_id": order_id, "amount": 0, "price": amount_paise, "credit_applied": credit_paise, "currency": "INR", "paid": True, "mode": _mode(c),
+                    "subscription": {"id": s["id"], "plan_months": s["plan_months"], "expires_at": subs._iso(s["expires_at"]), "portfolio_id": s["portfolio_id"]}}
+        return {"order_id": order_id, "amount": payable_paise, "price": amount_paise, "credit_applied": credit_paise, "currency": "INR", "key_id": c["key_id"], "mode": _mode(c),
                 "name": "Omnivest", "description": f"{listing.get('name')} · {months} month{'s' if months > 1 else ''}",
                 "prefill": {"name": user.get("name", ""), "email": user.get("email") or "", "contact": user.get("phone") or ""},
                 "notes": {"portfolio_id": pid, "plan_months": str(months)}}
@@ -144,9 +163,14 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 continue
             try:
                 listing = await portfolios.find_one({"id": order["portfolio_id"]}, {"_id": 0, "id": 1, "name": 1})
-                s = await subs.create_subscription(db, order["user_id"], listing, int(order["plan_months"]), order["amount"] / 100.0, "razorpay",
-                                                   f"Razorpay {payment_id}", how, payment={"order_id": order["order_id"], "payment_id": payment_id, "amount": order["amount"]},
+                credit_paise = int(order.get("credit_applied") or 0)
+                s = await subs.create_subscription(db, order["user_id"], listing, int(order["plan_months"]), order["amount"] / 100.0, "credit" if how == "credit" else "razorpay",
+                                                   ("Referral credit" if how == "credit" else f"Razorpay {payment_id}"), how,
+                                                   payment={"order_id": order["order_id"], "payment_id": payment_id, "amount": int(order.get("payable", order["amount"])), "credit_applied": credit_paise},
                                                    consent=order.get("consent"))
+                if credit_paise:
+                    import referrals
+                    await referrals.redeem(db, order["user_id"], credit_paise // 100, key=f"order:{order['id']}")
                 await orders.update_one({"id": order["id"]}, {"$set": {"status": "paid", "payment_id": payment_id, "paid_at": _now(), "subscription_id": s["id"], "fulfilled_by": how},
                                                               "$unset": {"fulfilling_at": "", "fulfilling_by": ""}})
             except Exception:
@@ -156,7 +180,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                 import notifications as notif
                 months = int(order["plan_months"])
                 await notif.push(db, order["user_id"], "account", "subscribed", f"Subscribed to {(listing or {}).get('name') or 'a portfolio'}",
-                                 f"{months}-month plan · ₹{order['amount'] / 100.0:,.0f}. You can now see every stock and invest from the portfolio page.",
+                                 f"{months}-month plan · ₹{order['amount'] / 100.0:,.0f}" + (f" (₹{int(order.get('credit_applied') or 0) / 100.0:,.0f} paid with referral credit)" if order.get("credit_applied") else "") + ". You can now see every stock and invest from the portfolio page.",
                                  f"/model-portfolios/{order['portfolio_id']}", key=f"sub:{s['id']}")
             except Exception:  # noqa: BLE001
                 pass
@@ -214,7 +238,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         order = await orders.find_one({"order_id": order_id}, {"_id": 0}) if order_id else None
         if not order:
             return {"ok": True, "ignored": "unknown order"}
-        if int(pay.get("amount") or 0) != int(order["amount"]):
+        if int(pay.get("amount") or 0) != int(order.get("payable", order["amount"])):
             await orders.update_one({"id": order["id"]}, {"$set": {"status": "amount_mismatch", "webhook_amount": pay.get("amount")}})
             return {"ok": True, "ignored": "amount mismatch"}
         await _fulfil(order, payment_id, "webhook")

@@ -50,6 +50,7 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState([]);
   const [payCfg, setPayCfg] = useState(null);
+  const [credit, setCredit] = useState(0);        // referral credit the server will apply first
   const [result, setResult] = useState(null);     // { kind: 'paid' | 'interest', expires_at }
   const [charterOpen, setCharterOpen] = useState(false);
   const firstFieldRef = useRef(null);
@@ -71,14 +72,16 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
     let alive = true;
     (async () => {
       try {
-        const [st, bl, tm, cfg, sts] = await Promise.all([
+        const [st, bl, tm, cfg, sts, cr] = await Promise.all([
           axios.get(`${API}/checkout/status`, { ...h, params: { portfolio_id: basket.id } }),
           axios.get(`${API}/me/billing`, h),
           axios.get(`${API}/portfolios/${basket.id}/terms`),
           axios.get(`${API}/payments/config`),
           axios.get(`${API}/checkout/states`),
+          axios.get(`${API}/payments/credit`, h).catch(() => ({ data: { balance: 0 } })),
         ]);
         if (!alive) return;
+        setCredit(Number(cr.data?.balance || 0));
         const missing = st.data.missing || [];
         setBilling({ pan: '', pan_name: user?.name || '', dob: '', state: '', ...(bl.data.billing || {}) });
         setTerms(tm.data); setPayCfg(cfg.data); setStates(sts.data.states || []);
@@ -123,6 +126,13 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
     try {
       if (payCfg?.enabled) {
         const { data: order } = await axios.post(`${API}/payments/orders`, { portfolio_id: basket.id, plan_months: plan.months }, h);
+        if (order.paid) {                                   // referral credit covered the whole plan: no payment window
+          track('subscribe_paid', { portfolio_id: basket.id, plan: plan.months, via: 'credit' });
+          setResult({ kind: 'paid', expires_at: order.subscription.expires_at });
+          setDone((d) => ({ ...d, pay: true }));
+          onSubscribed?.();
+          return;
+        }
         let resp;
         try {
           resp = await openCheckout(order, { onFailed: (m) => toast.error(`${m} — you can retry in the payment window.`) });
@@ -238,10 +248,11 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
                   <div className="rounded-lg bg-white border border-[#E8E1F0] p-3 text-[14px]">
                     <div className="flex justify-between"><span className="text-[#526071]">{basket.name} · {plan.months} month{plan.months > 1 ? 's' : ''}</span><span className="num">{INR(plan.price)}</span></div>
                     <div className="flex justify-between mt-1 text-[12px] text-[#667085]"><span>Includes applicable taxes · billed by Omnivest</span><span /></div>
-                    <div className="flex justify-between mt-2 pt-2 border-t border-[#EEF1F6] font-bold text-[#0F1729]"><span>Amount to pay</span><span className="num">{INR(plan.price)}</span></div>
+                    {credit > 0 && <div className="flex justify-between mt-1 text-[13px] text-[#0B7F4A]" data-testid="pay-credit"><span>Referral credit applied</span><span className="num">−{INR(Math.min(credit, plan.price))}</span></div>}
+                    <div className="flex justify-between mt-2 pt-2 border-t border-[#EEF1F6] font-bold text-[#0F1729]"><span>Amount to pay</span><span className="num" data-testid="pay-amount">{INR(Math.max(0, plan.price - Math.min(credit, plan.price)))}</span></div>
                   </div>
                   {payCfg?.enabled ? (
-                    <button type="button" onClick={pay} disabled={busy || !paid} className="btn-primary w-full disabled:opacity-60" data-testid="pay-btn">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />} Pay {INR(plan.price)}</button>
+                    <button type="button" onClick={pay} disabled={busy || !paid} className="btn-primary w-full disabled:opacity-60" data-testid="pay-btn">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />} {credit >= plan.price ? 'Activate with credit' : `Pay ${INR(Math.max(0, plan.price - Math.min(credit, plan.price)))}`}</button>
                   ) : (
                     <>
                       <button type="button" onClick={pay} disabled={busy} className="btn-primary w-full disabled:opacity-60" data-testid="pay-btn"><Lock className="h-4 w-4" /> Request access</button>

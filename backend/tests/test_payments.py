@@ -27,6 +27,53 @@ def _sig(secret, msg):
     return hmac.new(secret.encode(), msg.encode(), hashlib.sha256).hexdigest()
 
 
+def _mongo():
+    from pymongo import MongoClient
+    return MongoClient("mongodb://localhost:27017", serverSelectionTimeoutMS=3000)["omnivest"]
+
+
+def test_referral_credit_reduces_the_payable_amount_and_can_cover_it_fully():
+    cfg = requests.get(f"{API}/payments/config", timeout=30).json()
+    if cfg.get("mode") != "mock":
+        pytest.skip("server is not in RAZORPAY_MODE=mock")
+    from datetime import datetime, timedelta, timezone
+    h = _admin()
+    app_id, user_id, a, firm = _analyst(h)
+    inv_id, inv_phone, inv = _investor()
+    db = _mongo()
+    pid = None
+    try:
+        pid = _listing.create_submitted_listing(API, a, "Credit Basket", CONS, subscription="Paid", plans=[{"months": 1, "price": 499}, {"months": 3, "price": 1299}])
+        requests.post(f"{API}/admin/portfolios/{pid}/review", json={"action": "approve"}, headers=h, timeout=30).raise_for_status()
+        requests.put(f"{API}/me/billing", json={"pan": "ABCDE1234F", "pan_name": "Sub Tester", "dob": "1990-05-04", "state": "Karnataka"}, headers=inv, timeout=30).raise_for_status()
+        t = requests.get(f"{API}/portfolios/{pid}/terms", timeout=30).json()
+        requests.post(f"{API}/checkout/consent/request", json={"portfolio_id": pid}, headers=inv, timeout=30).raise_for_status()
+        requests.post(f"{API}/checkout/consent/confirm", json={"portfolio_id": pid, "code": "123456", "terms_version": t["version"]}, headers=inv, timeout=30).raise_for_status()
+        # ₹100 of credit -> the 3-month plan (₹1,299) asks the gateway for ₹1,199 and the browser sees both numbers
+        db.credits.insert_one({"id": "t1", "user_id": inv_id, "amount": 100, "reason": "test", "key": "test:1", "at": datetime.now(timezone.utc), "expires_at": datetime.now(timezone.utc) + timedelta(days=30), "redeemed": 0})
+        assert requests.get(f"{API}/payments/credit", headers=inv, timeout=30).json()["balance"] == 100
+        o = requests.post(f"{API}/payments/orders", json={"portfolio_id": pid, "plan_months": 3}, headers=inv, timeout=30).json()
+        assert o["amount"] == 119900 and o["price"] == 129900 and o["credit_applied"] == 10000 and not o.get("paid")
+        # credit is only consumed once the payment succeeds
+        assert requests.get(f"{API}/payments/credit", headers=inv, timeout=30).json()["balance"] == 100
+        pay_id = "pay_mock_" + uuid.uuid4().hex[:10]
+        r = requests.post(f"{API}/payments/verify", json={"razorpay_order_id": o["order_id"], "razorpay_payment_id": pay_id, "razorpay_signature": _sig(MOCK_SECRET, f"{o['order_id']}|{pay_id}"), "mock": True}, headers=inv, timeout=30)
+        assert r.status_code == 200, r.text
+        assert requests.get(f"{API}/payments/credit", headers=inv, timeout=30).json()["balance"] == 0
+        # enough credit for the whole 1-month plan: no gateway at all, subscribed on the spot, credit consumed exactly once
+        db.credits.insert_one({"id": "t2", "user_id": inv_id, "amount": 600, "reason": "test", "key": "test:2", "at": datetime.now(timezone.utc), "expires_at": datetime.now(timezone.utc) + timedelta(days=30), "redeemed": 0})
+        o2 = requests.post(f"{API}/payments/orders", json={"portfolio_id": pid, "plan_months": 1}, headers=inv, timeout=30).json()
+        assert o2["paid"] is True and o2["amount"] == 0 and o2["credit_applied"] == 49900 and o2["subscription"]["plan_months"] == 1
+        assert requests.get(f"{API}/payments/credit", headers=inv, timeout=30).json()["balance"] == 101
+        assert db.subscriptions.find_one({"user_id": inv_id, "source": "credit", "status": "active"}) is not None
+        assert db.credit_redemptions.count_documents({"user_id": inv_id}) == 2
+    finally:
+        for coll in ("credits", "credit_redemptions", "subscriptions", "payment_orders", "consents", "notifications"):
+            db[coll].delete_many({"user_id": inv_id})
+        requests.delete(f"{API}/admin/db/users/{inv_id}", headers=h, timeout=30)
+        _cleanup(h, app_id, user_id, firm, [pid] if pid else [])
+
+
 def test_checkout_creates_subscription_and_unlocks():
     cfg = requests.get(f"{API}/payments/config", timeout=30).json()
     assert cfg.get("mode") in ("mock", "test", "live", "off")
