@@ -32,9 +32,9 @@ export default function AccountPage() {
 
   const kite = connections.kite;
   const links = [
-    { to: '/investments', icon: TrendingUp, t: 'Your investments', d: 'What you hold, checked against Zerodha' },
+    { to: '/investments', icon: TrendingUp, t: 'Your investments', d: 'What you hold, checked against your broker' },
     { to: '/orders', icon: ClipboardList, t: 'Orders', d: 'Every order placed through Omnivest' },
-    { to: '/brokers/connect', icon: Link2, t: kite ? 'Zerodha connected' : kiteExpired ? 'Zerodha login expired' : 'Connect Zerodha', d: kite ? `${kite.profile?.user_name || ''} · ${kite.profile?.user_id_kite || ''}` : 'Orders go to your own account' },
+    { to: '/brokers/connect', icon: Link2, t: kite ? 'Zerodha connected' : kiteExpired ? 'Broker login expired' : 'Connect your broker', d: kite ? `${kite.profile?.user_name || ''} · ${kite.profile?.user_id_kite || ''}` : 'Orders go to your own account' },
     { to: '/faq', icon: HelpCircle, t: 'FAQ', d: 'Fees, orders, rebalances, refunds' },
     { to: '/contact', icon: MessageCircle, t: 'Contact us', d: 'support@omnivest.in and the grievance process' },
   ];

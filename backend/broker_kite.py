@@ -136,7 +136,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             from datetime import timezone as _tz, timedelta as _td
             ist_day = (datetime.now(_tz.utc) + _td(hours=5, minutes=30)).strftime("%Y-%m-%d")
             import notifications as notif
-            await notif.push(db, user_id, "account", "expired", "Zerodha login expired",
+            await notif.push(db, user_id, "account", "expired", "Broker login expired",
                              "Connect again to place, cancel or check orders. Zerodha ends every login at about 6 AM.", "/brokers/connect", key=f"kite:expired:{ist_day}")
         except Exception as e:  # noqa: BLE001
             logger.info("expired notification skipped: %s", str(e)[:120])

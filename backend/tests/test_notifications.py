@@ -14,8 +14,8 @@ def test_kite_cancel_and_rejection_notify_once_per_order_and_investor_cancel_sta
     after = [O("WABAG", "1", "CANCELLED AMO", cancelled_by="kite"), O("EIEL", "2", "REJECTED", message="Insufficient funds"), O("DENTA", "3", "CANCELLED", cancelled_by="investor")]
     ev = nf.order_events(before, after, B)
     assert [e["type"] for e in ev] == ["cancelled", "rejected"]
-    assert ev[0]["title"] == "WABAG cancelled in Kite" and ev[0]["key"] == "order:1:cancelled" and ev[0]["link"] == "/investments"
-    assert ev[1]["title"] == "EIEL rejected by Zerodha" and "Insufficient" in ev[1]["body"]
+    assert ev[0]["title"] == "WABAG cancelled at broker" and ev[0]["key"] == "order:1:cancelled" and ev[0]["link"] == "/investments"
+    assert ev[1]["title"] == "EIEL rejected by your broker" and "Insufficient" in ev[1]["body"]
     assert nf.order_events(after, after, B) == []                       # nothing changed -> nothing said
 
 

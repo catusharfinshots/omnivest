@@ -91,17 +91,17 @@ def order_events(before: List[dict], after: List[dict], batch: dict) -> List[dic
                 out.append({"kind": "order", "type": "partial", "title": f"{sym} partly filled: {filled} of {qty}", "key": f"order:{oid}:partial",
                             "body": f"The remaining {qty - filled} were not bought, so {name} is short of this stock. Fix buys the rest at today's price.", "link": "/investments"})
             else:
-                who = "inside Kite, not from Omnivest" if o.get("cancelled_by") == "kite" else "by Zerodha"
-                out.append({"kind": "order", "type": "cancelled", "title": f"{sym} cancelled {'in Kite' if o.get('cancelled_by') == 'kite' else ''}".strip(), "key": f"order:{oid}:cancelled",
+                who = "in your broker app, not from Omnivest" if o.get("cancelled_by") == "kite" else "by your broker"
+                out.append({"kind": "order", "type": "cancelled", "title": f"{sym} cancelled {'at broker' if o.get('cancelled_by') == 'kite' else ''}".strip(), "key": f"order:{oid}:cancelled",
                             "body": f"This order from {name} was cancelled {who}. {name} is now incomplete; Fix buys what is missing.", "link": "/investments"})
         elif ns == "REJECTED":
-            out.append({"kind": "order", "type": "rejected", "title": f"{sym} rejected by Zerodha", "key": f"order:{oid}:rejected",
-                        "body": (o.get("message") or "Zerodha did not accept this order.")[:200], "link": f"/orders?batch={bid}"})
+            out.append({"kind": "order", "type": "rejected", "title": f"{sym} rejected by your broker", "key": f"order:{oid}:rejected",
+                        "body": (o.get("message") or "Your broker did not accept this order.")[:200], "link": f"/orders?batch={bid}"})
     if _all_complete(after) and not _all_complete(before):
         n = sum(1 for o in after if o.get("order_id"))
         kind_word = {"fix": "Fix orders filled", "exit": "Exit complete"}.get(batch.get("kind") or "invest", "orders filled")
         title = f"{n} {kind_word}" if batch.get("kind") in (None, "invest") else kind_word
-        body = (f"Everything sold; {name} is exited." if batch.get("kind") == "exit" else f"{name}: every stock in this batch is now in your Zerodha account.")
+        body = (f"Everything sold; {name} is exited." if batch.get("kind") == "exit" else f"{name}: every stock in this batch is now in your broker account.")
         out.append({"kind": "portfolio", "type": "filled", "title": title, "key": f"batch:{bid}:complete", "body": body, "link": "/investments"})
     return out
 
@@ -111,7 +111,7 @@ def placed_event(batch: dict, next_open_text: str = "") -> dict:
     c, kind, name = batch.get("counts") or {}, batch.get("kind") or "invest", batch.get("portfolio_name") or "your portfolio"
     n, total, amo = int(c.get("placed") or 0), int(c.get("total") or 0), batch.get("mode") == "amo"
     side = "sell" if kind == "exit" else "buy"
-    when = f"They execute when NSE opens{(' on ' + next_open_text) if next_open_text else ''}." if amo else "Zerodha is executing them now."
+    when = f"They execute when NSE opens{(' on ' + next_open_text) if next_open_text else ''}." if amo else "Your broker is executing them now."
     link = f"/orders?batch={batch.get('id')}"
     if n == 0:
         return {"kind": "order", "type": "failed", "title": "Orders could not be placed", "key": f"batch:{batch.get('id')}:placed",

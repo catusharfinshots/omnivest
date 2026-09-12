@@ -2,11 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { TrendingUp, RefreshCw, Loader2, Link2, CheckCircle2, AlertTriangle, Wrench, LogOut, ChevronDown, ChevronUp, Archive, ExternalLink, Info, Undo2 } from 'lucide-react';
+import { TrendingUp, RefreshCw, Loader2, Link2, CheckCircle2, AlertTriangle, Wrench, LogOut, ChevronDown, ChevronUp, Archive, Info, Undo2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBroker } from '../context/BrokerContext';
 import CoverArt from '../components/CoverArt';
 import ActionModal from '../components/ActionModal';
+import HowItWorks from '../components/HowItWorks';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const INR = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
@@ -22,7 +23,7 @@ function smartLine(inv, balance, market) {
   const miss = inv.rows.filter((r) => r.missing_qty > 0);
   const pend = inv.rows.filter((r) => r.pending_qty > 0);
   if (inv.health === 'in_progress') {
-    return { tone: 'info', text: <><b>{pend.length} order{pend.length > 1 ? 's are' : ' is'} with Zerodha</b> and execute{pend.length > 1 ? '' : 's'} at {nextOpen(market)}. Nothing to do until then; this page updates itself once they fill.</> };
+    return { tone: 'info', text: <><b>{pend.length} order{pend.length > 1 ? 's are' : ' is'} with your broker</b> and execute{pend.length > 1 ? '' : 's'} at {nextOpen(market)}. Nothing to do until then; this page updates itself once they fill.</> };
   }
   if (inv.health === 'incomplete' && miss.length) {
     const cost = miss.reduce((s, r) => s + r.missing_qty * r.ltp, 0) * 1.005;
@@ -30,10 +31,10 @@ function smartLine(inv, balance, market) {
     const short = balance == null ? null : Math.max(0, Math.ceil((need - balance) / 10) * 10);
     const sold = miss.filter((r) => r.status === 'sold');
     return { tone: 'warn', text: <>
-      {pend.length ? <>{pend.length} order{pend.length > 1 ? 's are' : ' is'} with Zerodha for {nextOpen(market)}. </> : ''}
+      {pend.length ? <>{pend.length} order{pend.length > 1 ? 's are' : ' is'} with your broker for {nextOpen(market)}. </> : ''}
       <b>{miss.length} stock{miss.length > 1 ? 's are' : ' is'} {sold.length === miss.length ? 'no longer held' : 'missing'}: {miss.map((r) => r.symbol).join(', ')}.</b>{' '}
       {sold.length ? 'They were sold outside Omnivest. ' : ''}Buying {miss.length > 1 ? 'them' : 'it'} today needs about <b>{INR(need)}</b> and brings every stock back to its target weight.
-      {short != null && short > 0 ? <> Your Zerodha balance is {INR(balance)}, so add <b>{INR(short)}</b> first.</> : short === 0 ? ' Your Zerodha balance covers it.' : ''}
+      {short != null && short > 0 ? <> Your available balance is {INR(balance)}, so add <b>{INR(short)}</b> first.</> : short === 0 ? ' Your available balance covers it.' : ''}
     </> };
   }
   if (inv.health === 'complete') {
@@ -41,8 +42,8 @@ function smartLine(inv, balance, market) {
     return { tone: 'ok', text: <>Every stock is held{dev != null ? <>, all within <b>{dev.toFixed(1)}%</b> of target weight</> : ''}. Adding more keeps the same mix; open the portfolio and tap Invest now.</> };
   }
   if (inv.health === 'exited') return { tone: 'mute', text: <>You exited this portfolio on {day(inv.exited_at)}. The sell orders are in your Orders page.</> };
-  if (inv.health === 'exited_outside') return { tone: 'warn', text: <>Everything this portfolio bought has since been sold in Kite. If you meant to exit, mark it as exited. If not, Buy back places the same quantities again at today's price.</> };
-  if (inv.health === 'unchecked') return { tone: 'warn', text: <>Connect Zerodha and we will match these {inv.total_count} stocks against what your account actually holds.</> };
+  if (inv.health === 'exited_outside') return { tone: 'warn', text: <>Everything this portfolio bought has since been sold at your broker. If you meant to exit, mark it as exited. If not, Buy back places the same quantities again at today's price.</> };
+  if (inv.health === 'unchecked') return { tone: 'warn', text: <>Connect your broker and we will match these {inv.total_count} stocks against what your account actually holds.</> };
   return null;
 }
 
@@ -102,7 +103,7 @@ function Card({ inv, balance, market, onFix, onExit, onMarkExited, open0 }) {
         </div>
       )}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 px-4 sm:px-5 py-3 border-t border-[#F1EDF7] text-[12px] text-[#667085]">
-        <span>{inv.stale ? (inv.checked_at ? `Last matched with Zerodha at ${clock(inv.checked_at)} IST on ${day(inv.checked_at)}.` : 'Not yet matched with your Zerodha account.') : 'Held quantities come from your Zerodha holdings and today\'s positions.'}</span>
+        <span>{inv.stale ? (inv.checked_at ? `Last matched with your broker at ${clock(inv.checked_at)} IST on ${day(inv.checked_at)}.` : 'Not yet matched with your broker account.') : 'Held quantities come from your broker holdings and today\'s positions.'}</span>
         <div className="flex items-center gap-2 flex-wrap self-end sm:self-auto">
           <button type="button" onClick={() => setOpen((v) => !v)} className="btn-outline h-9 px-3 text-[13px]">{open ? <>Hide <ChevronUp className="h-3.5 w-3.5" /></> : <>Stocks <ChevronDown className="h-3.5 w-3.5" /></>}</button>
           <Link to={`/orders?portfolio=${inv.portfolio_id}`} className="btn-outline h-9 px-3 text-[13px]">Orders</Link>
@@ -141,8 +142,8 @@ export default function InvestmentsPage() {
     try {
       const { data: d } = await axios.get(`${API}/investments`, h);
       setData(d);
-      if (announce) { if (d.live) toast.success('Matched with your Zerodha holdings'); else toast.warning('Zerodha is not connected, so this is the last known state. Connect Zerodha to check again.'); }
-    } catch (e) { setData({ investments: [], live: false }); if (announce) toast.error('Could not check with Zerodha. Try again in a moment.'); }
+      if (announce) { if (d.live) toast.success('Matched with your broker holdings'); else toast.warning('Your broker is not connected, so this is the last known state. Connect again to check.'); }
+    } catch (e) { setData({ investments: [], live: false }); if (announce) toast.error('Could not reach your broker. Try again in a moment.'); }
     finally { if (announce) setChecking(false); }
   };
   const markExited = async (inv) => {
@@ -192,20 +193,20 @@ export default function InvestmentsPage() {
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h1 className="font-heading text-[26px] sm:text-4xl font-bold text-[#0F1729] flex items-center gap-2"><TrendingUp className="h-6 w-6 text-[#6C2BD9]" /> Your investments</h1>
-            <p className="text-[14px] text-[#526071] mt-1">What you hold through Omnivest, checked against your Zerodha account.</p>
+            <p className="text-[14px] text-[#526071] mt-1">What you hold through Omnivest, checked against your broker account.</p>
           </div>
           <div className="text-right">
-            {kite
-              ? <button type="button" onClick={() => load(true)} disabled={checking} className="btn-outline h-10 disabled:opacity-60" data-testid="investments-check">{checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Check with Zerodha</button>
-              : <button type="button" onClick={() => connectKite()} className="btn-primary h-10" data-testid="investments-connect"><Link2 className="h-4 w-4" /> {kiteExpired ? 'Connect Zerodha again' : 'Connect Zerodha'}</button>}
-            <div className={`text-[11px] mt-1 ${data?.live ? 'text-[#667085]' : 'text-[#9A4A05]'}`}>{data?.live ? `Matched with Zerodha at ${clock(checkedAt)} IST · ${kite?.profile?.user_name || ''} (${data.kite_user || kite?.profile?.user_id_kite || ''})` : checkedAt ? `Last matched ${day(checkedAt)}, ${clock(checkedAt)} IST · Zerodha not connected` : items.length ? 'Not yet matched with Zerodha' : ''}</div>
+            {kite && <button type="button" onClick={() => load(true)} disabled={checking} className="btn-outline h-10 disabled:opacity-60" data-testid="investments-check">{checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Check holdings</button>}
+            <div className={`text-[11px] mt-1 ${data?.live ? 'text-[#667085]' : 'text-[#9A4A05]'}`}>{data?.live ? `Matched with your broker at ${clock(checkedAt)} IST · ${kite?.profile?.user_name || ''} (${data.kite_user || kite?.profile?.user_id_kite || ''})` : checkedAt ? `Last matched ${day(checkedAt)}, ${clock(checkedAt)} IST · broker not connected` : ''}</div>
           </div>
         </div>
 
-        {!kite && items.length > 0 && (
+        {!kite && active.length > 0 && (
           <div className="mt-4 rounded-xl bg-[#FFFBEB] border border-[#F1D48A] px-4 py-3 text-[13px] text-[#9A4A05] flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4" data-testid="investments-broker-banner">
-            <span className="flex-1">{kiteExpired ? 'Your Zerodha login expired for today. Connect again to match holdings, fix a portfolio or exit.' : 'Connect Zerodha to match these against what your account actually holds.'}</span>
-            <button type="button" onClick={() => connectKite()} className="btn-primary h-10 shrink-0">{kiteExpired ? 'Connect Zerodha again' : 'Connect Zerodha'}</button>
+            <span className="flex-1">{kiteExpired ? 'Your broker login expired for today. Connect again to match holdings, fix a portfolio or exit.' : 'Connect your broker to match these against what your account actually holds.'}</span>
+            {kiteExpired
+              ? <button type="button" onClick={() => connectKite()} className="btn-primary h-10 shrink-0" data-testid="investments-connect">Connect again</button>
+              : <Link to="/brokers/connect" className="btn-primary h-10 shrink-0" data-testid="investments-connect">Connect your broker</Link>}
           </div>
         )}
 
@@ -225,11 +226,23 @@ export default function InvestmentsPage() {
         <div className="mt-5 grid lg:grid-cols-[1fr_300px] gap-5 items-start">
           <div className="space-y-4 min-w-0">
             {data === null && <div className="surface p-6 text-[#667085] text-sm"><Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading your investments…</div>}
-            {data && items.length === 0 && (
-              <div className="surface p-8 text-center">
-                <div className="font-semibold text-[#0F1729]">No investments yet</div>
-                <p className="text-[13px] text-[#526071] mt-1">Open a model portfolio and tap Invest now. Orders go to your own Zerodha account, and what you hold shows up here.</p>
-                <Link to="/model-portfolios" className="btn-primary mt-4 inline-flex">Browse portfolios</Link>
+            {data && active.length === 0 && (
+              <div className="surface p-6 sm:p-8" data-testid="investments-empty">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+                  <div className="h-16 w-16 rounded-2xl grad-card text-white grid place-items-center shrink-0"><TrendingUp className="h-8 w-8" /></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-heading font-bold text-[18px] text-[#0F1729]">{!kite && !kiteExpired ? 'Connect your broker to start' : kiteExpired ? 'Your broker login expired for today' : items.length ? 'Nothing invested right now' : 'No investments yet'}</div>
+                    <p className="text-[13px] text-[#526071] mt-1 leading-relaxed">{!kite && !kiteExpired
+                      ? 'Orders go to your own broker account; Omnivest never holds your money. Connect once, then invest in any model portfolio.'
+                      : kiteExpired ? 'Your broker ends every login daily. Connect again to invest, match holdings or exit.'
+                      : items.length ? 'Your exited portfolios are kept below. Pick a model portfolio to invest again.' : 'Pick a model portfolio and tap Invest now. What you hold shows up here, checked against your broker account.'}</p>
+                  </div>
+                  <div className="flex gap-2 flex-wrap sm:flex-col sm:items-stretch shrink-0">
+                    {!kite && !kiteExpired && <Link to="/brokers/connect" className="btn-primary h-11" data-testid="investments-connect"><Link2 className="h-4 w-4" /> Connect your broker</Link>}
+                    {kiteExpired && <button type="button" onClick={() => connectKite()} className="btn-primary h-11" data-testid="investments-connect"><Link2 className="h-4 w-4" /> Connect again</button>}
+                    <Link to="/model-portfolios" className={`${kite ? 'btn-primary' : 'btn-outline'} h-11`}>Browse portfolios</Link>
+                  </div>
+                </div>
               </div>
             )}
             {active.map((inv, i) => <Card key={inv.portfolio_id} inv={inv} balance={balance} market={data?.market} onFix={(x) => setAction({ kind: 'fix', inv: x })} onExit={(x) => setAction({ kind: 'exit', inv: x })} onMarkExited={markExited} open0={i === 0 || inv.health === 'incomplete'} />)}
@@ -241,35 +254,20 @@ export default function InvestmentsPage() {
             )}
           </div>
           <aside className="space-y-4">
-            {kite ? (
-              <div className="surface p-4" data-testid="dash-broker-card">
+            {(kite || kiteExpired) && (
+              <div className={`surface p-4 ${kite ? '' : 'border-[#F1D48A] bg-[#FFFBEB]'}`} data-testid="dash-broker-card">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#FF9F0A] to-[#F04438] text-white grid place-items-center font-bold">Z</div>
-                  <div className="min-w-0"><div className="flex items-center gap-2 font-semibold text-[14px]"><CheckCircle2 className="h-4 w-4 text-[#0B7F4A]" /> Zerodha connected</div><div className="text-[12px] text-[#6B6480] truncate">{kite.profile?.user_name} · Kite ID {kite.profile?.user_id_kite}</div></div>
+                  <div className="min-w-0">
+                    <div className={`flex items-center gap-2 font-semibold text-[14px] ${kite ? '' : 'text-[#9A4A05]'}`}>{kite ? <><CheckCircle2 className="h-4 w-4 text-[#0B7F4A]" /> Zerodha connected</> : 'Zerodha · login expired'}</div>
+                    <div className="text-[12px] text-[#6B6480] truncate">{(kite || kiteExpired).profile?.user_name} · {(kite || kiteExpired).profile?.user_id_kite}</div>
+                  </div>
                 </div>
-                <div className="mt-3 rounded-xl bg-[#F7F4FB] p-3"><div className="text-[11px] uppercase tracking-wider text-[#6B6480] font-semibold">Available in Zerodha</div><div className="num mt-0.5 font-bold text-[16px]">{balance == null ? '—' : INR(balance)}</div></div>
+                {kite && <div className="mt-3 rounded-xl bg-[#F7F4FB] p-3"><div className="text-[11px] uppercase tracking-wider text-[#6B6480] font-semibold">Available to invest</div><div className="num mt-0.5 font-bold text-[16px]">{balance == null ? '—' : INR(balance)}</div></div>}
                 <div className="mt-3 flex gap-2"><Link to="/orders" className="btn-outline h-9 px-3 text-[13px] flex-1">Orders</Link><Link to="/brokers/connect" className="btn-outline h-9 px-3 text-[13px] flex-1">Manage</Link></div>
               </div>
-            ) : kiteExpired ? (
-              <div className="surface p-4 border-[#F1D48A] bg-[#FFFBEB]" data-testid="dash-broker-expired">
-                <div className="font-semibold text-[#9A4A05] text-[14px]">Zerodha login expired for today</div>
-                <div className="text-[12px] text-[#6B6480] mt-1">{kiteExpired.profile?.user_name} (Kite ID {kiteExpired.profile?.user_id_kite}). Zerodha ends every login at about 6 AM.</div>
-                <button type="button" onClick={() => connectKite()} className="btn-primary h-10 mt-3 w-full" data-testid="dash-broker-reconnect"><Link2 className="h-4 w-4" /> Connect Zerodha again</button>
-              </div>
-            ) : (
-              <Link to="/brokers/connect" className="rounded-2xl grad-band text-white p-4 flex items-center justify-between gap-3 hover:brightness-110 transition-all block">
-                <div><div className="font-semibold">Connect your broker</div><div className="text-[12.5px] text-white/85">Link Zerodha to invest and to match holdings.</div></div>
-                <span className="inline-flex items-center gap-1 rounded-full bg-white text-[#6C2BD9] px-3 py-1.5 text-[13px] font-semibold shrink-0">Connect <ExternalLink className="h-3.5 w-3.5" /></span>
-              </Link>
             )}
-            <div className="surface p-5 text-[12.5px] text-[#526071] space-y-3">
-              <div className="font-semibold text-[#0F1729] text-[15px]">How this works</div>
-              <p><b className="text-[#0F1729]">How is this checked?</b><br />On every visit, and every 30 seconds while this page is open, we read your Zerodha holdings and today's positions and compare them with each portfolio's target. Orders placed anywhere count; Omnivest never assumes.</p>
-              <p><b className="text-[#0F1729]">What is Fix portfolio?</b><br />Only the difference: buy what is neither held nor already ordered. You review the exact orders and funds before anything is placed.</p>
-              <p><b className="text-[#0F1729]">Bought or sold something in Kite?</b><br />It shows here on the next check. A stock sold outside Omnivest is marked so; Buy back places it again, or Mark as exited closes the portfolio. Extra shares you hold beyond a portfolio's need are shown but never counted.</p>
-              <p><b className="text-[#0F1729]">Exit</b><br />Sells everything this portfolio holds, with review first. The portfolio moves to Exited.</p>
-              <p><b className="text-[#0F1729]">Still stuck?</b> <Link to="/faq" className="text-[#5320A8] font-semibold">Read the FAQ</Link> or <Link to="/contact" className="text-[#5320A8] font-semibold">contact us</Link>.</p>
-            </div>
+            <HowItWorks kind="investments" />
           </aside>
         </div>
       </div>

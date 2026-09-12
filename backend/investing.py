@@ -210,7 +210,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     async def _conn(user: dict) -> dict:
         conn = await db.broker_connections.find_one({"user_id": user["id"], "broker": "kite"})
         if not conn or not conn.get("access_token"):
-            raise HTTPException(status_code=428, detail={"code": "broker", "message": "Connect your Zerodha account to place orders."})
+            raise HTTPException(status_code=428, detail={"code": "broker", "message": "Connect your broker to place orders."})
         return conn
 
     async def _listing(pid: str, user: dict) -> dict:
@@ -238,7 +238,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         for s, ex in syms.items():
             v = (data.get(f"{ex}:{s}") or {}).get("last_price")
             if not v:
-                raise HTTPException(status_code=502, detail=f"No price from Zerodha for {s}. Try again in a moment.")
+                raise HTTPException(status_code=502, detail=f"No price from your broker for {s}. Try again in a moment.")
             out[s] = float(v)
         return out
 
@@ -263,8 +263,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         except Exception as e:  # noqa: BLE001
             msg = str(e)
             if "token" in msg.lower() or "session" in msg.lower():
-                raise HTTPException(status_code=428, detail={"code": "broker", "message": "Your Zerodha login has expired for today. Connect again to continue."})
-            raise HTTPException(status_code=502, detail=f"Zerodha did not return prices: {msg[:160]}")
+                raise HTTPException(status_code=428, detail={"code": "broker", "message": "Your broker login has expired for today. Connect again to continue."})
+            raise HTTPException(status_code=502, detail=f"Your broker did not return prices: {msg[:160]}")
         state, buffer = await _state()
         return {"doc": doc, "conn": conn, "k": k, "weights": weights, "exch": exch, "prices": prices, "state": state, "buffer": buffer,
                 "minimum": min_amount(weights, prices), "funds": await _funds(k)}
@@ -396,7 +396,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if b["market"]["mode"] == "blocked":
             raise HTTPException(status_code=409, detail={"code": "blocked", "message": b["market"]["note"]})
         if b["funds"] and not b["funds"]["ok"] and not payload.get("ignore_funds"):
-            raise HTTPException(status_code=409, detail={"code": "funds", "message": f"Add ₹{b['funds']['short']:,} to your Zerodha account to place these orders.", **b["funds"]})
+            raise HTTPException(status_code=409, detail={"code": "funds", "message": f"Add ₹{b['funds']['short']:,} to your broker account to place these orders.", **b["funds"]})
         variety = "amo" if b["market"]["mode"] == "amo" else "regular"
         k = _kite_client(b["_conn"]["access_token"])
         placed = [await _place_one(k, o, variety) for o in b["orders"]]
@@ -474,7 +474,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                              f"You cancelled {n} open order{'s' if n > 1 else ''} for {b.get('portfolio_name')}." + (f" The {kept} that had filled stay in your account." if kept else " Nothing more will happen with that batch."),
                              f"/orders?batch={b['id']}", key=f"batch:{b['id']}:archived:{int(b['updated_at'].timestamp())}")
         if failed and n == 0:
-            raise HTTPException(status_code=502, detail={"code": "cancel", "message": f"Zerodha did not cancel: {failed[0]['error']}", "failed": failed})
+            raise HTTPException(status_code=502, detail={"code": "cancel", "message": f"Your broker did not cancel: {failed[0]['error']}", "failed": failed})
         return {"batch": _public(b), "cancelled": n, "failed": failed}
 
     @router.get("/partner-summary/{pid}")

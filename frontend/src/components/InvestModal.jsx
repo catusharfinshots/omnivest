@@ -92,8 +92,8 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
     setConnecting(true);
     try {
       await connectKite();
-      toast('Complete the Zerodha login in the popup, then continue here.');
-    } catch { toast.error('Could not open the Zerodha login.'); }
+      toast('Complete the broker login in the popup, then continue here.');
+    } catch { toast.error('Could not open the broker login.'); }
     finally { setConnecting(false); }
   };
 
@@ -143,7 +143,7 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
               <div className="flex items-start gap-3">
                 <span className="h-10 w-10 rounded-xl bg-[#F1E7FE] text-[#5320A8] grid place-items-center shrink-0"><Link2 className="h-5 w-5" /></span>
                 <div className="min-w-0">
-                  <div className="font-semibold text-[#0F1729]">{kiteExpired ? 'Your Zerodha login expired for today' : 'Connect your Zerodha account'}</div>
+                  <div className="font-semibold text-[#0F1729]">{kiteExpired ? 'Your broker login expired for today' : 'Connect your broker'}</div>
                   <div className="text-[13px] text-[#526071] mt-0.5">{kiteExpired ? "Zerodha ends every login at about 6 AM. Log in again on Zerodha's page to continue; nothing else changes." : "You log in on Zerodha's own page. Orders are placed in your account; Omnivest never sees your password or holds your money."}</div>
                 </div>
               </div>
@@ -173,12 +173,12 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
               {err?.code === 'broker' && <Note tone="warn" icon={AlertTriangle}>{err.message}</Note>}
               <div className="rounded-2xl border border-[#E8E1F0] p-4 text-[13px] space-y-1.5">
                 <div className="flex justify-between"><span className="text-[#526071]">Broker</span><b>{kite ? `Zerodha · ${kite.profile?.user_id_kite || kite.profile?.user_name || 'connected'} ✓` : 'Not connected'}</b></div>
-                {quote?.funds && <div className="flex justify-between" data-testid="invest-funds"><span className="text-[#526071]">Available in Zerodha</span><b className="num">{INR(quote.funds.available)}</b></div>}
+                {quote?.funds && <div className="flex justify-between" data-testid="invest-funds"><span className="text-[#526071]">Available to invest</span><b className="num">{INR(quote.funds.available)}</b></div>}
                 <div className="flex justify-between"><span className="text-[#526071]">Orders</span><b>{(basket.constituents || []).length || basket.holdings_count} stocks · limit · delivery</b></div>
                 {market && <div className="flex justify-between"><span className="text-[#526071]">Timing</span><b>{market.open ? 'Now' : market.mode === 'amo' ? `After-market · ${when(market.next_open_ist)}` : 'Not right now'}</b></div>}
               </div>
               <button type="button" onClick={review} disabled={busy || !kite || !Number(amount) || blocked} className="btn-primary w-full h-12 disabled:opacity-60" data-testid="invest-review-btn">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Review orders <ArrowRight className="h-4 w-4" /></button>
-              <div className="text-[11.5px] text-[#667085] text-center leading-relaxed">Orders are placed in your own Zerodha account. Omnivest never holds your money or securities.</div>
+              <div className="text-[11.5px] text-[#667085] text-center leading-relaxed">Orders are placed in your own broker account. Omnivest never holds your money or securities.</div>
             </div>
           )}
 
@@ -216,7 +216,7 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
                   {(() => { const f = err?.code === 'funds' ? err : funds; return (
                     <div className="mt-3 text-[13px] space-y-1.5">
                       <div className="flex justify-between"><span className="text-[#526071]">Required funds</span><b className="num">{INR(f.required)}</b></div>
-                      <div className="flex justify-between"><span className="text-[#526071]">Available in Zerodha</span><b className="num">{INR(f.available)}</b></div>
+                      <div className="flex justify-between"><span className="text-[#526071]">Available at your broker</span><b className="num">{INR(f.available)}</b></div>
                       <div className="flex justify-between border-t border-[#F1D48A] pt-1.5"><span className="text-[#0F1729] font-semibold">Funds to add</span><b className="num text-[#B91C1C]">{INR(f.short)}</b></div>
                       <div className="grid grid-cols-2 gap-2 pt-2">
                         <button type="button" onClick={() => openKiteFunds(f.short)} className="btn-primary h-11" data-testid="invest-add-funds">Add {INR(f.short)} on Zerodha</button>
@@ -232,7 +232,7 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
                   <button type="button" onClick={place} disabled={busy || blocked} className="btn-invest h-12 rounded-xl text-[15px] disabled:opacity-60" data-testid="invest-place-btn">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Place {preview.count} orders</button>
                 </div>
               )}
-              <div className="text-[11.5px] text-[#667085] text-center leading-relaxed">By placing, you instruct Zerodha to buy these quantities in your account. Execution prices may differ from the limits shown.</div>
+              <div className="text-[11.5px] text-[#667085] text-center leading-relaxed">By placing, you instruct your broker to buy these quantities in your account. Execution prices may differ from the limits shown.</div>
             </div>
           )}
 
@@ -242,15 +242,15 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
               {(() => { const none = b.counts.placed === 0; const partial = !none && b.counts.rejected > 0; return (<>
               <div className={`h-16 w-16 rounded-full grid place-items-center mx-auto ${none ? 'bg-[#FBE4E4] text-[#B91C1C]' : partial ? 'bg-[#FEF3C7] text-[#9A4A05]' : 'bg-[#E3F4EB] text-[#0B7F4A]'}`}>{none ? <AlertTriangle className="h-8 w-8" /> : <CheckCircle2 className="h-8 w-8" />}</div>
               <h3 className="text-center font-heading text-[20px] font-bold text-[#0F1729]" data-testid="invest-placed-title">{none ? 'Orders could not be placed' : partial ? (b.mode === 'amo' ? 'Some after-market orders placed' : 'Some orders placed') : (b.mode === 'amo' ? 'After-market orders placed' : 'Orders placed')}</h3>
-              <div className="text-center text-[13px] text-[#526071]">{b.counts.placed} of {b.counts.total} orders accepted by Zerodha{b.counts.rejected ? ` · ${b.counts.rejected} rejected` : ''}</div>
+              <div className="text-center text-[13px] text-[#526071]">{b.counts.placed} of {b.counts.total} orders accepted by your broker{b.counts.rejected ? ` · ${b.counts.rejected} rejected` : ''}</div>
               <div className="h-2 rounded-full bg-[#E8E1F0] overflow-hidden"><i className="block h-full bg-[#0A7D48]" style={{ width: `${(b.counts.placed / Math.max(1, b.counts.total)) * 100}%` }} /></div>
               {none
                 ? <Note tone="neg" icon={AlertTriangle}>Nothing was placed and nothing was charged. Fix the reason below, then use Repair on the Orders page to place them again.</Note>
                 : b.mode === 'amo'
                   ? <Note tone="pos" icon={CheckCircle2}>They execute when NSE opens on {when(result.market.next_open_ist)}. We update each order's fill in your Orders page.</Note>
-                  : <Note tone="pos" icon={CheckCircle2}>Zerodha is executing them now. Fills appear in your Orders page within a few seconds.</Note>}
+                  : <Note tone="pos" icon={CheckCircle2}>Your broker is executing them now. Fills appear in your Orders page within a few seconds.</Note>}
               </>); })()}
-              {Object.entries(b.orders.filter((o) => !o.order_id).reduce((m, o) => { const k = o.message || 'not accepted by Zerodha'; (m[k] = m[k] || []).push(o.symbol); return m; }, {})).map(([msg, syms]) => (
+              {Object.entries(b.orders.filter((o) => !o.order_id).reduce((m, o) => { const k = o.message || 'not accepted by your broker'; (m[k] = m[k] || []).push(o.symbol); return m; }, {})).map(([msg, syms]) => (
                 <Note key={msg} tone="warn" icon={AlertTriangle}><b>{syms.length === b.counts.total ? 'All orders' : syms.join(', ')} rejected:</b> {msg}</Note>
               ))}
               <div className="rounded-2xl border border-[#E8E1F0] p-4 text-[13px] space-y-1.5">

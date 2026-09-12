@@ -24,19 +24,22 @@ const BROKERS = [
 export default function BrokerConnectPage() {
   const { connections, kiteExpired, loading, connectKite, disconnectKite, refreshKite } = useBroker();
   const kite = connections.kite;
+  const [fail, setFail] = React.useState(null);   // 'not-enabled' | 'incomplete' | 'popup'
 
   const onConnectKite = async () => {
+    setFail(null);
     try {
       const popup = await connectKite();
       if (!popup) {
         toast.error('Popup blocked. Allow popups and try again.');
+        setFail('popup');
         return;
       }
       toast.info('Complete login on Kite in the popup window.');
       // fallback: poll for close and refresh status
       let messageReceived = false;
       const msgHandler = (e) => {
-        if (e?.data?.source === 'basketly-kite-callback') messageReceived = true;
+        if (e?.data?.source === 'basketly-kite-callback') { messageReceived = true; if (e.data.status === 'error') setFail(/not enabled/i.test(e.data.detail || '') ? 'not-enabled' : 'incomplete'); }
       };
       window.addEventListener('message', msgHandler);
       const interval = setInterval(async () => {
@@ -45,12 +48,11 @@ export default function BrokerConnectPage() {
           window.removeEventListener('message', msgHandler);
           const status = await refreshKite();
           if (status && status.connected) {
+            setFail(null);
             toast.success('Zerodha connected', { description: status.profile?.user_name });
           } else if (!messageReceived) {
-            toast.error('Kite login was not completed', {
-              description: 'If Kite showed "user not enabled", see the Common issues section below.',
-              duration: 8000,
-            });
+            setFail('incomplete');
+            toast.error('The Zerodha login did not complete', { description: 'See what to do just below the Connect button.', duration: 6000 });
           }
         }
       }, 800);
@@ -141,6 +143,26 @@ export default function BrokerConnectPage() {
           );
         })}
       </div>
+
+      {fail && (
+        <div className="mt-6 rounded-2xl border border-[#F1D48A] bg-[#FFFBEB] p-5 text-[13.5px] text-[#78350F]" data-testid="broker-fail">
+          <div className="font-semibold text-[15px] text-[#0F1729]">{fail === 'popup' ? 'The login window was blocked' : fail === 'not-enabled' ? "Zerodha didn't let that account in" : 'The Zerodha login did not complete'}</div>
+          {fail === 'popup' && <p className="mt-1">Allow popups for omnivest.in in your browser's address bar, then tap Connect again.</p>}
+          {fail !== 'popup' && (
+            <div className="mt-2 space-y-3">
+              <p>Zerodha shows a plain error page reading <i>"The user is not enabled for the app"</i> when the account you logged in with is not yet allowed on Omnivest. During this phase only enabled Zerodha accounts can connect; <Link to="/contact" className="underline font-semibold">contact us</Link> with your Client ID to get yours enabled.</p>
+              <div className="rounded-xl bg-white border border-[#F1D48A] p-3">
+                <div className="font-semibold text-[#0F1729]">Want to log in with a different Zerodha account?</div>
+                <p className="mt-1">Zerodha remembers the account you last used, so the popup skips the login and fails again. Log out of Kite first, then come back and tap Connect.</p>
+                <div className="mt-2 flex gap-2 flex-wrap">
+                  <a href="https://kite.zerodha.com/" target="_blank" rel="noreferrer" className="btn-outline h-10">Open Kite to log out</a>
+                  <button type="button" onClick={onConnectKite} className="btn-primary h-10">Connect again</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="mt-10 rounded-2xl bg-[#F7F4FB] border border-[#E8E1F0] p-6 text-sm text-[#6B6480]">
         <div className="font-semibold text-[#1A1030]">How the connection works</div>

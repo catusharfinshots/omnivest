@@ -306,7 +306,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     async def _plan(user: dict, pid: str, action: str) -> dict:
         conn = await _conn(user)
         if not conn:
-            raise HTTPException(status_code=428, detail={"code": "broker", "message": "Connect your Zerodha account to continue."})
+            raise HTTPException(status_code=428, detail={"code": "broker", "message": "Connect your broker to continue."})
         groups = await _grouped(user)
         if pid not in groups:
             raise HTTPException(status_code=404, detail="No investment in this portfolio")
@@ -353,7 +353,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         for s, ex in syms.items():
             v = (data.get(f"{ex}:{s}") or {}).get("last_price")
             if not v:
-                raise HTTPException(status_code=502, detail=f"No price from Zerodha for {s}. Try again in a moment.")
+                raise HTTPException(status_code=502, detail=f"No price from your broker for {s}. Try again in a moment.")
             out[s] = float(v)
         return out
 
@@ -382,7 +382,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if p["state"]["mode"] == "blocked":
             raise HTTPException(status_code=409, detail={"code": "blocked", "message": p["state"]["note"]})
         if p["funds"] and not p["funds"]["ok"]:
-            raise HTTPException(status_code=409, detail={"code": "funds", "message": f"Add ₹{p['funds']['short']:,} to your Zerodha account to place these orders.", **p["funds"]})
+            raise HTTPException(status_code=409, detail={"code": "funds", "message": f"Add ₹{p['funds']['short']:,} to your broker account to place these orders.", **p["funds"]})
         variety = "amo" if p["state"]["mode"] == "amo" else "regular"
         placed = [await _place_one(p["k"], o, variety) for o in p["orders"]]
         counts = inv.counts_of(placed)
