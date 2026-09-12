@@ -30,9 +30,9 @@ def test_kite_timestamps_are_ist():
 
 
 def test_cancel_inside_kite_is_marked_and_stamped():
-    o = {"order_id": "260912000123", "symbol": "WABAG", "status": "OPEN", "filled_qty": 0, "avg_price": None, "message": ""}
-    assert kp.apply_postback(o, _signed(exchange_update_timestamp="2026-09-12 11:02:05"))
-    assert o["status"] == "CANCELLED" and o["cancelled_by"] == "kite"
+    o = {"order_id": "260912000123", "symbol": "WABAG", "status": "AMO REQ RECEIVED", "filled_qty": 0, "avg_price": None, "message": ""}
+    assert kp.apply_postback(o, _signed(status="CANCELLED AMO", exchange_update_timestamp="2026-09-12 11:02:05"))
+    assert o["status"] == "CANCELLED" and o["status_raw"] == "CANCELLED AMO" and o["cancelled_by"] == "kite"
     assert o["cancelled_at"] == datetime(2026, 9, 12, 5, 32, 5, tzinfo=timezone.utc) and o.get("postback_at")
     assert not kp.apply_postback(o, _signed(exchange_update_timestamp="2026-09-12 11:02:05"))   # idempotent
 

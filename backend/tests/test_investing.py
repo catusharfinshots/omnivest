@@ -61,6 +61,17 @@ def test_counts():
     assert c == {"total": 4, "placed": 3, "complete": 1, "open": 1, "rejected": 2, "cancelled": 0}
 
 
+def test_kite_status_families_normalise():
+    # the real one: a Kite-side cancel of an after-market order reads 'CANCELLED AMO' in the order book
+    assert inv.norm_status("CANCELLED AMO") == "CANCELLED" and inv.norm_status("CANCELLED") == "CANCELLED"
+    assert inv.norm_status("REJECTED") == "REJECTED" and inv.norm_status("COMPLETE") == "COMPLETE"
+    assert inv.norm_status("AMO REQ RECEIVED") == "AMO REQ RECEIVED" and inv.norm_status(None) == ""
+    c = inv.counts_of([{"order_id": "1", "status": "CANCELLED AMO"}, {"order_id": "2", "status": "AMO REQ RECEIVED"}])
+    assert c["rejected"] == 1 and c["open"] == 1
+    from datetime import datetime as _dt, timezone as _tz
+    assert inv.kite_ts("2026-09-12 11:22:35") == _dt(2026, 9, 12, 5, 52, 35, tzinfo=_tz.utc) and inv.kite_ts("bad") is None
+
+
 def test_investor_cancel_is_a_choice_not_a_failure():
     # cancelled from Omnivest -> counted as 'cancelled' (no Repair); cancelled inside Kite -> 'rejected' (Repair offered)
     mine = {"order_id": "1", "status": "CANCELLED", "cancelled_by": "investor"}

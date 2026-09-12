@@ -15,10 +15,10 @@ const clock = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { hour: 'num
 const short = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: IST }) : '');
 const TONE = { COMPLETE: 'bg-[#E3F4EB] text-[#096B3E]', OPEN: 'bg-[#EFF6FF] text-[#1D4ED8]', REJECTED: 'bg-[#FBE4E4] text-[#B91C1C]', CANCELLED: 'bg-[#FBE4E4] text-[#B91C1C]', ARCHIVED: 'bg-[#EEEAF4] text-[#526071]' };
 const mine = (o) => o.cancelled_by === 'investor';
-const label = (o) => { const s = (o.status || '').toUpperCase(); if (!o.order_id) return 'Rejected'; if (s === 'COMPLETE') return 'Filled'; if (s === 'REJECTED') return 'Rejected'; if (s === 'CANCELLED') return mine(o) ? 'Cancelled by you' : o.cancelled_by === 'kite' ? 'Cancelled in Kite' : 'Cancelled'; if (s.includes('AMO')) return 'After-market'; return 'Open'; };
+const label = (o) => { const s = (o.status || '').toUpperCase(); if (!o.order_id) return 'Rejected'; if (s.startsWith('COMPLETE')) return 'Filled'; if (s.includes('REJECT')) return 'Rejected'; if (s.includes('CANCEL')) return mine(o) ? 'Cancelled by you' : o.cancelled_by === 'kite' ? 'Cancelled in Kite' : 'Cancelled'; if (s.includes('AMO')) return 'After-market'; return 'Open'; };
 /** One plain sentence per problem order. A cancel done inside the Kite app is not a Zerodha refusal. */
 const cause = (o) => (o.cancelled_by === 'kite' ? 'Cancelled inside Kite, not from Omnivest, so your portfolio is now incomplete. Repair places the missing orders again at today\'s price.' : plainCause(o.message));
-const tone = (o) => (!o.order_id ? TONE.REJECTED : mine(o) ? TONE.ARCHIVED : TONE[(o.status || '').toUpperCase()] || TONE.OPEN);
+const tone = (o) => { if (!o.order_id) return TONE.REJECTED; if (mine(o)) return TONE.ARCHIVED; const l = label(o); return l === 'Filled' ? TONE.COMPLETE : l === 'Rejected' || l.startsWith('Cancelled') ? TONE.REJECTED : TONE.OPEN; };
 
 /** Zerodha's raw rejection text -> one plain sentence an investor can act on. The raw text stays under "Why?". */
 function plainCause(msg = '') {
@@ -36,7 +36,7 @@ function Batch({ b, onRepair, onCancel, busy, openDefault }) {
   const c = b.counts || {};
   const value = b.orders.reduce((s, o) => s + (o.filled_qty && o.avg_price ? o.filled_qty * o.avg_price : 0), 0);
   const archived = !!b.archived;
-  const rejected = archived ? [] : b.orders.filter((o) => !mine(o) && (!o.order_id || ['REJECTED', 'CANCELLED'].includes((o.status || '').toUpperCase())));
+  const rejected = archived ? [] : b.orders.filter((o) => !mine(o) && (!o.order_id || ['Rejected', 'Cancelled', 'Cancelled in Kite'].includes(label(o))));
   const reasons = [...new Set(rejected.map(cause))];
   const inKite = rejected.filter((o) => o.cancelled_by === 'kite').length;
   const headline = rejected.length === 0 ? '' : inKite === rejected.length ? `${rejected.length === c.total ? `All ${c.total}` : rejected.length} order${rejected.length > 1 ? 's were' : ' was'} cancelled in Kite:` : rejected.length === c.total ? `All ${c.total} orders were refused by Zerodha:` : `${rejected.length} order${rejected.length > 1 ? 's were' : ' was'} refused by Zerodha:`;

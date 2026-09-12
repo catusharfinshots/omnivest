@@ -20,7 +20,7 @@ from fastapi import APIRouter, HTTPException, Request
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from broker_kite import KITE_API_SECRET
-from investing import COLL, _now, counts_of
+from investing import COLL, _now, counts_of, kite_ts, norm_status
 
 logger = logging.getLogger("kite_postback")
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -36,25 +36,18 @@ def checksum_ok(payload: dict, secret: str) -> bool:
     return hashlib.sha256(f"{oid}{ts}{secret}".encode()).hexdigest() == str(payload.get("checksum") or "")
 
 
-def kite_ts(s: Optional[str]) -> Optional[datetime]:
-    """Kite stamps are naive IST 'YYYY-MM-DD HH:MM:SS'; store UTC like everything else."""
-    try:
-        return datetime.strptime(str(s), "%Y-%m-%d %H:%M:%S").replace(tzinfo=IST).astimezone(timezone.utc)
-    except (TypeError, ValueError):
-        return None
-
-
 def apply_postback(order: dict, payload: dict, at: Optional[datetime] = None) -> bool:
     """Mutate the stored order from a postback. Returns True when anything changed."""
-    st = (payload.get("status") or "").upper()
-    upd = {"status": st or order.get("status"), "filled_qty": int(payload.get("filled_quantity") or 0),
+    raw = (payload.get("status") or "").upper()
+    st = norm_status(raw) or order.get("status")
+    upd = {"status": st, "status_raw": raw, "filled_qty": int(payload.get("filled_quantity") or 0),
            "avg_price": float(payload.get("average_price") or 0) or None, "message": (payload.get("status_message") or "")[:200]}
     if order.get("cancelled_by") == "investor":
         upd["message"] = order.get("message") or "Cancelled from Omnivest"
     elif st == "CANCELLED" and not order.get("cancelled_by"):
         upd["cancelled_by"] = "kite"
         upd["cancelled_at"] = kite_ts(payload.get("exchange_update_timestamp") or payload.get("order_timestamp")) or at or _now()
-    changed = any(order.get(k) != v for k, v in upd.items())
+    changed = any(order.get(k) != v for k, v in upd.items() if k != "status_raw")   # raw text alone is not a change
     if changed:
         order.update(upd)
         order["postback_at"] = at or _now()

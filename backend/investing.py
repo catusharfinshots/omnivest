@@ -127,11 +127,34 @@ def funds_check(amount_adjusted: float, available: Optional[float], margin_pct: 
     return {"required": required, "available": round(available, 2), "short": short, "ok": short == 0}
 
 
+def norm_status(raw: Optional[str]) -> str:
+    """Kite's order statuses come in families: 'CANCELLED AMO', 'AMO REQ RECEIVED', 'MODIFY VALIDATION PENDING',
+    'REJECTED', 'COMPLETE', 'OPEN', 'TRIGGER PENDING'... We keep the raw text in `status_raw` and store one of
+    COMPLETE / CANCELLED / REJECTED / OPEN / <raw> here so every count, label and gate agrees. Found the hard way:
+    a Kite-side cancel of an after-market order came back as 'CANCELLED AMO' and was counted as open (12 Sep 2026)."""
+    s = (raw or "").upper().strip()
+    if "CANCEL" in s:
+        return "CANCELLED"
+    if "REJECT" in s:
+        return "REJECTED"
+    if s.startswith("COMPLETE"):
+        return "COMPLETE"
+    return s
+
+
+def kite_ts(s: Optional[str]) -> Optional[datetime]:
+    """Kite stamps are naive IST 'YYYY-MM-DD HH:MM:SS'; store UTC like everything else."""
+    try:
+        return datetime.strptime(str(s), "%Y-%m-%d %H:%M:%S").replace(tzinfo=IST).astimezone(timezone.utc)
+    except (TypeError, ValueError):
+        return None
+
+
 def counts_of(orders: List[dict]) -> dict:
     """rejected = needs Repair (refused by Zerodha, or cancelled outside Omnivest); cancelled = the investor's own choice."""
     c = {"total": len(orders), "placed": 0, "complete": 0, "open": 0, "rejected": 0, "cancelled": 0}
     for o in orders:
-        st = (o.get("status") or "").upper()
+        st = norm_status(o.get("status"))
         if o.get("order_id"):
             c["placed"] += 1
         if st == "COMPLETE":
@@ -308,7 +331,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
     async def _refresh(batch: dict, user: dict, outcome: Optional[dict] = None) -> dict:
         """Pull the latest status/fill for every order in the batch from Kite (best effort).
         `outcome["refreshed"]` tells the caller whether Zerodha was actually reached."""
-        if all((o.get("status") or "").upper() in FINAL for o in batch["orders"] if o.get("order_id")):
+        if all(norm_status(o.get("status")) in FINAL for o in batch["orders"] if o.get("order_id")):
             return batch
         conn = await db.broker_connections.find_one({"user_id": user["id"], "broker": "kite"})
         if not conn or conn.get("expired_at"):
@@ -329,13 +352,14 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             x = book.get(str(o.get("order_id"))) if o.get("order_id") else None
             if not x:
                 continue
-            st = (x.get("status") or "").upper()
-            upd = {"status": st or o.get("status"), "filled_qty": int(x.get("filled_quantity") or 0),
+            raw = (x.get("status") or "").upper()
+            st = norm_status(raw) or o.get("status")
+            upd = {"status": st, "status_raw": raw, "filled_qty": int(x.get("filled_quantity") or 0),
                    "avg_price": float(x.get("average_price") or 0) or None, "message": (x.get("status_message") or "")[:200]}
             if o.get("cancelled_by") == "investor":
                 upd["message"] = o.get("message") or "Cancelled from Omnivest"
             elif st == "CANCELLED" and not o.get("cancelled_by"):
-                upd["cancelled_by"] = "kite"; upd["cancelled_at"] = _now()
+                upd["cancelled_by"] = "kite"; upd["cancelled_at"] = kite_ts(x.get("exchange_update_timestamp")) or _now()
             if any(o.get(kk) != v for kk, v in upd.items()):
                 o.update(upd); changed = True
         if changed:
@@ -385,7 +409,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         for b in rows[:10]:
             out.append(_public(await _refresh(b, user, outcome)))
         out += [_public(b) for b in rows[10:]]
-        if not outcome["refreshed"] and rows and all((o.get("status") or "").upper() in FINAL for b in rows[:10] for o in b["orders"] if o.get("order_id")):
+        if not outcome["refreshed"] and rows and all(norm_status(o.get("status")) in FINAL for b in rows[:10] for o in b["orders"] if o.get("order_id")):
             outcome["refreshed"] = True   # nothing left to ask Zerodha about
         return {"batches": out, "refreshed": outcome["refreshed"]}
 
@@ -405,7 +429,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         b = await _refresh(b, user)
         if is_archived(b):
             raise HTTPException(status_code=409, detail={"code": "archived", "message": "This batch was cancelled by you and is archived. Invest again from the portfolio page."})
-        todo = [o for o in b["orders"] if o.get("cancelled_by") != "investor" and ((o.get("status") or "").upper() in ("REJECTED", "CANCELLED") or not o.get("order_id"))]
+        todo = [o for o in b["orders"] if o.get("cancelled_by") != "investor" and (norm_status(o.get("status")) in ("REJECTED", "CANCELLED") or not o.get("order_id"))]
         if not todo:
             return {"batch": _public(b), "repaired": 0}
         conn = await _conn(user)
@@ -437,14 +461,14 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if not b:
             raise HTTPException(status_code=404, detail="Batch not found")
         b = await _refresh(b, user)
-        todo = [o for o in b["orders"] if o.get("order_id") and (o.get("status") or "").upper() not in FINAL]
+        todo = [o for o in b["orders"] if o.get("order_id") and norm_status(o.get("status")) not in FINAL]
         if not todo:
             return {"batch": _public(b), "cancelled": 0}
         conn = await _conn(user)
         k = _kite_client(conn["access_token"])
         n, failed = 0, []
         for o in todo:
-            st = (o.get("status") or "").upper()
+            st = (o.get("status_raw") or o.get("status") or "").upper()
             variety = o.get("variety") or ("amo" if ("AMO" in st or b.get("mode") == "amo") else "regular")
             try:
                 await run_in_threadpool(lambda o=o, v=variety: k.cancel_order(variety=v, order_id=o["order_id"]))
