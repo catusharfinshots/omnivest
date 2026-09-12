@@ -58,7 +58,16 @@ def test_market_state_windows():
 
 def test_counts():
     c = inv.counts_of([{"order_id": "1", "status": "COMPLETE"}, {"order_id": "2", "status": "OPEN"}, {"order_id": None, "status": "REJECTED"}, {"order_id": "4", "status": "CANCELLED"}])
-    assert c == {"total": 4, "placed": 3, "complete": 1, "open": 1, "rejected": 2}
+    assert c == {"total": 4, "placed": 3, "complete": 1, "open": 1, "rejected": 2, "cancelled": 0}
+
+
+def test_investor_cancel_is_a_choice_not_a_failure():
+    # cancelled from Omnivest -> counted as 'cancelled' (no Repair); cancelled inside Kite -> 'rejected' (Repair offered)
+    mine = {"order_id": "1", "status": "CANCELLED", "cancelled_by": "investor"}
+    kite = {"order_id": "2", "status": "CANCELLED"}
+    c = inv.counts_of([mine, kite])
+    assert c["cancelled"] == 1 and c["rejected"] == 1 and c["open"] == 0
+    assert inv.is_archived({"archived_at": "2026-09-12"}) and not inv.is_archived({})
 
 
 def test_funds_check_pads_and_rounds():

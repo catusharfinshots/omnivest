@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { ClipboardList, RefreshCw, Loader2, Wrench, ChevronDown, ChevronUp, Moon, Sun, AlertTriangle, Ban } from 'lucide-react';
+import { ClipboardList, RefreshCw, Loader2, Wrench, ChevronDown, ChevronUp, Moon, Sun, AlertTriangle, Ban, Archive } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBroker } from '../context/BrokerContext';
 
@@ -12,9 +12,10 @@ const INR2 = (n) => (n ? Number(n).toLocaleString('en-IN', { minimumFractionDigi
 const IST = 'Asia/Kolkata';
 const when = (iso) => (iso ? `${new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: IST })} IST` : '');
 const short = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: IST }) : '');
-const TONE = { COMPLETE: 'bg-[#E3F4EB] text-[#096B3E]', OPEN: 'bg-[#EFF6FF] text-[#1D4ED8]', REJECTED: 'bg-[#FBE4E4] text-[#B91C1C]', CANCELLED: 'bg-[#FBE4E4] text-[#B91C1C]' };
-const label = (o) => { const s = (o.status || '').toUpperCase(); if (!o.order_id) return 'Rejected'; if (s === 'COMPLETE') return 'Filled'; if (s === 'REJECTED') return 'Rejected'; if (s === 'CANCELLED') return 'Cancelled'; if (s.includes('AMO')) return 'After-market'; return 'Open'; };
-const tone = (o) => (!o.order_id ? TONE.REJECTED : TONE[(o.status || '').toUpperCase()] || TONE.OPEN);
+const TONE = { COMPLETE: 'bg-[#E3F4EB] text-[#096B3E]', OPEN: 'bg-[#EFF6FF] text-[#1D4ED8]', REJECTED: 'bg-[#FBE4E4] text-[#B91C1C]', CANCELLED: 'bg-[#FBE4E4] text-[#B91C1C]', ARCHIVED: 'bg-[#EEEAF4] text-[#526071]' };
+const mine = (o) => o.cancelled_by === 'investor';
+const label = (o) => { const s = (o.status || '').toUpperCase(); if (!o.order_id) return 'Rejected'; if (s === 'COMPLETE') return 'Filled'; if (s === 'REJECTED') return 'Rejected'; if (s === 'CANCELLED') return mine(o) ? 'Cancelled by you' : 'Cancelled'; if (s.includes('AMO')) return 'After-market'; return 'Open'; };
+const tone = (o) => (!o.order_id ? TONE.REJECTED : mine(o) ? TONE.ARCHIVED : TONE[(o.status || '').toUpperCase()] || TONE.OPEN);
 
 /** Zerodha's raw rejection text -> one plain sentence an investor can act on. The raw text stays under "Why?". */
 function plainCause(msg = '') {
@@ -31,26 +32,34 @@ function Batch({ b, onRepair, onCancel, busy, openDefault }) {
   const [why, setWhy] = useState(null);
   const c = b.counts || {};
   const value = b.orders.reduce((s, o) => s + (o.filled_qty && o.avg_price ? o.filled_qty * o.avg_price : 0), 0);
-  const rejected = b.orders.filter((o) => !o.order_id || ['REJECTED', 'CANCELLED'].includes((o.status || '').toUpperCase()));
+  const archived = !!b.archived;
+  const rejected = archived ? [] : b.orders.filter((o) => !mine(o) && (!o.order_id || ['REJECTED', 'CANCELLED'].includes((o.status || '').toUpperCase())));
   const reasons = [...new Set(rejected.map((o) => plainCause(o.message)))];
-  const pill = c.rejected ? { cls: TONE.REJECTED, text: `${c.placed} of ${c.total} placed` } : c.complete === c.total ? { cls: TONE.COMPLETE, text: 'All filled' } : { cls: TONE.OPEN, text: b.mode === 'amo' && !c.complete ? `${c.placed} of ${c.total} placed · after-market` : `${c.complete} of ${c.total} filled` };
+  const pill = archived ? { cls: TONE.ARCHIVED, text: c.complete ? `Archived · ${c.complete} of ${c.total} filled` : 'Archived' } : c.rejected ? { cls: TONE.REJECTED, text: `${c.placed} of ${c.total} placed` } : c.complete === c.total ? { cls: TONE.COMPLETE, text: 'All filled' } : { cls: TONE.OPEN, text: b.mode === 'amo' && !c.complete ? `${c.placed} of ${c.total} placed · after-market` : `${c.complete} of ${c.total} filled` };
+  const chosen = Math.round(b.amount_requested || 0);
   return (
-    <section className="surface overflow-hidden" data-testid="order-batch">
+    <section className={`surface overflow-hidden ${archived ? 'opacity-90' : ''}`} data-testid="order-batch" data-archived={archived ? '1' : undefined}>
       <div className="flex items-start justify-between gap-3 px-4 sm:px-5 py-4">
         <div className="min-w-0">
           <div className="font-semibold text-[#0F1729] text-[15px] sm:text-[16px] truncate">{b.portfolio_name}</div>
-          <div className="text-[12px] text-[#667085] mt-0.5">Invest · {when(b.placed_at)}{b.mode === 'amo' ? ' · after-market' : ''}</div>
+          <div className="text-[12px] text-[#667085] mt-0.5">Invest · {when(b.placed_at)}{b.mode === 'amo' ? ' · after-market' : ''}{archived ? <span className="text-[#526071]"> · cancelled by you {when(b.archived_at)}</span> : null}</div>
         </div>
         <span className={`shrink-0 text-[11px] font-bold rounded-full px-2.5 py-1 ${pill.cls}`}>{pill.text}</span>
       </div>
       {open ? (
         <>
           <div className="flex flex-wrap gap-x-6 gap-y-1 px-4 sm:px-5 py-2.5 bg-[#F7F4FB] text-[12.5px] text-[#526071]">
-            <span>Amount <b className="text-[#0F1729] num">{INR(b.amount_adjusted)}</b></span>
+            <span>Amount <b className="text-[#0F1729] num">{chosen && chosen !== Math.round(b.amount_adjusted) ? <>{INR(chosen)} chosen · {INR(b.amount_adjusted)} placed</> : INR(b.amount_adjusted)}</b></span>
             <span>Orders <b className="text-[#0F1729]">{c.total} · limit · delivery</b></span>
             <span>Filled <b className="text-[#0F1729] num">{c.complete} of {c.total}</b></span>
             <span>Buy value <b className="text-[#0F1729] num">{INR(value)}</b></span>
           </div>
+          {archived && (
+            <div className="mx-4 sm:mx-5 mt-3 rounded-xl bg-[#F1EDF7] text-[#3F3A50] px-3 py-2.5 text-[12.5px] flex items-start gap-2" data-testid="order-archived">
+              <Archive className="h-4 w-4 shrink-0 mt-0.5 text-[#6C2BD9]" />
+              <span>You cancelled this batch{c.complete ? `, keeping the ${c.complete} order${c.complete > 1 ? 's' : ''} that had already filled` : ' before anything filled'}. Nothing more will happen with it. To invest in {b.portfolio_name} again, open the portfolio and tap Invest now.</span>
+            </div>
+          )}
           {reasons.length > 0 && (
             <div className="mx-4 sm:mx-5 mt-3 rounded-xl bg-[#FEF3C7] text-[#9A4A05] px-3 py-2.5 text-[12.5px] flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3" data-testid="order-cause">
               <AlertTriangle className="h-4 w-4 shrink-0 hidden sm:block" />
@@ -80,7 +89,7 @@ function Batch({ b, onRepair, onCancel, busy, openDefault }) {
             </table>
           </div>
           <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-t border-[#F1EDF7] text-[12px] text-[#667085]">
-            <span>{value === 0 && b.mode === 'amo' && c.rejected === 0 ? 'Fills update at market open.' : 'Every order keeps Zerodha\'s reference and status.'}</span>
+            <span>{archived ? 'Nothing more will happen with this batch.' : value === 0 && b.mode === 'amo' && c.rejected === 0 ? 'Fills update at market open.' : 'Every order keeps Zerodha\'s reference and status.'}</span>
             <div className="flex items-center gap-3">
               {c.open > 0 && <button type="button" onClick={() => onCancel(b)} disabled={busy} className="inline-flex items-center gap-1 font-semibold text-[#B91C1C] h-9 disabled:opacity-60" data-testid="order-cancel-btn"><Ban className="h-3.5 w-3.5" /> Cancel {c.open} open</button>}
               <button type="button" onClick={() => setOpen(false)} className="inline-flex items-center gap-1 font-semibold text-[#5320A8] h-9">Hide <ChevronUp className="h-3.5 w-3.5" /></button>
@@ -89,7 +98,7 @@ function Batch({ b, onRepair, onCancel, busy, openDefault }) {
         </>
       ) : (
         <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-t border-[#F1EDF7] text-[12.5px] text-[#526071]">
-          <span>{c.complete} of {c.total} filled · buy value <b className="text-[#0F1729] num">{INR(value)}</b>{c.rejected ? <span className="text-[#B91C1C]"> · {c.rejected} rejected</span> : ''}</span>
+          <span>{archived ? <>Cancelled by you · {c.complete} of {c.total} filled</> : <>{c.complete} of {c.total} filled · buy value <b className="text-[#0F1729] num">{INR(value)}</b>{c.rejected ? <span className="text-[#B91C1C]"> · {c.rejected} rejected</span> : ''}</>}</span>
           <button type="button" onClick={() => setOpen(true)} className="inline-flex items-center gap-1 font-semibold text-[#5320A8] h-9">Details <ChevronDown className="h-3.5 w-3.5" /></button>
         </div>
       )}
@@ -109,6 +118,7 @@ export default function OrdersPage() {
   const [batches, setBatches] = useState(null);
   const [market, setMarket] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const h = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
 
   const [refreshing, setRefreshing] = useState(false);
@@ -140,11 +150,11 @@ export default function OrdersPage() {
   }, [isAuthed]);
 
   const cancelBatch = async (b) => {
-    if (!window.confirm(`Cancel ${b.counts.open} open order${b.counts.open > 1 ? 's' : ''} for ${b.portfolio_name}? Already-filled orders are kept.`)) return;
+    if (!window.confirm(`Cancel ${b.counts.open} open order${b.counts.open > 1 ? 's' : ''} for ${b.portfolio_name} and archive this batch?\n\nOrders that already filled stay in your Zerodha account. You can invest in ${b.portfolio_name} again any time.`)) return;
     setBusy(true);
     try {
       const { data } = await axios.post(`${API}/invest/batches/${b.id}/cancel`, {}, h);
-      if (data.cancelled) toast.success(`${data.cancelled} order${data.cancelled > 1 ? 's' : ''} cancelled in Zerodha${data.failed?.length ? `, ${data.failed.length} could not be` : ''}`);
+      if (data.cancelled) toast.success(data.batch?.archived ? `Batch archived. ${data.cancelled} order${data.cancelled > 1 ? 's' : ''} cancelled in Zerodha.` : `${data.cancelled} order${data.cancelled > 1 ? 's' : ''} cancelled in Zerodha${data.failed?.length ? `, ${data.failed.length} could not be` : ''}`);
       else toast('No open orders left in this batch');
       await load();
     } catch (e) { toast.error(e?.response?.data?.detail?.message || e?.response?.data?.detail || 'Cancel failed'); }
@@ -163,7 +173,7 @@ export default function OrdersPage() {
 
   const totals = useMemo(() => {
     const t = { invested: 0, open: 0, attention: 0 };
-    (batches || []).forEach((b) => { b.orders.forEach((o) => { if (o.filled_qty && o.avg_price) t.invested += o.filled_qty * o.avg_price; }); t.open += b.counts?.open || 0; t.attention += b.counts?.rejected || 0; });
+    (batches || []).forEach((b) => { b.orders.forEach((o) => { if (o.filled_qty && o.avg_price) t.invested += o.filled_qty * o.avg_price; }); if (b.archived) return; t.open += b.counts?.open || 0; t.attention += b.counts?.rejected || 0; });
     return t;
   }, [batches]);
 
@@ -206,7 +216,15 @@ export default function OrdersPage() {
                 <Link to="/model-portfolios" className="btn-primary mt-4 inline-flex">Browse portfolios</Link>
               </div>
             )}
-            {batches && batches.map((b, i) => <Batch key={b.id} b={b} onRepair={repair} onCancel={cancelBatch} busy={busy} openDefault={i === 0 || params.get('batch') === b.id} />)}
+            {batches && batches.filter((b) => !b.archived).map((b, i) => <Batch key={b.id} b={b} onRepair={repair} onCancel={cancelBatch} busy={busy} openDefault={i === 0 || params.get('batch') === b.id} />)}
+            {batches && batches.some((b) => b.archived) && (
+              <div data-testid="orders-archived">
+                <button type="button" onClick={() => setShowArchived((v) => !v)} className="inline-flex items-center gap-2 h-10 text-[13px] font-semibold text-[#526071]" aria-expanded={showArchived}>
+                  <Archive className="h-4 w-4" /> Archived · {batches.filter((b) => b.archived).length} batch{batches.filter((b) => b.archived).length > 1 ? 'es' : ''} you cancelled {showArchived ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                </button>
+                {showArchived && <div className="space-y-4 mt-2">{batches.filter((b) => b.archived).map((b) => <Batch key={b.id} b={b} onRepair={repair} onCancel={cancelBatch} busy={busy} openDefault={params.get('batch') === b.id} />)}</div>}
+              </div>
+            )}
           </div>
           <aside className="space-y-4">
             {market && (
@@ -217,6 +235,7 @@ export default function OrdersPage() {
               <p><b className="text-[#0F1729]">Why are some orders unfilled?</b><br />A limit order fills only if the stock trades at or below your limit. Gaps at open, circuit limits or low liquidity can leave it open; it lapses at the end of the day.</p>
               <p><b className="text-[#0F1729]">What is Repair?</b><br />Fresh orders at a fresh limit price, only for the stocks whose orders were rejected or cancelled, so your holdings match the portfolio.</p>
               <p><b className="text-[#0F1729]">Insufficient funds?</b><br />Add money in Kite, then Repair.</p>
+              <p><b className="text-[#0F1729]">Changed your mind?</b><br />Cancel the open orders from the batch. It moves to Archived; filled orders stay in your account and Repair is not offered.</p>
               <p><b className="text-[#0F1729]">Still stuck?</b> <Link to="/faq" className="text-[#5320A8] font-semibold">Read the FAQ</Link> or <Link to="/contact" className="text-[#5320A8] font-semibold">contact us</Link>.</p>
             </div>
           </aside>

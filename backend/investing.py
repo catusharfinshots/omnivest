@@ -128,18 +128,25 @@ def funds_check(amount_adjusted: float, available: Optional[float], margin_pct: 
 
 
 def counts_of(orders: List[dict]) -> dict:
-    c = {"total": len(orders), "placed": 0, "complete": 0, "open": 0, "rejected": 0}
+    """rejected = needs Repair (refused by Zerodha, or cancelled outside Omnivest); cancelled = the investor's own choice."""
+    c = {"total": len(orders), "placed": 0, "complete": 0, "open": 0, "rejected": 0, "cancelled": 0}
     for o in orders:
         st = (o.get("status") or "").upper()
         if o.get("order_id"):
             c["placed"] += 1
         if st == "COMPLETE":
             c["complete"] += 1
+        elif st == "CANCELLED" and o.get("cancelled_by") == "investor":
+            c["cancelled"] += 1
         elif st in ("REJECTED", "CANCELLED") or not o.get("order_id"):
             c["rejected"] += 1
         else:
             c["open"] += 1
     return c
+
+
+def is_archived(batch: dict) -> bool:
+    return bool(batch.get("archived_at"))
 
 
 def _now():
@@ -325,6 +332,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             st = (x.get("status") or "").upper()
             upd = {"status": st or o.get("status"), "filled_qty": int(x.get("filled_quantity") or 0),
                    "avg_price": float(x.get("average_price") or 0) or None, "message": (x.get("status_message") or "")[:200]}
+            if o.get("cancelled_by") == "investor":
+                upd["message"] = o.get("message") or "Cancelled from Omnivest"
             if any(o.get(kk) != v for kk, v in upd.items()):
                 o.update(upd); changed = True
         if changed:
@@ -334,8 +343,9 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
 
     def _public(b: dict) -> dict:
         out = {kk: v for kk, v in b.items() if kk not in ("_id", "user_id")}
-        for kk in ("placed_at", "updated_at"):
+        for kk in ("placed_at", "updated_at", "archived_at"):
             out[kk] = _iso(out.get(kk))
+        out["archived"] = is_archived(b)
         return out
 
     @router.post("/place")
@@ -388,7 +398,9 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         if not b:
             raise HTTPException(status_code=404, detail="Batch not found")
         b = await _refresh(b, user)
-        todo = [o for o in b["orders"] if (o.get("status") or "").upper() in ("REJECTED", "CANCELLED") or not o.get("order_id")]
+        if is_archived(b):
+            raise HTTPException(status_code=409, detail={"code": "archived", "message": "This batch was cancelled by you and is archived. Invest again from the portfolio page."})
+        todo = [o for o in b["orders"] if o.get("cancelled_by") != "investor" and ((o.get("status") or "").upper() in ("REJECTED", "CANCELLED") or not o.get("order_id"))]
         if not todo:
             return {"batch": _public(b), "repaired": 0}
         conn = await _conn(user)
@@ -413,7 +425,9 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
 
     @router.post("/batches/{bid}/cancel")
     async def cancel_batch(bid: str, user: dict = Depends(require_user)):
-        """Cancel this batch's still-open orders in Zerodha (smallcase calls it Archive). Filled ones are left alone."""
+        """Cancel this batch's still-open orders in Zerodha and archive the batch (smallcase's Archive).
+        Filled orders stay in the investor's account; cancelled ones are marked as the investor's choice so
+        neither the Needs-attention tile nor Repair treats them as a failure (Tushar, 12 Sep 2026)."""
         b = await batches.find_one({"id": bid, "user_id": user["id"]})
         if not b:
             raise HTTPException(status_code=404, detail="Batch not found")
@@ -429,14 +443,18 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             variety = o.get("variety") or ("amo" if ("AMO" in st or b.get("mode") == "amo") else "regular")
             try:
                 await run_in_threadpool(lambda o=o, v=variety: k.cancel_order(variety=v, order_id=o["order_id"]))
-                o.update({"status": "CANCELLED", "message": "Cancelled from Omnivest", "cancelled_at": _now(), "variety": variety}); n += 1
+                o.update({"status": "CANCELLED", "message": "Cancelled from Omnivest", "cancelled_at": _now(), "cancelled_by": "investor", "variety": variety}); n += 1
             except Exception as e:  # noqa: BLE001
                 msg = str(e)[:200]
                 o["cancel_error"] = msg
                 failed.append({"symbol": o["symbol"], "error": msg})
                 logger.warning("cancel %s (%s, %s) failed: %s", o.get("order_id"), o["symbol"], variety, msg)
         b["counts"] = counts_of(b["orders"]); b["updated_at"] = _now()
-        await batches.update_one({"id": b["id"]}, {"$set": {"orders": b["orders"], "counts": b["counts"], "updated_at": b["updated_at"]}})
+        upd = {"orders": b["orders"], "counts": b["counts"], "updated_at": b["updated_at"]}
+        if n and b["counts"]["open"] == 0:            # nothing left with Zerodha: the batch is done by the investor's choice
+            b["archived_at"] = b["updated_at"]; b["archived_by"] = "investor"
+            upd.update({"archived_at": b["archived_at"], "archived_by": "investor"})
+        await batches.update_one({"id": b["id"]}, {"$set": upd})
         if failed and n == 0:
             raise HTTPException(status_code=502, detail={"code": "cancel", "message": f"Zerodha did not cancel: {failed[0]['error']}", "failed": failed})
         return {"batch": _public(b), "cancelled": n, "failed": failed}
