@@ -22,7 +22,7 @@ const BROKERS = [
 ];
 
 export default function BrokerConnectPage() {
-  const { connections, loading, connectKite, disconnectKite, refreshKite } = useBroker();
+  const { connections, kiteExpired, loading, connectKite, disconnectKite, refreshKite } = useBroker();
   const kite = connections.kite;
 
   const onConnectKite = async () => {
@@ -99,6 +99,9 @@ export default function BrokerConnectPage() {
                   <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] text-[#0B7F4A] px-2 py-1 text-[12px] font-semibold">
                     <CheckCircle2 className="h-3 w-3" /> Connected
                   </span>
+                )}
+                {isKite && !isConnected && kiteExpired && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#FEF3C7] text-[#9A4A05] px-2 py-1 text-[12px] font-semibold" data-testid="broker-expired-badge">Login expired today</span>
                 )}
                 {!b.active && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-[#F7F4FB] text-[#6B6480] px-2 py-1 text-[12px] font-semibold">Soon</span>

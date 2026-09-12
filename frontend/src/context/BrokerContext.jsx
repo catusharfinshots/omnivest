@@ -20,12 +20,14 @@ const BrokerContext = createContext(null);
 export function BrokerProvider({ children }) {
   const [userId, setUserId] = useState(() => ensureUserId());
   const [connections, setConnections] = useState({ kite: null });
+  const [kiteExpired, setKiteExpired] = useState(null);   // last known profile when today's Zerodha login has lapsed
   const [loading, setLoading] = useState(true);
 
   const refreshKite = useCallback(async () => {
     try {
       const { data } = await axios.get(`${API}/broker/kite/status`, { params: { user_id: userId } });
       setConnections((c) => ({ ...c, kite: data.connected ? data : null }));
+      setKiteExpired(data.expired ? data : null);
       return data;
     } catch (e) {
       setConnections((c) => ({ ...c, kite: null }));
@@ -81,7 +83,7 @@ export function BrokerProvider({ children }) {
     return data.margins || {};
   }, [userId]);
 
-  const value = { userId, loading, connections, refreshKite, connectKite, disconnectKite, getKiteHoldings, getKiteMargins };
+  const value = { userId, loading, connections, kiteExpired, refreshKite, connectKite, disconnectKite, getKiteHoldings, getKiteMargins };
   return <BrokerContext.Provider value={value}>{children}</BrokerContext.Provider>;
 }
 

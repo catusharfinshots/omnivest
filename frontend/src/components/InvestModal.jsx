@@ -29,7 +29,7 @@ function Note({ tone = 'info', icon: Icon = Info, children, testid }) {
  */
 export default function InvestModal({ open, onClose, basket, token, minAmount }) {
   const h = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
-  const { connections, connectKite, refreshKite } = useBroker();
+  const { connections, kiteExpired, connectKite, refreshKite } = useBroker();
   const kite = connections.kite;
   const [step, setStep] = useState(1);
   const [amount, setAmount] = useState('');
@@ -143,11 +143,11 @@ export default function InvestModal({ open, onClose, basket, token, minAmount })
               <div className="flex items-start gap-3">
                 <span className="h-10 w-10 rounded-xl bg-[#F1E7FE] text-[#5320A8] grid place-items-center shrink-0"><Link2 className="h-5 w-5" /></span>
                 <div className="min-w-0">
-                  <div className="font-semibold text-[#0F1729]">Connect your Zerodha account</div>
-                  <div className="text-[13px] text-[#526071] mt-0.5">You log in on Zerodha's own page. Orders are placed in your account; Omnivest never sees your password or holds your money.</div>
+                  <div className="font-semibold text-[#0F1729]">{kiteExpired ? 'Your Zerodha login expired for today' : 'Connect your Zerodha account'}</div>
+                  <div className="text-[13px] text-[#526071] mt-0.5">{kiteExpired ? "Zerodha ends every login at about 6 AM. Log in again on Zerodha's page to continue; nothing else changes." : "You log in on Zerodha's own page. Orders are placed in your account; Omnivest never sees your password or holds your money."}</div>
                 </div>
               </div>
-              <button type="button" onClick={connect} disabled={connecting} className="btn-primary w-full mt-3 disabled:opacity-60" data-testid="invest-connect-btn">{connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Connect Zerodha</button>
+              <button type="button" onClick={connect} disabled={connecting} className="btn-primary w-full mt-3 disabled:opacity-60" data-testid="invest-connect-btn">{connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} {kiteExpired ? 'Connect Zerodha again' : 'Connect Zerodha'}</button>
               <div className="text-[12px] text-[#526071] mt-2 rounded-lg bg-[#F7F4FB] px-3 py-2 leading-relaxed" data-testid="invest-connect-hint">Tip: on Zerodha's login page tick <b>“Login to Kite Web also”</b> so Add funds and your order book open without logging in again.</div>
               <div className="text-[11.5px] text-[#667085] mt-1 text-center">Already connected on another device? <Link to="/brokers/connect" className="underline inline-flex items-center min-h-[44px] sm:min-h-0 px-1">Manage brokers</Link></div>
             </div>

@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { ClipboardList, RefreshCw, Loader2, Wrench, ChevronDown, ChevronUp, Moon, Sun, AlertTriangle, Ban } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useBroker } from '../context/BrokerContext';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const INR = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
@@ -103,6 +104,7 @@ function Tile({ label: l, value, sub, tone: t }) {
 /** Your orders: every batch placed through Omnivest, refreshed from Zerodha while the daily session is valid. */
 export default function OrdersPage() {
   const { token, isAuthed, openAuth } = useAuth();
+  const { connections, kiteExpired, connectKite, refreshKite } = useBroker();
   const [params] = useSearchParams();
   const [batches, setBatches] = useState(null);
   const [market, setMarket] = useState(null);
@@ -120,6 +122,12 @@ export default function OrdersPage() {
     } catch { setBatches([]); if (announce) toast.error('Could not reach Zerodha. Try again in a moment.'); }
     finally { if (announce) setRefreshing(false); }
   };
+  useEffect(() => {
+    const onMsg = (ev) => { if (ev.data?.source === 'basketly-kite-callback' && ev.data.status === 'success') { refreshKite?.(); load(); } };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     document.title = 'Your orders | Omnivest';
     if (!isAuthed) { openAuth?.({ next: '/orders' }); return; }
@@ -169,6 +177,12 @@ export default function OrdersPage() {
           </div>
         </div>
 
+        {!connections.kite && (
+          <div className="mt-4 rounded-xl bg-[#FFFBEB] border border-[#F1D48A] px-4 py-3 text-[13px] text-[#9A4A05] flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4" data-testid="orders-broker-banner">
+            <span className="flex-1">{kiteExpired ? 'Your Zerodha login expired for today, so statuses cannot refresh and Cancel or Repair will not work until you connect again.' : 'Connect Zerodha to refresh statuses, cancel or repair orders.'}</span>
+            <button type="button" onClick={() => connectKite()} className="btn-primary h-10 shrink-0">{kiteExpired ? 'Connect Zerodha again' : 'Connect Zerodha'}</button>
+          </div>
+        )}
         <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3" data-testid="orders-tiles">
           <Tile label="Invested via Omnivest" value={INR(totals.invested)} sub="buy value of filled orders" />
           <Tile label="Open orders" value={totals.open} sub={market && !market.open ? 'execute at market open' : 'with Zerodha now'} />

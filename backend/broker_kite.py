@@ -117,24 +117,39 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             "public_token": data.get("public_token"),
             "profile": profile,
             "connected_at": datetime.utcnow(),
+            "verified_at": datetime.utcnow(),
         }
         await db.broker_connections.update_one(
             {"user_id": payload.user_id, "broker": "kite"},
-            {"$set": doc},
+            {"$set": doc, "$unset": {"expired_at": ""}},
             upsert=True,
         )
         return {"ok": True, "profile": profile}
 
     @router.get("/status")
     async def status(user_id: str = Query(...)):
+        """Connected only if the stored token still works. Kite Connect sessions expire around 6 AM IST every day;
+        a stale row must read as 'expired' (with a reconnect prompt), never as 'connected' (Tushar, 12 Sep 2026)."""
         conn = await _get_conn(user_id)
         if not conn:
             return {"connected": False}
-        return {
-            "connected": True,
-            "profile": conn.get("profile", {}),
-            "connected_at": conn.get("connected_at").isoformat() if conn.get("connected_at") else None,
-        }
+        base = {"profile": conn.get("profile", {}), "connected_at": conn.get("connected_at").isoformat() if conn.get("connected_at") else None}
+        verified_at = conn.get("verified_at")
+        fresh = isinstance(verified_at, datetime) and (datetime.utcnow() - verified_at).total_seconds() < 300
+        if conn.get("expired_at") and not fresh:
+            return {"connected": False, "expired": True, **base}
+        if not fresh:
+            try:
+                from fastapi.concurrency import run_in_threadpool
+                await run_in_threadpool(_kite_client(conn["access_token"]).profile)
+                await db.broker_connections.update_one({"_id": conn["_id"]}, {"$set": {"verified_at": datetime.utcnow()}, "$unset": {"expired_at": ""}})
+            except Exception as e:  # noqa: BLE001
+                msg = str(e).lower()
+                if "token" in msg or "api_key" in msg or "session" in msg:
+                    await db.broker_connections.update_one({"_id": conn["_id"]}, {"$set": {"expired_at": datetime.utcnow()}})
+                    return {"connected": False, "expired": True, **base}
+                logger.info("kite status check inconclusive: %s", str(e)[:120])
+        return {"connected": True, **base}
 
     @router.post("/disconnect")
     async def disconnect(payload: DisconnectRequest):

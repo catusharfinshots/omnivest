@@ -14,7 +14,7 @@ const API = `${BACKEND_URL}/api`;
 
 export default function DashboardPage() {
   const { investments, sips, watchlist } = usePortfolio();
-  const { connections, getKiteMargins, refreshKite } = useBroker();
+  const { connections, kiteExpired, connectKite, getKiteMargins, refreshKite } = useBroker();
   const { isAuthed, loading: authLoading, user, openAuth, token } = useAuth();
   const navigate = useNavigate();
   const kite = connections.kite;
@@ -110,7 +110,20 @@ export default function DashboardPage() {
       </div>
 
       {/* Broker connection banner */}
-      {!kite ? (
+      {!kite && kiteExpired ? (
+        <div className="mt-6 surface p-5 border-[#F1D48A] bg-[#FFFBEB]" data-testid="dash-broker-expired">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#FF9F0A] to-[#F04438] text-white grid place-items-center font-bold">Z</div>
+              <div>
+                <div className="font-semibold text-[#9A4A05]">Zerodha login expired for today</div>
+                <div className="text-xs text-[#6B6480]">{kiteExpired.profile?.user_name} (Kite ID {kiteExpired.profile?.user_id_kite}). Zerodha ends every login at about 6 AM. Connect again to place, cancel or refresh orders.</div>
+              </div>
+            </div>
+            <button type="button" onClick={() => connectKite()} className="btn-primary" data-testid="dash-broker-reconnect"><Link2 className="h-4 w-4" /> Connect Zerodha again</button>
+          </div>
+        </div>
+      ) : !kite ? (
         <Link to="/brokers/connect" className="mt-6 rounded-2xl grad-band text-white p-5 flex items-center justify-between gap-4 hover:brightness-110 transition-all block">
           <div className="flex items-center gap-4">
             <div className="h-11 w-11 rounded-xl bg-white/15 backdrop-blur grid place-items-center"><Link2 className="h-5 w-5" /></div>
