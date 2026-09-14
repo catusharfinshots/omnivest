@@ -9,7 +9,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const nice = (iso) => (iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 
 /** Investor dashboard: the paid listings this person has access to, and until when. */
-export default function MySubscriptions({ token }) {
+export default function MySubscriptions({ token, showEmpty = false }) {
   const [rows, setRows] = useState(null);
   useEffect(() => {
     if (!token) return;
@@ -17,7 +17,20 @@ export default function MySubscriptions({ token }) {
       .then(({ data }) => setRows(data.subscriptions || []))
       .catch(() => setRows([]));
   }, [token]);
-  if (!rows || rows.length === 0) return null;
+  if (!rows) return null;
+  if (rows.length === 0) {
+    if (!showEmpty) return null;
+    return (
+      <div className="surface p-5" data-testid="my-subscriptions-empty">
+        <div className="font-semibold text-[#0F1729] text-[15px] flex items-center gap-2"><Lock className="h-4 w-4 text-[#0B7F4A]" /> Subscriptions</div>
+        <div className="mt-3 rounded-xl border border-dashed border-[#E8E1F0] px-4 py-5 text-center">
+          <div className="text-[14px] font-semibold text-[#0F1729]">No subscriptions yet</div>
+          <div className="text-[12.5px] text-[#526071] mt-1">A paid portfolio unlocks its stocks, weights and the manager's updates. Free portfolios need none.</div>
+          <Link to="/model-portfolios" className="mt-3 inline-flex items-center gap-1.5 h-10 px-2 text-[13px] font-semibold text-[#6C2BD9] hover:underline">Browse model portfolios <ArrowRight className="h-3.5 w-3.5" /></Link>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="mt-10" data-testid="my-subscriptions">
       <h2 className="text-lg font-semibold flex items-center gap-2"><Lock className="h-4 w-4 text-[#0B7F4A]" /> My subscriptions</h2>
