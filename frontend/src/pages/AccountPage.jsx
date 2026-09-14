@@ -16,6 +16,8 @@ export default function AccountPage() {
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   useEffect(() => { setName(user?.name || ''); setEmail(user?.email || ''); }, [user?.name, user?.email]);
+  // /account#subscriptions and /account#credits from the account menu: scroll to the card once it has rendered
+  useEffect(() => { const id = (window.location.hash || '').slice(1); if (!id || !isAuthed) return; const t = setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400); return () => clearTimeout(t); }, [isAuthed]);
   useEffect(() => { document.title = 'Your account | Omnivest'; if (!loading && !isAuthed) openAuth?.({ next: '/account' }); }, [loading, isAuthed, openAuth]);
 
   const save = async (e) => {
@@ -60,8 +62,8 @@ export default function AccountPage() {
                 {saved && !dirty && <span className="text-[13px] text-[#0B7F4A] inline-flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> Saved</span>}
               </div>
             </form>
-            <div id="subscriptions"><MySubscriptions token={token} /></div>
-            <div id="credits"><CreditsCard token={token} /></div>
+            <div id="subscriptions" className="scroll-mt-28"><MySubscriptions token={token} /></div>
+            <div id="credits" className="scroll-mt-28"><CreditsCard token={token} /></div>
           </div>
           <aside className="surface p-2" data-testid="account-links">
             {links.map(({ to, icon: Icon, t, d }) => (

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Link2, CheckCircle2, LayoutDashboard, LogOut, User, ShieldCheck, ClipboardList, BadgeCheck, HelpCircle, MessageCircle, Home, Bell, TrendingUp, Gift } from 'lucide-react';
+import { Menu, X, Link2, CheckCircle2, LayoutDashboard, LogOut, User, ShieldCheck, ClipboardList, BadgeCheck, HelpCircle, MessageCircle, Home, Bell, TrendingUp, Gift, Wallet } from 'lucide-react';
 import omniMark from '../assets/omnivest-mark-white.svg';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -90,6 +90,7 @@ export default function Navbar() {
                   <Link to="/investments" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><TrendingUp className="h-4 w-4" /> Investments</Link>
                   <Link to="/orders" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]" data-testid="nav-orders"><ClipboardList className="h-4 w-4" /> Orders</Link>
                   <Link to="/account#subscriptions" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><BadgeCheck className="h-4 w-4" /> Subscriptions</Link>
+                  <Link to="/account#credits" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]" data-testid="menu-credits"><Wallet className="h-4 w-4" /> Credits</Link>
                   <Link to="/account" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]" data-testid="nav-account"><User className="h-4 w-4" /> Profile</Link>
                   <Link to="/notifications" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><Bell className="h-4 w-4" /> Notifications</Link>
                   <button type="button" onClick={openInvite} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]" data-testid="nav-invite-menu"><Gift className="h-4 w-4" /> Invite friends</button>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Home, LayoutGrid, LayoutDashboard, User, Link2, LogOut, LogIn, Handshake, ClipboardList, BadgeCheck, HelpCircle, MessageCircle, Gift } from 'lucide-react';
+import { Home, LayoutGrid, LayoutDashboard, User, Link2, LogOut, LogIn, Handshake, ClipboardList, BadgeCheck, HelpCircle, MessageCircle, Gift, Wallet } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { openInvite } from '../lib/referral';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -84,6 +84,7 @@ export default function MobileBottomNav() {
                   <Link to="/account" data-testid="mobnav-account" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><User className="h-4 w-4" /> Profile</Link>
                   <Link to="/orders" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><ClipboardList className="h-4 w-4" /> Orders</Link>
                   <Link to="/account#subscriptions" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><BadgeCheck className="h-4 w-4" /> Subscriptions</Link>
+                  <Link to="/account#credits" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]" data-testid="menu-credits"><Wallet className="h-4 w-4" /> Credits</Link>
                   <button type="button" onClick={openInvite} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]" data-testid="mobnav-invite"><Gift className="h-4 w-4" /> Invite friends</button>
                 </>)}
                 <Link to="/faq" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#F5F7FB]"><HelpCircle className="h-4 w-4" /> FAQ</Link>
