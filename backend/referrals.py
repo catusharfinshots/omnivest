@@ -89,21 +89,39 @@ async def credit(db, user_id: str, amount: int, reason: str, months: int, ref_us
     return True
 
 
-async def convert(db, user_id: str) -> None:
-    """The referred account placed its first order batch: mark it, credit both sides, tell the referrer. Idempotent."""
+async def pending_welcome(db, user_id: str) -> int:
+    """The friend's one-time credit that has not been earned yet. Locked with Tushar on 14 Sep 2026: a referred account
+    converts on its first paid subscription OR its first placed order, whichever comes first, once. On the paid path the
+    welcome amount is applied to that very first checkout, so this is what the checkout may deduct before conversion."""
+    u = await db.users.find_one({"id": user_id}, {"_id": 0, "referred_by": 1, "referral_converted_at": 1})
+    if not u or not u.get("referred_by") or u.get("referral_converted_at"):
+        return 0
+    s = await settings(db)
+    return int(s["friend_amount"]) if s["enabled"] else 0
+
+
+async def convert(db, user_id: str, source: str = "order") -> None:
+    """The referred account did its first qualifying thing (`source` = "order" placed at the broker, or "subscription"
+    paid): mark it, credit both sides, tell the referrer. Idempotent, one reward per friend.
+    Partners (analysts) never subscribe, so a partner referrer gets the count and the notification but no credit."""
     try:
         u = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1, "name": 1, "referred_by": 1, "referral_converted_at": 1})
         if not u or not u.get("referred_by") or u.get("referral_converted_at"):
             return
-        res = await db.users.update_one({"id": user_id, "referral_converted_at": {"$exists": False}}, {"$set": {"referral_converted_at": _now()}})
+        res = await db.users.update_one({"id": user_id, "referral_converted_at": {"$exists": False}}, {"$set": {"referral_converted_at": _now(), "referral_converted_via": source}})
         if not res.modified_count:
             return
         s = await settings(db)
+        ref = await db.users.find_one({"id": u["referred_by"]}, {"_id": 0, "role": 1}) or {}
+        referrer_paid = s["enabled"] and s["referrer_amount"] > 0 and ref.get("role") != "analyst"
         if s["enabled"]:
-            await credit(db, u["referred_by"], s["referrer_amount"], "A friend you invited started investing", s["credit_months"], user_id, key=f"ref:{user_id}:referrer")
+            if referrer_paid:
+                await credit(db, u["referred_by"], s["referrer_amount"], "A friend you invited subscribed" if source == "subscription" else "A friend you invited started investing",
+                             s["credit_months"], user_id, key=f"ref:{user_id}:referrer")
             await credit(db, user_id, s["friend_amount"], "Welcome credit for joining through a friend", s["credit_months"], u["referred_by"], key=f"ref:{user_id}:friend")
         import notifications as notif
-        body = f"Someone you invited placed their first order." + (f" ₹{s['referrer_amount']} subscription credit added." if s["enabled"] and s["referrer_amount"] else "")
+        did = "subscribed to a paid portfolio" if source == "subscription" else "placed their first order"
+        body = f"Someone you invited {did}." + (f" ₹{s['referrer_amount']} subscription credit added." if referrer_paid else "")
         await notif.push(db, u["referred_by"], "account", "referral", "Your invite paid off", body, "/dashboard?invite=1", key=f"ref:{user_id}:converted")
     except Exception as e:  # noqa: BLE001
         logger.warning("referral convert failed for %s: %s", user_id, str(e)[:120])
@@ -198,11 +216,12 @@ def build_router(db: AsyncIOMotorDatabase, site_url: str = "https://omnivest.in"
         refs = await db.users.find({"referral_code": {"$exists": True}}, {"_id": 0, "id": 1, "name": 1, "phone": 1, "email": 1, "role": 1, "referral_code": 1}).to_list(limit)
         out = []
         for r in refs:
-            joined = await db.users.find({"referred_by": r["id"]}, {"_id": 0, "id": 1, "name": 1, "referred_at": 1, "referral_converted_at": 1}).to_list(500)
+            joined = await db.users.find({"referred_by": r["id"]}, {"_id": 0, "id": 1, "name": 1, "phone": 1, "email": 1, "referred_at": 1, "referral_converted_at": 1, "referral_converted_via": 1}).to_list(500)
             out.append({"referrer": {"id": r["id"], "name": r.get("name"), "phone": r.get("phone"), "email": r.get("email"), "role": r.get("role"), "code": r["referral_code"]},
                         "invited": await db.referral_visits.count_documents({"code": r["referral_code"]}), "joined": len(joined),
                         "invested": sum(1 for j in joined if j.get("referral_converted_at")),
-                        "friends": [{"name": j.get("name") or "—", "joined_at": j["referred_at"].isoformat() if isinstance(j.get("referred_at"), datetime) else None,
+                        "friends": [{"name": j.get("name") or "—", "phone": j.get("phone"), "email": j.get("email"), "via": j.get("referral_converted_via"),
+                                     "joined_at": j["referred_at"].isoformat() if isinstance(j.get("referred_at"), datetime) else None,
                                      "invested_at": j["referral_converted_at"].isoformat() if isinstance(j.get("referral_converted_at"), datetime) else None} for j in joined]})
         out.sort(key=lambda x: (-x["invested"], -x["joined"], -x["invited"]))
         credits_total = await db.credits.aggregate([{"$group": {"_id": None, "issued": {"$sum": "$amount"}, "redeemed": {"$sum": "$redeemed"}}}]).to_list(1)

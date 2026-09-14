@@ -45,7 +45,7 @@ export default function InviteModal() {
           <p className="text-[13.5px] text-white/85 mt-1.5 max-w-[420px]">Your friend signs up with your link, connects their own broker, and invests in their own account. Omnivest never holds money.</p>
           {reward?.enabled && (reward.referrer_amount > 0 || reward.friend_amount > 0) && (
             <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-[12.5px] font-semibold" data-testid="invite-reward">
-              <Gift className="h-3.5 w-3.5" /> You get {INR(reward.referrer_amount)} and your friend gets {INR(reward.friend_amount)} in subscription credit when they place a first order
+              <Gift className="h-3.5 w-3.5" /> You get {INR(reward.referrer_amount)} and your friend gets {INR(reward.friend_amount)} in subscription credit when they subscribe to a paid portfolio or place a first order
             </div>
           )}
         </div>
@@ -70,12 +70,12 @@ export default function InviteModal() {
                 </div>
               )}
               <div className="mt-4 grid grid-cols-3 gap-2" data-testid="invite-counts">
-                {[['Invited', d.counts.invited], ['Joined', d.counts.joined], ['Invested', d.counts.invested]].map(([k, v]) => (
+                {[['Invited', d.counts.invited], ['Joined', d.counts.joined], ['Rewarded', d.counts.invested]].map(([k, v]) => (
                   <div key={k} className="rounded-xl bg-[#F7F4FB] px-3 py-2.5"><div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#667085]">{k}</div><div className="font-heading text-[20px] font-extrabold text-[#0F1729] num">{v}</div></div>
                 ))}
               </div>
               {d.credits?.balance > 0 && <div className="mt-3 rounded-xl bg-[#E3F4EB] text-[#096B3E] px-3.5 py-2.5 text-[13px] flex items-center gap-2" data-testid="invite-credits"><Gift className="h-4 w-4" /> You have <b>{INR(d.credits.balance)}</b> in subscription credit. It applies at checkout.</div>}
-              <p className="text-[11.5px] text-[#667085] mt-3 leading-relaxed">Counts update as friends sign up with your link and place their first order. {reward?.note}</p>
+              <p className="text-[11.5px] text-[#667085] mt-3 leading-relaxed">Counts update as friends sign up with your link and subscribe or place their first order, whichever comes first. One reward per friend. {reward?.note}</p>
             </>
           )}
         </div>

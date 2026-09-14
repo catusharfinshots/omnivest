@@ -76,7 +76,8 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         """Subscription credit the investor can apply at checkout (earned via Share with friends)."""
         import referrals
         b = await referrals.balance(db, user["id"])
-        return {"balance": b["balance"], "note": (await referrals.settings(db))["note"]}
+        welcome = await referrals.pending_welcome(db, user["id"])
+        return {"balance": b["balance"], "welcome": welcome, "available": b["balance"] + welcome, "note": (await referrals.settings(db))["note"]}
 
     @router.post("/payments/orders")
     async def create_order(payload: dict = Body(...), user: dict = Depends(require_user)):
@@ -102,9 +103,12 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         amount_paise = int(round(float(plan["price"]) * 100))   # the price the partner set, never what the browser sends
         # Share-with-friends credit: applied first, the gateway is only asked for what is left
         import referrals
-        credit_rs = (await referrals.balance(db, user["id"]))["balance"] if payload.get("use_credit", True) else 0
+        use_credit = payload.get("use_credit", True)
+        welcome_rs = (await referrals.pending_welcome(db, user["id"])) if use_credit else 0   # friend's one-time credit, earned by this very purchase
+        credit_rs = ((await referrals.balance(db, user["id"]))["balance"] + welcome_rs) if use_credit else 0
         apply_rs = min(int(credit_rs), int(amount_paise // 100))
         credit_paise = apply_rs * 100
+        welcome_paise = min(welcome_rs, apply_rs) * 100
         payable_paise = amount_paise - credit_paise
         receipt = f"omni_{uuid.uuid4().hex[:20]}"
         if payable_paise == 0:
@@ -121,7 +125,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             except Exception as e:  # noqa: BLE001
                 raise HTTPException(status_code=502, detail=f"Payment gateway error: {e}")
         doc = {"id": str(uuid.uuid4()), "order_id": order_id, "receipt": receipt, "user_id": user["id"], "portfolio_id": pid,
-               "portfolio_name": listing.get("name"), "plan_months": months, "amount": amount_paise, "credit_applied": credit_paise, "payable": payable_paise, "currency": "INR",
+               "portfolio_name": listing.get("name"), "plan_months": months, "amount": amount_paise, "credit_applied": credit_paise, "welcome_applied": welcome_paise, "payable": payable_paise, "currency": "INR",
                "consent": ready["consent"], "status": "created", "created_at": _now()}
         await orders.insert_one(dict(doc))
         if payable_paise == 0:
@@ -168,9 +172,12 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
                                                    ("Referral credit" if how == "credit" else f"Razorpay {payment_id}"), how,
                                                    payment={"order_id": order["order_id"], "payment_id": payment_id, "amount": int(order.get("payable", order["amount"])), "credit_applied": credit_paise},
                                                    consent=order.get("consent"))
+                import referrals
+                await referrals.convert(db, order["user_id"], source="subscription")   # a referred friend's first paid plan earns both sides their credit
                 if credit_paise:
-                    import referrals
-                    await referrals.redeem(db, order["user_id"], credit_paise // 100, key=f"order:{order['id']}")
+                    used = await referrals.redeem(db, order["user_id"], credit_paise // 100, key=f"order:{order['id']}")
+                    if used * 100 < credit_paise:
+                        logger.warning("order %s applied %s paise of credit but only %s rupees were redeemable", order["id"], credit_paise, used)
                 await orders.update_one({"id": order["id"]}, {"$set": {"status": "paid", "payment_id": payment_id, "paid_at": _now(), "subscription_id": s["id"], "fulfilled_by": how},
                                                               "$unset": {"fulfilling_at": "", "fulfilling_by": ""}})
             except Exception:

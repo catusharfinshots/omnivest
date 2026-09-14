@@ -81,7 +81,7 @@ export default function CheckoutModal({ open, onClose, basket, plan, setPlan, to
           axios.get(`${API}/payments/credit`, h).catch(() => ({ data: { balance: 0 } })),
         ]);
         if (!alive) return;
-        setCredit(Number(cr.data?.balance || 0));
+        setCredit(Number(cr.data?.available ?? cr.data?.balance ?? 0));
         const missing = st.data.missing || [];
         setBilling({ pan: '', pan_name: user?.name || '', dob: '', state: '', ...(bl.data.billing || {}) });
         setTerms(tm.data); setPayCfg(cfg.data); setStates(sts.data.states || []);

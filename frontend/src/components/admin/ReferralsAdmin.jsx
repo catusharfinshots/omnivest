@@ -21,7 +21,7 @@ export default function ReferralsAdmin({ token }) {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold flex items-center gap-2"><Gift className="h-5 w-5 text-[#6C2BD9]" /> Share with friends</h2>
-        <p className="text-sm text-[#526071] mt-1">Every customer has a personal link. Rewards are subscription credits, never cash; they apply at checkout.</p>
+        <p className="text-sm text-[#526071] mt-1">Every customer has a personal link. A friend earns the reward once, on their first paid subscription or first placed order, whichever comes first. Credits are never cash; they apply at checkout. Partner referrers are counted but not credited.</p>
       </div>
       {s && (
         <div className="surface p-5 grid sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end" data-testid="referrals-settings">
@@ -36,13 +36,13 @@ export default function ReferralsAdmin({ token }) {
       {data && (
         <div className="grid sm:grid-cols-3 gap-3">
           <div className="surface p-4"><div className="text-xs font-bold uppercase tracking-wider text-[#667085]">Referrers</div><div className="text-2xl font-extrabold mt-1">{data.rows.length}</div></div>
-          <div className="surface p-4"><div className="text-xs font-bold uppercase tracking-wider text-[#667085]">Friends joined · invested</div><div className="text-2xl font-extrabold mt-1">{data.rows.reduce((a, r) => a + r.joined, 0)} · {data.rows.reduce((a, r) => a + r.invested, 0)}</div></div>
+          <div className="surface p-4"><div className="text-xs font-bold uppercase tracking-wider text-[#667085]">Friends joined · rewarded</div><div className="text-2xl font-extrabold mt-1">{data.rows.reduce((a, r) => a + r.joined, 0)} · {data.rows.reduce((a, r) => a + r.invested, 0)}</div></div>
           <div className="surface p-4"><div className="text-xs font-bold uppercase tracking-wider text-[#667085]">Credits issued · redeemed</div><div className="text-2xl font-extrabold mt-1">₹{Number(data.credits?.issued || 0).toLocaleString('en-IN')} · ₹{Number(data.credits?.redeemed || 0).toLocaleString('en-IN')}</div></div>
         </div>
       )}
       <div className="surface overflow-x-auto">
         <table className="w-full text-sm min-w-[720px]">
-          <thead><tr className="text-[11px] uppercase tracking-wider text-[#667085] bg-[#FBFAFD]"><th className="text-left px-4 py-2">Referrer</th><th className="text-left px-3 py-2">Code</th><th className="text-right px-3 py-2">Invited</th><th className="text-right px-3 py-2">Joined</th><th className="text-right px-3 py-2">Invested</th><th className="text-left px-4 py-2">Friends</th></tr></thead>
+          <thead><tr className="text-[11px] uppercase tracking-wider text-[#667085] bg-[#FBFAFD]"><th className="text-left px-4 py-2">Referrer</th><th className="text-left px-3 py-2">Code</th><th className="text-right px-3 py-2">Invited</th><th className="text-right px-3 py-2">Joined</th><th className="text-right px-3 py-2">Rewarded</th><th className="text-left px-4 py-2">Friends</th></tr></thead>
           <tbody>
             {!data && <tr><td colSpan={6} className="px-4 py-6 text-[#667085]"><Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading…</td></tr>}
             {data && data.rows.length === 0 && <tr><td colSpan={6} className="px-4 py-6 text-[#667085]">No one has opened their invite link yet.</td></tr>}
@@ -51,7 +51,7 @@ export default function ReferralsAdmin({ token }) {
                 <td className="px-4 py-2.5"><div className="font-semibold text-[#0F1729]">{r.referrer.name || '—'}</div><div className="text-xs text-[#667085]">{r.referrer.phone || r.referrer.email}{r.referrer.role === 'analyst' ? ' · partner' : ''}</div></td>
                 <td className="px-3 py-2.5 font-mono text-xs">{r.referrer.code}</td>
                 <td className="px-3 py-2.5 text-right num">{r.invited}</td><td className="px-3 py-2.5 text-right num">{r.joined}</td><td className="px-3 py-2.5 text-right num font-semibold">{r.invested}</td>
-                <td className="px-4 py-2.5 text-xs text-[#526071]">{r.friends.length === 0 ? '—' : r.friends.map((f, i) => <div key={i}>{f.name} · joined {day(f.joined_at)}{f.invested_at ? ` · invested ${day(f.invested_at)}` : ''}</div>)}</td>
+                <td className="px-4 py-2.5 text-xs text-[#526071]">{r.friends.length === 0 ? '—' : r.friends.map((f, i) => <div key={i} className="py-0.5"><span className="font-semibold text-[#0F1729]">{f.name}</span>{f.phone || f.email ? <span className="text-[#667085]"> · {f.phone || f.email}</span> : null}<div>joined {day(f.joined_at)}{f.invested_at ? ` · ${f.via === 'subscription' ? 'subscribed' : 'invested'} ${day(f.invested_at)}` : ' · not yet'}</div></div>)}</td>
               </tr>
             ))}
           </tbody>

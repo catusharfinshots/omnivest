@@ -394,7 +394,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
         await notif.push(db, user["id"], **notif.placed_event(batch, _next_open(p["state"])))
         if counts["placed"] and action == "fix":
             import referrals as referrals_mod
-            await referrals_mod.convert(db, user["id"])
+            await referrals_mod.convert(db, user["id"], source="order")
         if action == "exit" and counts["placed"]:
             await snaps.update_one({"user_id": user["id"], "portfolio_id": pid}, {"$set": {"exited_at": now, "updated_at": now}}, upsert=True)
         try:

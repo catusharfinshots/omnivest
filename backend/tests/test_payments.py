@@ -74,6 +74,83 @@ def test_referral_credit_reduces_the_payable_amount_and_can_cover_it_fully():
         _cleanup(h, app_id, user_id, firm, [pid] if pid else [])
 
 
+def _consent(h, inv, pid):
+    requests.post(f"{API}/admin/portfolios/{pid}/review", json={"action": "approve"}, headers=h, timeout=30)
+    requests.put(f"{API}/me/billing", json={"pan": "ABCDE1234F", "pan_name": "Sub Tester", "dob": "1990-05-04", "state": "Karnataka"}, headers=inv, timeout=30).raise_for_status()
+    t = requests.get(f"{API}/portfolios/{pid}/terms", timeout=30).json()
+    requests.post(f"{API}/checkout/consent/request", json={"portfolio_id": pid}, headers=inv, timeout=30).raise_for_status()
+    requests.post(f"{API}/checkout/consent/confirm", json={"portfolio_id": pid, "code": "123456", "terms_version": t["version"]}, headers=inv, timeout=30).raise_for_status()
+
+
+def _pay(inv, o):
+    pay_id = "pay_mock_" + uuid.uuid4().hex[:10]
+    r = requests.post(f"{API}/payments/verify", json={"razorpay_order_id": o["order_id"], "razorpay_payment_id": pay_id, "razorpay_signature": _sig(MOCK_SECRET, f"{o['order_id']}|{pay_id}"), "mock": True}, headers=inv, timeout=30)
+    assert r.status_code == 200, r.text
+
+
+def test_referred_friend_first_paid_subscription_earns_both_sides_once():
+    """Locked 14 Sep 2026: a referred account converts on its first paid subscription OR first placed order, whichever
+    comes first, once. On the paid path the friend's welcome credit is applied to that very first checkout; the referrer
+    is credited only once the payment is confirmed. A partner referrer is counted but never credited."""
+    cfg = requests.get(f"{API}/payments/config", timeout=30).json()
+    if cfg.get("mode") != "mock":
+        pytest.skip("server is not in RAZORPAY_MODE=mock")
+    from datetime import datetime, timezone
+    h = _admin()
+    app_id, user_id, a, firm = _analyst(h)
+    ref_id, _, _ref_h = _investor()
+    friend_id, _, friend = _investor()
+    friend2_id, _, friend2 = _investor()
+    db = _mongo()
+    pid = None
+    try:
+        pid = _listing.create_submitted_listing(API, a, "Welcome Basket", CONS, subscription="Paid", plans=[{"months": 1, "price": 499}, {"months": 3, "price": 1299}])
+        db.users.update_one({"id": friend_id}, {"$set": {"referred_by": ref_id, "referred_at": datetime.now(timezone.utc)}})
+        db.users.update_one({"id": friend2_id}, {"$set": {"referred_by": user_id, "referred_at": datetime.now(timezone.utc)}})   # referred by the partner
+        db.app_settings.update_one({"_id": "referrals"}, {"$set": {"enabled": True, "referrer_amount": 100, "friend_amount": 100, "credit_months": 12}}, upsert=True)
+        _consent(h, friend, pid)
+        # before paying: nothing in the ledger, but the checkout may already deduct the welcome credit
+        c = requests.get(f"{API}/payments/credit", headers=friend, timeout=30).json()
+        assert c["balance"] == 0 and c["welcome"] == 100 and c["available"] == 100
+        o = requests.post(f"{API}/payments/orders", json={"portfolio_id": pid, "plan_months": 3}, headers=friend, timeout=30).json()
+        assert o["amount"] == 119900 and o["credit_applied"] == 10000 and not o.get("paid")
+        assert db.credits.count_documents({"user_id": friend_id}) == 0 and db.credits.count_documents({"user_id": ref_id}) == 0
+        _pay(friend, o)
+        # paid: friend converted via subscription, welcome credit issued and consumed by this order, referrer credited, told
+        u = db.users.find_one({"id": friend_id})
+        assert u.get("referral_converted_at") and u.get("referral_converted_via") == "subscription"
+        fc = db.credits.find_one({"user_id": friend_id})
+        assert fc["amount"] == 100 and fc["redeemed"] == 100
+        assert requests.get(f"{API}/payments/credit", headers=friend, timeout=30).json() ["available"] == 0
+        rc = db.credits.find_one({"user_id": ref_id})
+        assert rc["amount"] == 100 and rc["redeemed"] == 0 and "subscribed" in rc["reason"]
+        assert db.notifications.find_one({"user_id": ref_id, "type": "referral"}) is not None
+        # once: a second plan gets no welcome credit and no second reward
+        o2 = requests.post(f"{API}/payments/orders", json={"portfolio_id": pid, "plan_months": 1}, headers=friend, timeout=30).json()
+        assert o2["credit_applied"] == 0 and o2["amount"] == 49900
+        assert db.credits.count_documents({"user_id": ref_id}) == 1
+        # partner referrer: the friend still gets the welcome credit, the partner gets nothing
+        _consent(h, friend2, pid)
+        o3 = requests.post(f"{API}/payments/orders", json={"portfolio_id": pid, "plan_months": 1}, headers=friend2, timeout=30).json()
+        assert o3["credit_applied"] == 10000 and o3["amount"] == 39900
+        _pay(friend2, o3)
+        assert db.credits.find_one({"user_id": friend2_id})["redeemed"] == 100
+        assert db.credits.count_documents({"user_id": user_id}) == 0
+        assert db.users.find_one({"id": friend2_id}).get("referral_converted_via") == "subscription"
+        # admin sees the friend's contact and how they converted
+        requests.get(f"{API}/referrals/me", headers=a, timeout=30).raise_for_status()   # gives the partner a code so the table lists them
+        rows = requests.get(f"{API}/admin/referrals", headers=h, timeout=30).json()["rows"]
+        row = next(r for r in rows if r["referrer"]["id"] == user_id)
+        assert row["friends"][0]["phone"] and row["friends"][0]["via"] == "subscription"
+    finally:
+        for uid in (friend_id, friend2_id, ref_id, user_id):
+            for coll in ("credits", "credit_redemptions", "subscriptions", "payment_orders", "consents", "notifications"):
+                db[coll].delete_many({"user_id": uid})
+        for uid in (friend_id, friend2_id, ref_id):
+            requests.delete(f"{API}/admin/db/users/{uid}", headers=h, timeout=30)
+        _cleanup(h, app_id, user_id, firm, [pid] if pid else [])
+
+
 def test_checkout_creates_subscription_and_unlocks():
     cfg = requests.get(f"{API}/payments/config", timeout=30).json()
     assert cfg.get("mode") in ("mock", "test", "live", "off")
