@@ -161,6 +161,45 @@ async def balance(db, user_id: str) -> dict:
     return {"balance": max(0, bal), "ledger": [{"amount": r["amount"], "reason": r.get("reason"), "at": (r["at"] if r["at"].tzinfo else r["at"].replace(tzinfo=timezone.utc)).isoformat(), "expires_at": (r["expires_at"] if r["expires_at"].tzinfo else r["expires_at"].replace(tzinfo=timezone.utc)).isoformat() if r.get("expires_at") else None} for r in rows[:20]]}
 
 
+async def statement(db, user_id: str) -> dict:
+    """Everything the investor needs to see about their credit: balance, when it expires, what is still waiting,
+    and a history of what was earned from whom and what was used on which plan."""
+    now = _now()
+    aw = lambda d: d if d.tzinfo else d.replace(tzinfo=timezone.utc)  # noqa: E731
+    rows = await db.credits.find({"user_id": user_id}, {"_id": 0}).sort("at", -1).to_list(200)
+    live = [r for r in rows if r.get("expires_at") and aw(r["expires_at"]) > now and int(r.get("amount") or 0) - int(r.get("redeemed") or 0) > 0]
+    balance = sum(int(r["amount"]) - int(r.get("redeemed") or 0) for r in live)
+    expires_at = min(aw(r["expires_at"]) for r in live) if live else None
+    welcome = await pending_welcome(db, user_id)
+    s = await settings(db)
+    me = await db.users.find_one({"id": user_id}, {"_id": 0, "referred_by": 1}) or {}
+    ids = {r["ref_user_id"] for r in rows if r.get("ref_user_id")} | ({me["referred_by"]} if me.get("referred_by") else set())
+    names = {u["id"]: (u.get("name") or "").split(" ")[0] for u in await db.users.find({"id": {"$in": list(ids)}}, {"_id": 0, "id": 1, "name": 1}).to_list(200)} if ids else {}
+    entries = []
+    for r in rows:
+        who = names.get(r.get("ref_user_id")) or "a friend"
+        key = r.get("key") or ""
+        if key.endswith(":friend"):
+            title, sub = "Welcome credit", f"You joined through {who}'s link"
+        elif key.endswith(":referrer"):
+            title, sub = f"{who} {'subscribed' if 'subscribed' in (r.get('reason') or '') else 'started investing'}", "Your invite"
+        else:
+            title, sub = r.get("reason") or "Credit", ""
+        expired = bool(r.get("expires_at")) and aw(r["expires_at"]) <= now and int(r["amount"]) - int(r.get("redeemed") or 0) > 0
+        entries.append({"kind": "earned", "amount": int(r["amount"]), "title": title, "sub": sub + (" · expired" if expired else ""), "at": aw(r["at"]).isoformat(),
+                        "expires_at": aw(r["expires_at"]).isoformat() if r.get("expires_at") else None, "expired": expired})
+    used = await db.credit_redemptions.find({"user_id": user_id, "amount": {"$gt": 0}}, {"_id": 0}).sort("at", -1).to_list(200)
+    order_ids = [u["key"][6:] for u in used if (u.get("key") or "").startswith("order:")]
+    orders = {o["id"]: o for o in await db.payment_orders.find({"id": {"$in": order_ids}}, {"_id": 0, "id": 1, "portfolio_name": 1, "plan_months": 1}).to_list(200)} if order_ids else {}
+    for u in used:
+        o = orders.get((u.get("key") or "")[6:], {})
+        entries.append({"kind": "used", "amount": -int(u["amount"]), "title": f"Used on {o.get('portfolio_name') or 'a subscription'}",
+                        "sub": f"{o.get('plan_months')}-month plan" if o.get("plan_months") else "", "at": aw(u["at"]).isoformat(), "expires_at": None, "expired": False})
+    entries.sort(key=lambda e: e["at"], reverse=True)
+    return {"balance": balance, "welcome": welcome, "available": balance + welcome, "expires_at": expires_at.isoformat() if expires_at else None,
+            "referrer_name": names.get(me.get("referred_by")) if me.get("referred_by") else None, "reward": s, "entries": entries}
+
+
 def qr_svg(link: str) -> str:
     try:
         import segno
@@ -185,6 +224,10 @@ def build_router(db: AsyncIOMotorDatabase, site_url: str = "https://omnivest.in"
         return {"code": code, "link": link, "share_text": share_text(link, user.get("name") or ""), "qr_svg": qr_svg(link),
                 "counts": {"invited": max(invited, len(joined_ids)), "joined": len(joined_ids), "invested": invested},
                 "reward": await settings(db), "credits": await balance(db, user["id"])}
+
+    @router.get("/referrals/credits")
+    async def credits(user: dict = Depends(require_user)):
+        return await statement(db, user["id"])
 
     @router.post("/referrals/visit")
     async def visit(payload: dict = Body(...)):

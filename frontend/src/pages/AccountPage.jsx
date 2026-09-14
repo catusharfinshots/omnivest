@@ -5,6 +5,7 @@ import { User, Save, Loader2, ClipboardList, Link2, HelpCircle, MessageCircle, T
 import { useAuth } from '../context/AuthContext';
 import { useBroker } from '../context/BrokerContext';
 import MySubscriptions from '../components/MySubscriptions';
+import CreditsCard from '../components/CreditsCard';
 
 /** Account: who you are (name, email, phone), what you subscribe to, and every door in one place (smallcase's Account menu). */
 export default function AccountPage() {
@@ -60,6 +61,7 @@ export default function AccountPage() {
               </div>
             </form>
             <div id="subscriptions"><MySubscriptions token={token} /></div>
+            <div id="credits"><CreditsCard token={token} /></div>
           </div>
           <aside className="surface p-2" data-testid="account-links">
             {links.map(({ to, icon: Icon, t, d }) => (

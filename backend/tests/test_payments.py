@@ -125,6 +125,12 @@ def test_referred_friend_first_paid_subscription_earns_both_sides_once():
         rc = db.credits.find_one({"user_id": ref_id})
         assert rc["amount"] == 100 and rc["redeemed"] == 0 and "subscribed" in rc["reason"]
         assert db.notifications.find_one({"user_id": ref_id, "type": "referral"}) is not None
+        # the Account page statement: friend earned and used ₹100, referrer holds ₹100 with an expiry
+        st = requests.get(f"{API}/referrals/credits", headers=friend, timeout=30).json()
+        assert st["balance"] == 0 and st["welcome"] == 0 and sorted(e["kind"] for e in st["entries"]) == ["earned", "used"]
+        assert next(e for e in st["entries"] if e["kind"] == "used")["title"] == "Used on Welcome Basket"
+        rst = requests.get(f"{API}/referrals/credits", headers=_ref_h, timeout=30).json()
+        assert rst["balance"] == 100 and rst["expires_at"] and rst["entries"][0]["title"].endswith("subscribed")
         # once: a second plan gets no welcome credit and no second reward
         o2 = requests.post(f"{API}/payments/orders", json={"portfolio_id": pid, "plan_months": 1}, headers=friend, timeout=30).json()
         assert o2["credit_applied"] == 0 and o2["amount"] == 49900
