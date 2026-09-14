@@ -14,7 +14,7 @@ const HIDE_KEY = 'omnivest-hide-amounts';
 const day = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', timeZone: IST }) : '');
 const dayY = (iso) => (iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: IST }) : '');
 const pct = (v, signed = true) => (v == null ? '—' : `${signed && v > 0 ? '+' : ''}${Number(v).toFixed(1)}%`);
-const NUDGE = { broker: [Link2, 'bg-[#F1EDF7] text-[#6C2BD9]'], expired: [AlertTriangle, 'bg-[#FEF3C7] text-[#9A4A05]'], fix: [Wrench, 'bg-[#FEF3C7] text-[#9A4A05]'], pending: [Clock, 'bg-[#EFF6FF] text-[#1D4ED8]'], profile: [User, 'bg-[#F1EDF7] text-[#5320A8]'], renewal: [BadgeCheck, 'bg-[#E3F4EB] text-[#096B3E]'] };
+const NUDGE = { broker: [Link2, 'bg-[#F1EDF7] text-[#6C2BD9]'], expired: [AlertTriangle, 'bg-[#FEF3C7] text-[#9A4A05]'], fix: [Wrench, 'bg-[#FEF3C7] text-[#9A4A05]'], pending: [Clock, 'bg-[#EFF6FF] text-[#1D4ED8]'], profile: [User, 'bg-[#F1EDF7] text-[#5320A8]'], renewal: [BadgeCheck, 'bg-[#E3F4EB] text-[#096B3E]'], welcome: [Gift, 'bg-[#E3F4EB] text-[#096B3E]'] };
 const SHELF_ICON = { gift: [Gift, 'from-[#6C2BD9] to-[#9F67FF]'], wallet: [Wallet, 'from-[#0EA5E9] to-[#2563EB]'], shield: [Shield, 'from-[#10B981] to-[#0A7D48]'], sparkles: [Sparkles, 'from-[#F59E0B] to-[#EF4444]'] };
 const THUMB = ['from-[#6C2BD9] to-[#9F67FF]', 'from-[#0EA5E9] to-[#2563EB]', 'from-[#10B981] to-[#0A7D48]', 'from-[#F59E0B] to-[#EF4444]', 'from-[#EC4899] to-[#8B5CF6]', 'from-[#14B8A6] to-[#0EA5E9]'];
 const BANNER = ['from-[#4C1D95] via-[#6C2BD9] to-[#9F67FF]', 'from-[#0F2A1F] via-[#0A7D48] to-[#10B981]'];

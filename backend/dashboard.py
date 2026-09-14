@@ -251,6 +251,17 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             syms = [o["symbol"] for b in pend for o in b.get("orders") or [] if o.get("order_id") and inv.norm_status(o.get("status")) not in inv.FINAL][:4]
             nudges.append({"type": "pending", "title": f"{pending_n} order{'s' if pending_n > 1 else ''} execute{'' if pending_n > 1 else 's'} {next_open}" if not state.get("open") else f"{pending_n} order{'s' if pending_n > 1 else ''} with your broker now",
                            "body": ", ".join(syms) + (", after-market." if not state.get("open") else "."), "link": "/orders", "cta": "See orders"})
+        # referred friend who has not earned the welcome credit yet: tell them it exists before they reach checkout
+        me = await db.users.find_one({"id": uid}, {"_id": 0, "referred_by": 1, "referral_converted_at": 1}) or {}
+        if me.get("referred_by") and not me.get("referral_converted_at"):
+            import referrals as rf
+            rs = await rf.settings(db)
+            if rs["enabled"] and rs["friend_amount"] > 0:
+                who = await db.users.find_one({"id": me["referred_by"]}, {"_id": 0, "name": 1}) or {}
+                first = (who.get("name") or "a friend").split(" ")[0]
+                nudges.insert(0, {"type": "welcome", "title": f"₹{rs['friend_amount']} off your first subscription is waiting",
+                                  "body": f"You joined through {first}'s link. It applies by itself at checkout.",
+                                  "link": "/model-portfolios", "cta": "Pick a portfolio"})
         if not user.get("name") or not user.get("email"):
             nudges.append({"type": "profile", "title": "Add your email" if user.get("name") else "Complete your profile", "body": "Receipts and renewal reminders need it.", "link": "/account", "cta": "Profile"})
         if next_renewal and (next_renewal - now).days <= 14:

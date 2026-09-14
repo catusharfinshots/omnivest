@@ -51,3 +51,29 @@ def test_collection_shelves_only_show_what_they_promise():
 def test_strip_html_excerpt():
     assert dbm.strip_html("<p>Hello <b>world</b></p>  <br>again", 12) == "Hello world…"
     assert dbm.strip_html(None) == ""
+
+
+def test_referred_friend_sees_the_welcome_nudge_until_rewarded():
+    """Added 14 Sep 2026: a referred account that has not converted yet is told the welcome credit exists, first in
+    What's next; the nudge disappears once the reward is earned."""
+    import requests
+    from datetime import datetime, timezone
+    from test_listing_v2 import API, _admin
+    from test_subscriptions import _investor
+    from test_payments import _mongo
+    h = _admin()
+    db = _mongo()
+    ref_id, _, _r = _investor()
+    friend_id, _, friend = _investor()
+    try:
+        db.users.update_one({"id": ref_id}, {"$set": {"name": "Tushar Demo"}})
+        db.users.update_one({"id": friend_id}, {"$set": {"referred_by": ref_id, "referred_at": datetime.now(timezone.utc)}})
+        db.app_settings.update_one({"_id": "referrals"}, {"$set": {"enabled": True, "friend_amount": 100}}, upsert=True)
+        n = requests.get(f"{API}/dashboard", headers=friend, timeout=60).json()["nudges"]
+        assert n and n[0]["type"] == "welcome" and "100" in n[0]["title"] and "Tushar" in n[0]["body"] and n[0]["link"] == "/model-portfolios"
+        db.users.update_one({"id": friend_id}, {"$set": {"referral_converted_at": datetime.now(timezone.utc)}})
+        n2 = requests.get(f"{API}/dashboard", headers=friend, timeout=60).json()["nudges"]
+        assert not any(x["type"] == "welcome" for x in n2)
+    finally:
+        for uid in (friend_id, ref_id):
+            requests.delete(f"{API}/admin/db/users/{uid}", headers=h, timeout=30)
