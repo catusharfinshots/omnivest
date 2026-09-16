@@ -158,9 +158,12 @@ def _wrap(draw, text, font, max_w, max_lines):
     return lines
 
 
-def render_card(doc: dict, manager: str, stats: list, cover_bytes: Optional[bytes] = None) -> bytes:
+def render_card(doc: dict, manager: str, stats: list, cover_bytes: Optional[bytes] = None, kicker: str = "MODEL PORTFOLIO", byline: Optional[str] = None) -> bytes:
     from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
+    _T = {0x2014: " - ", 0x2013: "-", 0x2018: "'", 0x2019: "'", 0x201C: '"', 0x201D: '"', 0x2026: "...", 0x00A0: " "}
+    doc = {**doc, "name": str(doc.get("name") or "").translate(_T), "subtitle": str(doc.get("subtitle") or "").translate(_T)}
+    manager = str(manager or "").translate(_T)
     W, H = 1200, 630
     pal = PALETTES.get((doc.get("cover") or {}).get("palette") or "violet", PALETTES["violet"])
     c0, c1 = _hex(pal[0]), _hex(pal[1])
@@ -187,7 +190,7 @@ def render_card(doc: dict, manager: str, stats: list, cover_bytes: Optional[byte
     d.rounded_rectangle((64, 56, 108, 100), radius=12, fill=c0)
     d.ellipse((76, 68, 96, 88), outline=(255, 255, 255), width=4)
     d.text((122, 60), "Omnivest", font=f_brand, fill=(26, 16, 48))
-    d.text((122 + d.textlength("Omnivest", font=f_brand) + 14, 66), "MODEL PORTFOLIO", font=f_stat_l, fill=(108, 43, 217))
+    d.text((122 + d.textlength("Omnivest", font=f_brand) + 14, 66), kicker, font=f_stat_l, fill=(108, 43, 217))
 
     # cover tile (right)
     tile, tx, ty = 300, W - 64 - 300, 150
@@ -233,7 +236,7 @@ def render_card(doc: dict, manager: str, stats: list, cover_bytes: Optional[byte
         d.text((x, y), line, font=f_sub, fill=(75, 69, 96))
         y += 40
     y += 10
-    d.text((x, y), f"by {manager}  ·  SEBI-registered research analyst", font=f_meta, fill=(107, 100, 128))
+    d.text((x, y), byline if byline is not None else f"by {manager}  ·  SEBI-registered research analyst", font=f_meta, fill=(107, 100, 128))
     y += 44
     # chips
     cx = x
@@ -317,6 +320,31 @@ def build_router(db) -> APIRouter:
             desc = f"{desc} Manages {n} model portfolio{'s' if n != 1 else ''} on Omnivest."
         return _page(_title(f"{name}{' · ' + mgr['firm'] if mgr.get('firm') else ''}"), desc, f"{origin}/manager/{mid}", origin + OG_IMAGE_PATH, kind="profile")
 
+    async def _learn_page(request: Request, slug: str) -> Optional[HTMLResponse]:
+        import learn as learn_mod
+        doc = await learn_mod.by_slug(db, slug)
+        if not doc:
+            return None
+        origin = _origin(request)
+        desc = (doc.get("excerpt") or f"{doc['title']} — a guide from Omnivest Learn.").strip()
+        v = (doc.get("cover_asset") or "")[:8] + str(doc.get("read_min") or 1)
+        return _page(_title(doc["title"]), desc, f"{origin}/learn/{doc['slug']}", f"{origin}/api/og/learn/{doc['slug']}.png?v={v}", kind="article")
+
+    @router.get("/og/learn/{slug}.png")
+    async def og_learn_image(slug: str, v: str = ""):
+        import learn as learn_mod
+        doc = await learn_mod.by_slug(db, slug)
+        if not doc:
+            return Response(status_code=404)
+        cover_bytes = None
+        if doc.get("cover_asset"):
+            row = await db.learn_covers.find_one({"id": doc["cover_asset"]}, {"data": 1})
+            cover_bytes = row["data"] if row else None
+        png = render_card({"name": doc["title"], "subtitle": doc.get("excerpt") or "", "cover": {"palette": "violet"}, "tags": []},
+                          "Omnivest Learn", [("Read time", f"{doc.get('read_min') or 1} min"), ("Written by", "Omnivest team"), ("Free to read", "omnivest.in/learn")],
+                          cover_bytes, kicker="LEARN", byline=f"{doc.get('category') or 'Guide'}  ·  free on omnivest.in")
+        return Response(content=png, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
+
     @router.get("/og", response_class=HTMLResponse)
     async def og_preview(request: Request, path: str = "/"):
         origin = _origin(request)
@@ -324,6 +352,13 @@ def build_router(db) -> APIRouter:
         if not path.startswith("/"):
             path = "/" + path
         clean = path.split("?")[0].rstrip("/") or "/"
+        ml = re.match(r"^/learn/([a-z0-9\-]+)$", clean)
+        if ml:
+            page = await _learn_page(request, ml.group(1))
+            if page:
+                return page
+            title, desc = PAGE_META["/learn"]
+            return _page(_title(title), desc, origin + "/learn", image)
         m = re.match(r"^/model-portfolios/([A-Za-z0-9\-]+)$", clean)
         if m:
             doc = await _listing(m.group(1))

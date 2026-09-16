@@ -62,7 +62,9 @@ export default function ModelPortfolioDetail() {
   const [interestSent, setInterestSent] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
-  const [aboutSub, setAboutSub] = useState(null);      // desktop side list opens straight into Methodology / Factsheet
+  const [aboutSub, setAboutSub] = useState(null);
+  const [guide, setGuide] = useState(null);           // a published Learn post about this listing (Blog link in the side list)
+  useEffect(() => { let alive = true; if (mockBasket || !basket?.id || basket._db === false) return undefined; axios.get(`${API}/learn/posts`, { params: { portfolio: basket.id, limit: 1 } }).then((r) => alive && setGuide((r.data.posts || [])[0] || null)).catch(() => {}); return () => { alive = false; }; }, [mockBasket, basket?.id, basket?._db]);      // desktop side list opens straight into Methodology / Factsheet
   const [methodDefs, setMethodDefs] = useState([]);
   useEffect(() => { axios.get(`${API}/listing-rules`).then(({ data }) => setMethodDefs(data?.methodology_sections || [])).catch(() => {}); }, []);
   const openAbout = (sub = null) => { setAboutSub(sub); setAboutOpen(true); };
@@ -249,7 +251,7 @@ export default function ModelPortfolioDetail() {
                   {/* desktop: the reference's side list — Blog · Methodology · Factsheet with one-line descriptions */}
                   <div className="hidden lg:flex flex-col gap-3 w-64 shrink-0" data-testid="overview-links">
                     {[
-                      { icon: BookOpen, label: 'Blog', sub: `Read more about ${basket.name}`, onClick: () => { if (manager?.website && /^https?:/.test(manager.website)) window.open(manager.website, '_blank', 'noreferrer'); else setTab('Updates'); } },
+                      { icon: BookOpen, label: guide ? 'Guide' : 'Blog', sub: guide ? guide.title : `Read more about ${basket.name}`, onClick: () => { if (guide) { navigate(`/learn/${guide.slug}`); return; } if (manager?.website && /^https?:/.test(manager.website)) window.open(manager.website, '_blank', 'noreferrer'); else setTab('Updates'); } },
                       { icon: FlaskConical, label: 'Methodology', sub: 'Know how this portfolio was created', onClick: () => openAbout('methodology') },
                       { icon: FileText, label: 'Factsheet', sub: 'Key points of this portfolio', onClick: () => openAbout('factsheet') },
                     ].map((l) => (

@@ -98,3 +98,23 @@ def test_unknown_listing_and_manager_fall_back_cleanly():
     assert "Model Portfolios" in tags["og:title"]
     tags, _ = _tags(f"{ORIGIN}/api/og/manager/nope")
     assert "Basket Managers" in tags["og:title"]
+
+
+def test_every_published_learn_post_share_link_and_direct_url():
+    """Learn (blog) posts: each published post link must carry its own title, its own card image, and (on prod)
+    the address-bar URL must serve that card to crawlers and the app shell to humans."""
+    r = requests.get(f"{ORIGIN}/api/learn/posts", timeout=60)
+    posts = r.json().get("posts", []) if r.status_code == 200 else []
+    if not posts:
+        pytest.skip("no published posts")
+    for p in posts[:25]:
+        tags, _ = _tags(f"{ORIGIN}/api/og/learn/{p['slug']}")
+        _assert_contract(tags)
+        assert tags["og:title"].startswith(p["title"]), (p["title"], tags["og:title"])
+        assert f"/api/og/learn/{p['slug']}.png" in tags["og:image"]
+        assert tags["og:url"] == f"{ORIGIN}/learn/{p['slug']}"
+        if not LOCAL:
+            tags2, _ = _tags(f"{ORIGIN}/learn/{p['slug']}")
+            assert f"/api/og/learn/{p['slug']}.png" in tags2.get("og:image", ""), tags2
+            h = requests.get(f"{ORIGIN}/learn/{p['slug']}", headers=HUMAN, timeout=60)
+            assert h.status_code == 200 and '<div id="root"' in h.text

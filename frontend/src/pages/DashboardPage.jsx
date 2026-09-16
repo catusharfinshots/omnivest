@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Eye, EyeOff, Loader2, Wrench, Clock, User, Link2, BadgeCheck, AlertTriangle, Info, PieChart, Landmark, Compass, Building2, LineChart, Lock, Gift, Wallet, Shield, Sparkles, ArrowRight, BookOpen } from 'lucide-react';
-import { learnPosts } from '../mock';
 import { useAuth } from '../context/AuthContext';
 import CoverArt from '../components/CoverArt';
 import WatchButton from '../components/WatchButton';
@@ -245,19 +244,21 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* 6a. Worth a read */}
+        {/* 6a. Worth a read: the three latest published Learn posts; hidden until there is one */}
+        {(d?.reads || []).length > 0 && (
         <section className="mt-6" data-testid="dash-read">
           <h2 className="font-heading font-bold text-[18px] text-[#0F1729]">Worth a read</h2>
           <div className="text-[12.5px] text-[#667085]">Short reads from Learn</div>
           <div className="mt-3 grid sm:grid-cols-3 gap-3">
-            {learnPosts.slice(0, 3).map((p, i) => (
+            {(d?.reads || []).map((p, i) => (
               <Link key={p.slug} to={`/learn/${p.slug}`} className="surface overflow-hidden hover:border-[#D8C7F1] transition-colors">
-                <div className={`h-28 bg-gradient-to-br ${THUMB[i % THUMB.length]} relative`}><BookOpen className="absolute right-4 bottom-4 h-8 w-8 text-white/60" /><span className="absolute left-4 top-4 text-[11px] font-bold uppercase tracking-wide text-white/90 bg-white/15 rounded-full px-2 py-0.5">{p.category}</span></div>
-                <div className="p-4"><div className="font-semibold text-[14px] text-[#0F1729] leading-snug">{p.title}</div><div className="text-[12.5px] text-[#526071] mt-1">{p.excerpt}</div><div className="text-[12px] font-bold text-[#5320A8] mt-2">Read more · {p.readTime}</div></div>
+                <div className={`h-28 bg-gradient-to-br ${THUMB[i % THUMB.length]} relative overflow-hidden`}>{p.cover_url && <img src={`${process.env.REACT_APP_BACKEND_URL || ''}${p.cover_url}`} alt="" className="absolute inset-0 h-full w-full object-cover" />}<BookOpen className="absolute right-4 bottom-4 h-8 w-8 text-white/60" /><span className="absolute left-4 top-4 text-[11px] font-bold uppercase tracking-wide text-white/90 bg-white/15 rounded-full px-2 py-0.5">{p.category}</span></div>
+                <div className="p-4"><div className="font-semibold text-[14px] text-[#0F1729] leading-snug">{p.title}</div><div className="text-[12.5px] text-[#526071] mt-1">{p.excerpt}</div><div className="text-[12px] font-bold text-[#5320A8] mt-2">Read more · {p.read_min} min read</div></div>
               </Link>
             ))}
           </div>
         </section>
+        )}
 
         {/* 6. Partner posts */}
         {(d?.posts || []).length > 0 && (

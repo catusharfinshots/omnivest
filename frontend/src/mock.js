@@ -421,15 +421,6 @@ export const faqs = [
   { q: 'How is a basket different from a mutual fund?', a: 'You directly own the underlying shares in your demat account, get full transparency into holdings, and can customise weights.' },
 ];
 
-export const learnPosts = [
-  { slug: 'what-is-a-basket', title: 'What is a curated basket, really?', category: 'Basics', excerpt: 'A basket is a portfolio built around one idea. Here is how it works.', thumbnail: 'gradient-1', readTime: '4 min read' },
-  { slug: 'how-rebalancing-works', title: 'How rebalancing keeps your portfolio on strategy', category: 'How it works', excerpt: 'When the manager updates weights, you apply it in one tap.', thumbnail: 'gradient-2', readTime: '3 min read' },
-  { slug: 'sip-vs-lumpsum', title: 'SIP vs lumpsum: which one wins over 10 years?', category: 'Strategy', excerpt: 'The evidence is more nuanced than most people think.', thumbnail: 'gradient-3', readTime: '6 min read' },
-  { slug: 'reading-a-factsheet', title: 'How to read a basket factsheet like a pro', category: 'Basics', excerpt: 'What each metric tells you and what it hides.', thumbnail: 'gradient-4', readTime: '5 min read' },
-  { slug: 'goal-based-investing', title: 'Goal-based investing 101', category: 'Strategy', excerpt: 'From house down payment to retirement, tie every rupee to a goal.', thumbnail: 'gradient-5', readTime: '7 min read' },
-  { slug: 'risk-and-volatility', title: 'Risk vs volatility: they are not the same', category: 'Basics', excerpt: 'Understanding what actually threatens your capital.', thumbnail: 'gradient-6', readTime: '4 min read' },
-];
-
 export const stocks = [
   { symbol: 'RELIANCE', name: 'Reliance Industries', marketCap: 'Large Cap', price: 2984.20, sector: 'Energy', change: 1.2 },
   { symbol: 'TCS', name: 'Tata Consultancy Services', marketCap: 'Large Cap', price: 3892.60, sector: 'IT', change: -0.4 },

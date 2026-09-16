@@ -182,6 +182,10 @@ api_router.include_router(build_kite_postback_router(db))
 from posts import build_router as build_posts_router  # noqa: E402
 api_router.include_router(build_posts_router(db))
 
+# Learn (the Omnivest blog): admin-authored posts, public reading, share cards via og.py
+from learn import build_router as build_learn_router  # noqa: E402
+api_router.include_router(build_learn_router(db))
+
 # Listing cover art (theme catalogue + auto-pick, partner uploads, admin reset)
 from covers import build_router as build_covers_router  # noqa: E402
 api_router.include_router(build_covers_router(db))

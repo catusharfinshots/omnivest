@@ -26,6 +26,7 @@ kiteconnect==5.2.0
 pytest==9.1.1
 requests==2.34.2
 bleach>=6.1
+markdown>=3.6
 Pillow>=10.1
 pytest-xdist==3.8.0
 segno>=1.6

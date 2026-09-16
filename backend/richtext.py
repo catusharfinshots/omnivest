@@ -23,6 +23,27 @@ def sanitize_html(html: str | None) -> str:
     return cleaned.replace("<a ", '<a rel="noopener nofollow" target="_blank" ').replace('rel="noopener nofollow" target="_blank" rel=', "rel=")
 
 
+ARTICLE_TAGS = ALLOWED_TAGS + ["figure", "figcaption", "img", "hr", "table", "thead", "tbody", "tr", "th", "td"]
+ARTICLE_ATTRS = {**ALLOWED_ATTRS, "img": ["src", "alt", "loading"], "p": ["class", "data-name"]}
+_IMG_SRC = re.compile(r'<img\b[^>]*\bsrc="([^"]*)"', re.I)
+
+
+def sanitize_article(html: str | None) -> str:
+    """Learn posts: the partner allow-list plus figures and images. An image may only point at our own asset
+    store (/api/learn/asset/…) or an https URL; anything else is dropped with its figure."""
+    if not html:
+        return ""
+    cleaned = bleach.clean(_BLOCKS.sub("", str(html)[:120_000]), tags=ARTICLE_TAGS, attributes=ARTICLE_ATTRS, protocols=ALLOWED_PROTOCOLS, strip=True)
+    def _ok(m: re.Match) -> str:
+        src = m.group(1)
+        return m.group(0) if (src.startswith("/api/learn/asset/") or src.startswith("https://")) else m.group(0).replace(f'src="{src}"', 'src=""')
+    cleaned = re.sub(r'src="https?://[^/"]+(/api/learn/asset/)', r'src="', cleaned)   # editors see absolute URLs in dev; store the path only
+    cleaned = _IMG_SRC.sub(_ok, cleaned)
+    cleaned = re.sub(r'<figure>\s*<img[^>]*src=""[^>]*>.*?</figure>', "", cleaned, flags=re.S)
+    cleaned = re.sub(r'<img[^>]*src=""[^>]*>', "", cleaned)
+    return cleaned.replace("<a ", '<a rel="noopener nofollow" target="_blank" ').replace('rel="noopener nofollow" target="_blank" rel=', "rel=")
+
+
 def plain_text(html: str | None) -> str:
     """Text-only view (for previews, word counts, search)."""
     return bleach.clean(html or "", tags=[], strip=True).strip()

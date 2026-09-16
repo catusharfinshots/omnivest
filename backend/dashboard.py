@@ -24,6 +24,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from auth import build_current_user_dep
 import investing as inv
+import learn as _learn
 
 logger = logging.getLogger("dashboard")
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -355,6 +356,7 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
             "interests": interests,
             "trending": trending,
             "posts": posts,
+            "reads": await _learn.latest(db, 3),
             "collections": shelves,
             "featured": featured[: (2 if ranked else 1)],
             "live_listings": live_count,

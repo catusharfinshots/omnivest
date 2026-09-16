@@ -7,7 +7,7 @@ import { Bold, Italic, Heading2, Heading3, List, ListOrdered, Link2, RemoveForma
 export default function RichTextEditor({ value, onChange, placeholder = 'Write here…', minHeight = 160, testId }) {
   const ref = useRef(null);
   const [focused, setFocused] = useState(false);
-  const lastEmitted = useRef(value || '');
+  const lastEmitted = useRef(null);   // null until first paint: a value present at mount must still be written into the editor
 
   useEffect(() => {
     if (ref.current && (value || '') !== lastEmitted.current) {

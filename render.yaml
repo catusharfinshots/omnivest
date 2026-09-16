@@ -68,6 +68,9 @@ services:
       - type: rewrite
         source: /manager/*
         destination: https://omnivest-backend.onrender.com/api/og/page/manager/*
+      - type: rewrite
+        source: /learn/*
+        destination: https://omnivest-backend.onrender.com/api/og/page/learn/*
       # Prerendered share-preview pages (scripts/prerender-og.js): the bare
       # /route URL must serve build/<route>/index.html with baked OG meta,
       # or the SPA catch-all would hand crawlers the homepage meta instead.
