@@ -216,7 +216,7 @@ export default function OrdersPage() {
           </div>
         </div>
 
-        {!connections.kite && (
+        {!connections.kite && batches && batches.length > 0 && (
           <div className="mt-4 rounded-xl bg-[#FFFBEB] border border-[#F1D48A] px-4 py-3 text-[13px] text-[#9A4A05] flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4" data-testid="orders-broker-banner">
             <span className="flex-1">{kiteExpired ? 'Your broker login expired for today, so statuses cannot refresh and Cancel will not work until you connect again.' : 'Connect your broker to refresh statuses or cancel orders.'}</span>
             {kiteExpired ? <button type="button" onClick={() => connectKite()} className="btn-primary h-10 shrink-0">Connect again</button> : <Link to="/brokers/connect" className="btn-primary h-10 shrink-0">Connect your broker</Link>}

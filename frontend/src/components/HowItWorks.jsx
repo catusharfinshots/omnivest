@@ -32,7 +32,7 @@ export default function HowItWorks({ kind = 'investments', title = 'How this wor
           </li>
         ))}
       </ol>
-      <div className="mt-2 text-[12px] text-[#667085]">More in the <Link to="/faq" className="text-[#5320A8] font-semibold">FAQ</Link> or <Link to="/contact" className="text-[#5320A8] font-semibold">contact us</Link>.</div>
+      <div className="mt-2 text-[12px] text-[#667085]">More in the <Link to="/faq" className="text-[#5320A8] font-semibold py-3.5 sm:py-0">FAQ</Link> or <Link to="/contact" className="text-[#5320A8] font-semibold py-3.5 sm:py-0">contact us</Link>.</div>
     </div>
   );
 }

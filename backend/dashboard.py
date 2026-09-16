@@ -229,9 +229,9 @@ def build_router(db: AsyncIOMotorDatabase) -> APIRouter:
 
         subs = await db.subscriptions.find({"user_id": uid, "status": "active", "expires_at": {"$gt": now}}, {"_id": 0, "portfolio_id": 1, "expires_at": 1, "plan_months": 1}).to_list(50)
         next_renewal = _aware(min((s["expires_at"] for s in subs if s.get("expires_at")), default=None))
-        paid = await db.payment_orders.find({"user_id": uid, "status": "paid"}, {"_id": 0, "amount": 1, "subscription_id": 1}).to_list(500)
+        paid = await db.payment_orders.find({"user_id": uid, "status": "paid"}, {"_id": 0, "amount": 1, "payable": 1, "subscription_id": 1}).to_list(500)
         cancelled_subs = {s["id"] for s in await db.subscriptions.find({"user_id": uid, "status": {"$in": ["cancelled", "revoked", "refunded"]}}, {"_id": 0, "id": 1}).to_list(500)}
-        fees = round(sum(float(p.get("amount") or 0) for p in paid if p.get("subscription_id") not in cancelled_subs) / 100.0, 2)
+        fees = round(sum(float(p.get("payable", p.get("amount")) or 0) for p in paid if p.get("subscription_id") not in cancelled_subs) / 100.0, 2)
 
         # --- nudges ---
         nudges: List[dict] = []

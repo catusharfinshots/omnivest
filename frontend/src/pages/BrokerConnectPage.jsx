@@ -72,7 +72,7 @@ export default function BrokerConnectPage() {
 
   return (
     <div className="container-x py-10 lg:py-14">
-      <Link to="/investments" className="inline-flex items-center gap-1 text-sm font-semibold text-[#6C2BD9]"><ArrowLeft className="h-4 w-4" /> Back to investments</Link>
+      <Link to="/investments" className="inline-flex items-center gap-1 text-sm font-semibold text-[#6C2BD9] min-h-[40px] sm:min-h-0"><ArrowLeft className="h-4 w-4" /> Back to investments</Link>
 
       <div className="mt-4 flex items-end justify-between gap-4 flex-wrap">
         <div>
@@ -182,7 +182,7 @@ export default function BrokerConnectPage() {
             <div className="mt-1 text-[#7C5A00]">
               Kite Connect apps on the free tier only allow the Zerodha account that <span className="font-semibold">created the app</span> to log in.
               To let other Zerodha users connect, the app owner must go to{' '}
-              <a href="https://developers.kite.trade/apps" target="_blank" rel="noreferrer" className="underline font-semibold">developers.kite.trade → your app</a>{' '}
+              <a href="https://developers.kite.trade/apps" target="_blank" rel="noreferrer" className="underline font-semibold py-3.5 sm:py-0">developers.kite.trade → your app</a>{' '}
               and either <span className="font-semibold">add the user&apos;s Zerodha Client ID under &ldquo;Add users&rdquo;</span>, or subscribe to Kite Connect (₹2,000/month) so any Zerodha user can log in.
             </div>
           </div>

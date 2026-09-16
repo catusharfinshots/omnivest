@@ -114,7 +114,7 @@ export default function DashboardPage() {
               <div key={i} className="flex items-center gap-3 py-2.5 border-t border-[#F5F2FA] first:border-t-0 first:mt-1">
                 <span className={`h-9 w-9 rounded-[10px] grid place-items-center shrink-0 ${cls}`}><Icon className="h-4 w-4" /></span>
                 <span className="min-w-0 flex-1"><span className="block text-[13.5px] font-semibold text-[#0F1729]">{n.title}</span><span className="block text-[12px] text-[#526071]">{n.body}</span></span>
-                <Link to={n.link} className="text-[12px] font-bold text-[#5320A8] shrink-0">{n.cta} →</Link>
+                <Link to={n.link} className="text-[12px] font-bold text-[#5320A8] shrink-0 inline-flex items-center min-h-[40px] sm:min-h-0 px-1 -mx-1">{n.cta} →</Link>
               </div>
             ); })}
           </section>
